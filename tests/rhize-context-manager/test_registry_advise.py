@@ -45,6 +45,10 @@ def root(tmp_path):
     return path
 
 
+def advise_decisions(registry):
+    return {d: e for d, e in registry['decisions'].items() if e.get('advise') is not None}
+
+
 def instrument_hash(registry, decision):
     return reg.advise_instrument_sha256(registry['decisions'][decision]['advise']['instrument'])
 
@@ -71,7 +75,7 @@ def test_every_catalog_decision_validates_and_ships_shadow(catalog):
     assert set(catalog['decisions']) == set(contract.DECISIONS)
     for decision, entry in catalog['decisions'].items():
         assert entry['defaultMode'] == 'shadow', decision
-        assert ('advise' in entry['reachableModes']) == (entry['advise'] is not None), decision
+        assert ('advise' in entry['reachableModes']) == (entry.get('advise') is not None), decision
 
 
 def test_catalog_values_follow_the_plan(catalog):
@@ -86,20 +90,59 @@ def test_catalog_values_follow_the_plan(catalog):
     for decision in ('devflow-next-action', 'gsd-directive', 'check-relaxation'):
         assert d[decision]['tier'] == 'critical' and d[decision]['reachableModes'] == ['off', 'shadow', 'advise']
         assert d[decision]['advise']['minCriticalCases'] >= 10
-    for decision, entry in d.items():
+    for decision, entry in advise_decisions(catalog).items():
         advise = entry['advise']
         assert advise['policy'] == 'advise-v1' and advise['gate'] == 'majority-baseline'
         assert advise['minCohort'] == 30 and advise['alphaBase'] == 0.10 and advise['minCoverage'] == 0.9
         assert advise['demote'] == {'freshLabels': 10, 'window': 30, 'consecutive': 2}
         assert advise['holdback'] == (0.15 if entry['tier'] == 'critical' else 0.10)
-        if decision not in (SKILL,):
+        if decision != SKILL:
             assert all(entry[k] is None for k in contract.COSIGN_ONLY_KEYS), decision
 
 
 def test_typed_advice_tiers_and_holdbacks_match_the_catalog(catalog):
-    assert typed_advice.TIERS == {d: e['tier'] for d, e in catalog['decisions'].items()}
-    for decision, entry in catalog['decisions'].items():
+    adviseable = advise_decisions(catalog)
+    assert typed_advice.TIERS == {d: e['tier'] for d, e in adviseable.items()}
+    assert set(contract.ADVISE_DECISIONS) == set(adviseable)
+    for decision, entry in adviseable.items():
         assert typed_advice.HOLDBACK[entry['tier']] == entry['advise']['holdback'], decision
+
+
+def test_credential_procedure_is_manual_only_and_never_advises(catalog):
+    entry = catalog['decisions']['credential-procedure']
+    assert (entry['tier'], entry['defaultMode'], entry['reachableModes']) == ('workflow', 'shadow', ['off', 'shadow', 'cosign'])
+    assert entry['deployablePolicy'] == entry['instrument'] == contract.POLICY_CREDENTIAL
+    assert entry['holdback'] == 0 and entry['lambda'] is None and entry['gates'] is None and entry['advise'] is None
+    assert catalog['decisions'][WORKFLOW]['deployablePolicy'] is None   # workflow-fit is the content/general advise decision
+    for change in ({'reachableModes': ['off', 'shadow', 'cosign', 'advise']}, {'incumbent': 'other'},
+                   {'defaultMode': 'cosign'}, {'holdback': 0.1}, {'tier': 'advisory'}, {'tier': 'critical'},
+                   {'gates': {}}, {'lambda': 1}, {'instrument': 'laya-choice-v1'}):
+        with pytest.raises(ValueError):
+            contract.validate_registry(mutated(catalog, 'credential-procedure', lambda e, c=change: e.update(c)))
+    # the policy is keyed on the decision: neither workflow-fit nor skill-fit may borrow it
+    for decision in (WORKFLOW, SKILL):
+        with pytest.raises(ValueError, match='credential'):
+            contract.validate_registry(mutated(catalog, decision, lambda e: e.update(deployablePolicy=contract.POLICY_CREDENTIAL)))
+
+
+def test_credential_cosign_is_cli_only_known_revision_and_cohort_free(root, catalog):
+    ledger_cohort = write_cohort(root, catalog, SKILL)  # an advise pass for another decision is no authority here
+    entry = catalog['decisions']['credential-procedure']
+    policy, instrument_hash_ = cohorts.deployable_hashes(entry)
+    good = {'policySha256': policy, 'instrumentSha256': instrument_hash_, 'layaRevision': REV, 'cohortId': None}
+    for actor, change in (('cycle', {}), ('cli', {'cohortId': ledger_cohort}), ('cli', {'layaRevision': 'unknown'})):
+        with pytest.raises(reg.RegistryError) as err:
+            reg.mutate(root, 'credential-procedure', 'cosign', actor=actor, reason='fixture_only', expected_revision=0,
+                       binding={**good, **change})
+        assert err.value.code in ('invalid_binding', 'binding_required')
+    with pytest.raises(reg.RegistryError) as err:
+        reg.mutate(root, 'credential-procedure', 'advise', actor='cli', reason='fixture_only', expected_revision=0,
+                   binding=binding(catalog, SKILL))
+    assert err.value.code == 'unreachable_mode'
+    state = reg.mutate(root, 'credential-procedure', 'cosign', actor='cli', reason='fixture_only', expected_revision=0,
+                       binding=good)
+    assert reg.effective_mode('credential-procedure', catalog, state, 'ok', REV) == 'cosign'
+    assert reg.effective_mode('credential-procedure', catalog, state, 'ok', 'changed') == 'shadow'
 
 
 def test_advise_instrument_hashes(catalog):
@@ -495,7 +538,7 @@ def test_json_schemas_agree_with_the_contract_constants():
     assert set(record['required']) == set(contract.CHOICE_RECORD_KEYS) == set(record['properties'])
     assert record['properties']['laya']['required'] == list(contract.CHOICE_LAYA_KEYS)
     assert record['properties']['laya']['properties']['status']['enum'] == list(contract.CHOICE_LAYA_STATUSES)
-    assert record['properties']['decision']['enum'] == list(contract.DECISIONS)
+    assert record['properties']['decision']['enum'] == list(contract.ADVISE_DECISIONS)
     assert record['properties']['schema']['const'] == contract.CHOICE_RECORD_SCHEMA
     assert set(outcome['required']) == set(contract.CHOICE_OUTCOME_KEYS) == set(outcome['properties'])
     assert outcome['properties']['schema']['const'] == contract.CHOICE_OUTCOME_SCHEMA

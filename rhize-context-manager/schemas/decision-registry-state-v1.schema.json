@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rhize.media/schemas/decision-registry-state-v1.schema.json",
   "title": "decision-registry-state-v1",
-  "description": "Machine-local registry state (~/.local/share/rhize/typed-decisions/registry-state.json). Written only through scripts/typed_decisions/decision_registry.py (lock, revision check, audit intent, atomic replace, audit commit). Readers treat a corrupt or invalid file as shadow. An entry in mode advise or cosign must bind non-null policySha256, instrumentSha256 and layaRevision. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "description": "Machine-local registry state (~/.local/share/rhize/typed-decisions/registry-state.json). Written only through scripts/typed_decisions/decision_registry.py (lock, revision check, audit intent, atomic replace, audit commit). Readers treat a corrupt or invalid file as shadow. An entry in mode advise or cosign must bind non-null policySha256, instrumentSha256 and layaRevision. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape. Credential-procedure cosign is manual-only: a known (not 'unknown') layaRevision and a null cohortId.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -34,7 +34,8 @@
           "browser-qa-selection",
           "model-routing",
           "gsd-directive",
-          "check-relaxation"
+          "check-relaxation",
+          "credential-procedure"
         ]
       },
       "additionalProperties": {
@@ -145,6 +146,34 @@
             }
           }
         ]
+      },
+      "properties": {
+        "credential-procedure": {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "cosign"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "properties": {
+              "layaRevision": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._-]{1,80}$",
+                "not": {
+                  "const": "unknown"
+                }
+              },
+              "cohortId": {
+                "type": "null"
+              }
+            }
+          }
+        }
       }
     }
   }

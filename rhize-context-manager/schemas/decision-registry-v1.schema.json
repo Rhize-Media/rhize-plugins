@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rhize.media/schemas/decision-registry-v1.schema.json",
   "title": "decision-registry-v1",
-  "description": "Shipped default typed-decision registry (rhize-context-manager/catalog/decision-registry.json). Critical decisions may reach advise (with at least 10 critical cases in the gate) but never cosign; cosign is reachable only by advisory decisions with a deployable policy; advise is reachable if and only if the entry carries an `advise` gate config. Earned modes are never a default. Cross-field rules are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "description": "Shipped default typed-decision registry (rhize-context-manager/catalog/decision-registry.json). Critical decisions may reach advise (with at least 10 critical cases in the gate) but never cosign; cosign is reachable only by advisory decisions with a deployable policy; advise is reachable if and only if the entry carries an `advise` gate config. Earned modes are never a default. Cross-field rules are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape. The credential-cli-v1 policy belongs only to the manual-only workflow-tier credential-procedure decision (shadow default, fixed guidance, never advise); skill-fit keeps cosign-v1.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -25,7 +25,8 @@
           "browser-qa-selection",
           "model-routing",
           "gsd-directive",
-          "check-relaxation"
+          "check-relaxation",
+          "credential-procedure"
         ]
       },
       "additionalProperties": {
@@ -80,7 +81,8 @@
             "anyOf": [
               {
                 "enum": [
-                  "cosign-v1"
+                  "cosign-v1",
+                  "credential-cli-v1"
                 ]
               },
               {
@@ -91,7 +93,10 @@
           "instrument": {
             "anyOf": [
               {
-                "const": "laya-choice-v1"
+                "enum": [
+                  "laya-choice-v1",
+                  "credential-cli-v1"
+                ]
               },
               {
                 "type": "null"
@@ -243,8 +248,79 @@
                 }
               }
             }
+          },
+          {
+            "if": {
+              "properties": {
+                "deployablePolicy": {
+                  "const": "credential-cli-v1"
+                }
+              },
+              "required": [
+                "deployablePolicy"
+              ]
+            },
+            "then": {
+              "properties": {
+                "tier": {
+                  "const": "workflow"
+                },
+                "defaultMode": {
+                  "const": "shadow"
+                },
+                "instrument": {
+                  "const": "credential-cli-v1"
+                },
+                "holdback": {
+                  "const": 0
+                },
+                "lambda": {
+                  "type": "null"
+                },
+                "gates": {
+                  "type": "null"
+                },
+                "incumbent": {
+                  "const": "credential-cli-first"
+                },
+                "advise": {
+                  "type": "null"
+                },
+                "reachableModes": {
+                  "items": {
+                    "enum": [
+                      "off",
+                      "shadow",
+                      "cosign"
+                    ]
+                  }
+                }
+              }
+            }
           }
         ]
+      },
+      "properties": {
+        "credential-procedure": {
+          "properties": {
+            "deployablePolicy": {
+              "const": "credential-cli-v1"
+            }
+          },
+          "required": [
+            "deployablePolicy"
+          ]
+        },
+        "skill-fit": {
+          "properties": {
+            "deployablePolicy": {
+              "enum": [
+                "cosign-v1",
+                null
+              ]
+            }
+          }
+        }
       }
     }
   },

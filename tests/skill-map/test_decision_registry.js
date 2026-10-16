@@ -186,13 +186,18 @@ check('registry unreadable or invalid -> off (no Laya at all)', () => noEnv(() =
   assert.strictEqual(read({ registryPath: write('bad.json', bad), statePath: write('cosign.json', fixtures.validStates.cosign) }).mode, 'off');
 }));
 
-check('unknown decision -> off; workflow-fit reads as shadow with null instrument fields', () => noEnv(() => {
+check('unknown decision -> off; workflow-fit reads as shadow with null instrument fields; credential-procedure has its own policy', () => noEnv(() => {
   assert.strictEqual(reg.readDecisionConfig('nope', { statePath: missing }).mode, 'off');
   const wf = reg.readDecisionConfig('workflow-fit', { statePath: missing });
   assert.strictEqual(wf.mode, 'shadow');
   assert.strictEqual(wf.endpoint, null);
   assert.strictEqual(wf.holdback, null);
   assert.strictEqual(wf.deployablePolicy, null);
+  const cred = reg.readDecisionConfig('credential-procedure', { statePath: missing });
+  assert.strictEqual(cred.mode, 'shadow');
+  assert.strictEqual(cred.endpoint, 'http://127.0.0.1:8000');
+  assert.strictEqual(cred.holdback, 0);
+  assert.strictEqual(cred.deployablePolicy, 'credential-cli-v1');
 }));
 
 check('RHIZE_LAYA_ENDPOINT overrides the endpoint only when it is a literal loopback URL', () => {
@@ -206,6 +211,7 @@ check('RHIZE_LAYA_ENDPOINT overrides the endpoint only when it is a literal loop
   }
   assert.strictEqual(withEnv('http://127.0.0.1:43211', () => reg.readDecisionConfig('workflow-fit', { statePath: missing }).endpoint), null,
     'a decision without an endpoint never gets one');
+  assert.strictEqual(withEnv('http://127.0.0.1:43211', () => reg.readDecisionConfig('credential-procedure', { statePath: missing }).endpoint), 'http://127.0.0.1:43211');
 });
 
 check('the reader never writes (no files or directories are created)', () => noEnv(() => {
@@ -216,6 +222,13 @@ check('the reader never writes (no files or directories are created)', () => noE
 }));
 
 // ---- advise (plan 2026-10-16 §3): earned like cosign, bound to instrument + Laya revision
+const credState = (fn) => {
+  const state = clone(fixtures.validStates.cosign);
+  const entry = { ...state.decisions['skill-fit'], layaRevision: 'fixture-known', cohortId: null };
+  state.decisions = { 'credential-procedure': entry };
+  if (fn) fn(entry);
+  return state;
+};
 const adviseState = (fn) => {
   const state = clone(fixtures.validStates.cosign);
   const entry = state.decisions['skill-fit'];
@@ -262,7 +275,7 @@ check('an overriding endpoint also demotes an earned advise unless authority is 
 });
 
 check('the shipped catalog loads every decision and workflow-fit is a null-cosign advise decision', () => noEnv(() => {
-  assert.strictEqual(Object.keys(baseRegistry.decisions).length, 8);
+  assert.strictEqual(Object.keys(baseRegistry.decisions).length, 9);
   for (const id of Object.keys(baseRegistry.decisions)) {
     const cfg = reg.readDecisionConfig(id, { statePath: missing });
     assert.strictEqual(cfg.mode, 'shadow', id);
@@ -362,6 +375,14 @@ check('validators agree with contract.validate_registry / validate_state on muta
     mutateRegistry((e, r) => { r.decisions['gsd-directive'].reachableModes = ['off', 'shadow']; }),
     mutateRegistry((e, r) => { r.decisions['gsd-directive'].reachableModes = ['off', 'shadow', 'advise', 'cosign']; }),
     mutateRegistry((e, r) => { r.decisions['procedure-pick'].advise = null; }),
+    // the credential policy is keyed on the credential-procedure decision, never on workflow-fit or skill-fit
+    mutateRegistry((e, r) => { r.decisions['credential-procedure'].reachableModes.push('advise'); }),
+    mutateRegistry((e, r) => { r.decisions['credential-procedure'].incumbent = 'other'; }),
+    mutateRegistry((e, r) => { r.decisions['credential-procedure'].holdback = 0.1; }),
+    mutateRegistry((e, r) => { r.decisions['credential-procedure'].tier = 'advisory'; }),
+    mutateRegistry((e, r) => { r.decisions['credential-procedure'].instrument = 'laya-choice-v1'; }),
+    mutateRegistry((e, r) => { r.decisions['workflow-fit'].deployablePolicy = 'credential-cli-v1'; }),
+    mutateRegistry((e) => { e.deployablePolicy = 'credential-cli-v1'; }),
     mutateRegistry((e, r) => { r.decisions['procedure-pick'].holdback = 0.1; }),
     mutateRegistry((e, r) => { r.decisions['procedure-pick'].tier = 'critical'; }),
   ];
@@ -410,6 +431,13 @@ check('validators agree with contract.validate_registry / validate_state on muta
     adviseState((s) => { s.decisions['gsd-directive'] = clone(s.decisions['skill-fit']); s.decisions['gsd-directive'].mode = 'cosign'; }),
     adviseState((s) => { s.decisions['gsd-directive'] = clone(s.decisions['skill-fit']); s.decisions['gsd-directive'].mode = 'off'; }),
     adviseState((s) => { s.decisions['workflow-fit'] = { ...clone(s.decisions['skill-fit']), mode: 'off' }; }),
+    // credential-procedure cosign is manual-only: a known checkpoint and no cohort
+    credState(),
+    credState((e) => { e.layaRevision = null; }),
+    credState((e) => { e.layaRevision = 'unknown'; }),
+    credState((e) => { e.cohortId = 'b'.repeat(32); }),
+    credState((e) => { e.mode = 'off'; e.layaRevision = null; }),
+    credState((e) => { e.mode = 'advise'; }),
   ];
   const py = pythonVerdicts(registries, states);
   registries.forEach((r, i) => assert.strictEqual(jsOk(() => reg.validateRegistry(clone(r))), py.registries[i], `registry case ${i}: ${JSON.stringify(r).slice(0, 160)}`));

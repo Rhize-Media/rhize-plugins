@@ -935,11 +935,11 @@ def test_a_cycle_demotes_a_failing_cosign_and_a_pin_prevents_it(tmp_path, regist
     assert pinned['full']['demotion']['demote'] is True               # reported, never acted on
 
 
-def test_nothing_can_be_deployed_but_cosign_v1(root, registry):
+def test_statistical_cycle_deploys_only_cosign_v1(root, registry):
     entry = dict(registry['decisions'][SKILL], deployablePolicy='router-floor-3')
-    with pytest.raises(ValueError, match='only cosign-v1'):
+    with pytest.raises(ValueError, match='unknown deployable policy'):
         cohorts.deployable_hashes(entry)
-    assert set(contract.POLICIES) == {'cosign-v1'}
+    assert set(contract.POLICIES) == {'cosign-v1', 'credential-cli-v1'}
     recs = disagreements(45)
     write_records(root, recs)
     out = run(root, registry, now='2026-10-11T00:00:00Z')

@@ -109,5 +109,11 @@
     "console/network errors",
     "accessibility smoke",
     "responsive layout"
+  ],
+  "skill:credential-access": [
+    "stored credential",
+    "macos keychain",
+    "keychain access",
+    "authenticating a cli"
   ]
 }

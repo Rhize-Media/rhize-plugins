@@ -107,6 +107,25 @@
       ],
       "tier": "critical"
      },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     },
      "devflow-next-action": {
       "advise": {
        "alphaBase": 0.1,
@@ -394,6 +413,25 @@
        "advise"
       ],
       "tier": "critical"
+     },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
      },
      "devflow-next-action": {
       "advise": {
@@ -683,6 +721,25 @@
       ],
       "tier": "critical"
      },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     },
      "devflow-next-action": {
       "advise": {
        "alphaBase": 0.1,
@@ -971,6 +1028,25 @@
       ],
       "tier": "critical"
      },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     },
      "devflow-next-action": {
       "advise": {
        "alphaBase": 0.1,
@@ -1256,6 +1332,25 @@
        "advise"
       ],
       "tier": "critical"
+     },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
      },
      "devflow-next-action": {
       "advise": {

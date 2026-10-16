@@ -177,6 +177,7 @@ mutation-analyze · mutation-fix
 | --- | --- | --- |
 | `chrome-devtools-mcp` | DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the act… | automation, nextjs, observability, testing |
 | `completed-branch-promotion` | Promote a completed feature or task branch through Rhize's repository-governed protected-branch workflow. | testing, vercel, workflow-patterns |
+| `credential-access` | Use when authenticating a CLI or retrieving a stored credential, password, token, or API key from macOS Keychain. | automation, security |
 | `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, sanity, sentry, supabase, vercel, workflow-patterns |
 | `dev-flow-foundations` | Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, c… | project-planning, workflow-patterns |
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
@@ -186,7 +187,7 @@ mutation-analyze · mutation-fix
 | `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, review, testing |
 <!-- SKILL-MAP:END -->
 
-Each of these nine packaged skills carries only Rhize-specific policy or convention, not
+Each of these ten packaged skills carries only Rhize-specific policy or convention, not
 platform API reference — `sentry-instrumentation` and `sanity-development` explicitly defer to
 the official `sentry:*`/`sanity:*` plugins for SDK setup and exhaustive API docs, and
 `chrome-devtools-mcp` shrinks to DevTools-protocol mechanics for `/rhize-devflow:browser-qa`
@@ -315,13 +316,16 @@ manifest entry's declared `binary` — present/absent on `PATH`, nothing further
 
 ## Hooks
 
-Claude Code auto-wires the refactor-evidence workflow through the plugin hook manifest. Codex does
-not consume that Claude hook manifest; it invokes the same host-neutral script runners explicitly
-through the shared skills and commands. Both hosts use the same receipt schema and state files, so
-their evidence remains interoperable without claiming identical lifecycle wiring.
+Claude Code and current Codex load the plugin's `hooks/hooks.json`. Codex additionally requires
+review and trust of each current hook definition; installation alone does not activate it.
+Restart running hosts after updates and verify actual hook results. Both hosts use the same
+host-neutral script runners and receipt formats. See the official
+[Codex hook contract](https://learn.chatgpt.com/docs/hooks) and
+[Claude hook contract](https://code.claude.com/docs/en/hooks).
 
 | Runtime | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|
+| `scripts/credential_guard.py` | PreToolUse | `*` | T4 (blocks) | Denies explicit Keychain Access GUI targets in executable/CUA requests; directs to the `credential-access` skill for private CLI handling. Code-mode orchestration passes through to guarded nested calls. Source edits and simple source reads remain allowed. |
 | `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Installed hook uses `auto` to classify explicit material implementation/refactor/simplification prompts. Trusted adapters may use per-invocation `required` with task kind `implementation`; no prompt rewrite or persistent bypass is needed. Review, audit, investigation, explicit read-only, non-code, and plan-only prompts remain ungated in `auto`. |
 | `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts, **config-only paths, and `claudedocs/` prose** but blocks source writes until `prepare`; invalidates reconciliation after later edits. A config-only write never advances a `prepared` receipt into `implementation`. |
 | `scripts/refactor_gate.py hook-command` | PreToolUse | `Bash\|exec_command\|functions.exec` | T4 (blocks) | Applies the same source-write gate to patch text carried through Codex/functions.exec, then blocks commit, push, and merge until reconciliation — **unless** the receipt is still `pending`/`prepared` (no gated source write has landed) and every dirty path in the targeted repo is config or planning; a clean tree under such a receipt is also allowed. The target repo is resolved from the command itself when unambiguous — a leading `cd <dir> &&`/`cd <dir>;`, `git -C <dir>`, or `--git-dir=`/`--work-tree=` — and falls back to the payload's own cwd for anything ambiguous (a shell variable/command substitution, more than one leading `cd`, a subshell, `pushd`) or that doesn't resolve to a real Git repo. |
@@ -402,6 +406,17 @@ manually per the snippet in [rhize-core/README.md § Setup manifest
 schema](../rhize-core/README.md#setup-manifest-schema).
 
 ## Lineage
+
+The credential safeguard is Rhize policy over the existing OS CLI and child-process launcher;
+it adds no credential store or dependency. It inspects explicit action text, not arbitrary
+encoded code, opaque app handles, or tools that omit native hooks. Hook errors, disabled or
+untrusted hooks, and specialized host paths can leave coverage unavailable. It is a guardrail
+against the observed workflow mistake, not an OS security sandbox. The guard does not parse
+all possible CLI secret-output patterns; the skill governs private credential consumption.
+Context Manager can separately select fixed credential CLI procedure guidance in its bounded
+active policy. It never clears this deterministic GUI deny or grants execution authority.
+The content/general research pilot remains observational; installed activation and native
+interception must be verified separately.
 
 Migrated from `~/dev-local/CLAUDE-SKILLS` (archived 2026-06). The `skill-refinement` meta-skill
 was promoted to the `rhize-meta` plugin (2026-06-15), then, along with `rhize-meta`'s external-skill

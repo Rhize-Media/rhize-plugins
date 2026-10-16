@@ -173,7 +173,8 @@ def hook_message(receipt):
         measure = shlex.quote(str(Path(__file__).with_name('decision_measure.py')))
         identity = receipt['opportunityId']
         return (
-            'Workflow selection checkpoint before substantial work. Arm A remains authoritative; Laya is shadow-only. '
+            'Workflow selection checkpoint before substantial work. The content/general measurement pilot keeps Arm A authoritative and Laya in shadow. '
+            'Separately configured credential CLI procedure selection may use its bounded active policy; it never grants permissions or clears the credential GUI hard deny. '
             f'Opportunity ID: {identity}. BEFORE catalog recall, consult or decide, capture enum-only context: '
             f'python3 {script} context --id {identity} --event-kind KIND --action ACTION --domain DOMAIN '
             '[--exclude EXCLUSION] [--parent-id PRIOR_OPPORTUNITY_ID] [--prebound-family content|general]. '

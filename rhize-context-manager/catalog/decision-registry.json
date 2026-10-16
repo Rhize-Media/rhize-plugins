@@ -279,6 +279,25 @@
           "consecutive": 2
         }
       }
+    },
+    "credential-procedure": {
+      "tier": "workflow",
+      "defaultMode": "shadow",
+      "reachableModes": [
+        "off",
+        "shadow",
+        "cosign"
+      ],
+      "incumbent": "credential-cli-first",
+      "deployablePolicy": "credential-cli-v1",
+      "instrument": "credential-cli-v1",
+      "holdback": 0,
+      "latencyBudgetMs": 800,
+      "lambda": null,
+      "endpoint": "http://127.0.0.1:8000",
+      "model": "typed-decisions",
+      "gates": null,
+      "advise": null
     }
   }
 }

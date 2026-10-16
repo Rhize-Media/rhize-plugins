@@ -27,7 +27,9 @@ REGISTRY_SCHEMA_VERSION = 1
 STATE_SCHEMA_VERSION = 1
 
 DECISIONS = ('skill-fit', 'workflow-fit', 'procedure-pick', 'devflow-next-action', 'browser-qa-selection',
-             'model-routing', 'gsd-directive', 'check-relaxation')
+             'model-routing', 'gsd-directive', 'check-relaxation', 'credential-procedure')
+CREDENTIAL_DECISION = 'credential-procedure'
+ADVISE_DECISIONS = tuple(d for d in DECISIONS if d != CREDENTIAL_DECISION)  # the credential decision is manual-only
 RECORDED_DECISIONS = ('skill-fit',)
 MODES = ('off', 'shadow', 'advise', 'cosign')
 EARNED_MODES = ('advise', 'cosign')
@@ -47,8 +49,11 @@ AUDIT_PHASES = ('intent', 'commit')
 AUDIT_ACTORS = ('cli', 'cycle', 'recovery')
 
 POLICY_COSIGN = 'cosign-v1'
+POLICY_CREDENTIAL = 'credential-cli-v1'
 POLICIES = {POLICY_COSIGN: 'emit the incumbent router suggestion iff laya.status == "ok" and laya.choice '
-                           '== incumbent.skillId; otherwise emit no router suggestion'}
+                           '== incumbent.skillId; otherwise emit no router suggestion',
+            POLICY_CREDENTIAL: 'emit only a fixed allowed credential CLI procedure selected by Laya; '
+                               'otherwise retain deterministic CLI-first guidance; never grant permissions or clear a deny'}
 POLICY_ADVISE = 'advise-v1'  # advise-v1 is set by the baseline gate; its per-surface hash lives in typed_advice
 ADVISE_GATE = 'majority-baseline'
 ADVISE_INSTRUMENTS = ('typed-advice-v1', 'laya-choice-v1')
@@ -456,7 +461,7 @@ def validate_choice_record(record: dict) -> dict:
     _keys(record, CHOICE_RECORD_KEYS, 'choice record')
     if record['schema'] != CHOICE_RECORD_SCHEMA:
         raise ValueError('invalid schema')
-    _enum(record['decision'], DECISIONS, 'decision')
+    _enum(record['decision'], ADVISE_DECISIONS, 'decision')
     if not isinstance(record['decisionId'], str) or not HEX32.match(record['decisionId']):
         raise ValueError('invalid decisionId')
     _ts(record['ts'], 'ts')
@@ -499,7 +504,7 @@ def validate_choice_outcome(outcome: dict) -> dict:
     _keys(outcome, CHOICE_OUTCOME_KEYS, 'choice outcome')
     if outcome['schema'] != CHOICE_OUTCOME_SCHEMA:
         raise ValueError('invalid schema')
-    _enum(outcome['decision'], DECISIONS, 'decision')
+    _enum(outcome['decision'], ADVISE_DECISIONS, 'decision')
     if not isinstance(outcome['decisionId'], str) or not HEX32.match(outcome['decisionId']):
         raise ValueError('invalid decisionId')
     if not isinstance(outcome['chosen'], str) or not CANDIDATE_ID.match(outcome['chosen']):
@@ -573,12 +578,18 @@ def validate_registry(registry: dict) -> dict:
             raise ValueError('invalid defaultMode')  # an earned mode needs a binding, so it is never a default
         if entry['tier'] == 'critical' and 'cosign' in reachable:
             raise ValueError('critical decisions never reach cosign')
+        # The credential policy belongs to one manual-only decision; it is keyed on the policy, not on workflow-fit.
+        credential = entry.get('deployablePolicy') == POLICY_CREDENTIAL
+        if credential and (decision_id != CREDENTIAL_DECISION or entry['tier'] != 'workflow'):
+            raise ValueError('the credential policy belongs to the workflow-tier credential-procedure decision')
+        if decision_id == CREDENTIAL_DECISION and (not credential or 'advise' in reachable):
+            raise ValueError('credential-procedure is manual-only credential guidance and never reaches advise')
         if 'cosign' in reachable:
-            if entry['tier'] != 'advisory':
+            if not credential and (decision_id != 'skill-fit' or entry['tier'] != 'advisory'):
                 raise ValueError('only advisory decisions may reach cosign')
             _enum(entry['deployablePolicy'], tuple(POLICIES), 'deployablePolicy')
-            if entry['instrument'] != INSTRUMENT:
-                raise ValueError('cosign requires the laya-choice-v1 instrument')
+            if entry['instrument'] != (POLICY_CREDENTIAL if credential else INSTRUMENT):
+                raise ValueError('cosign requires its shipped policy instrument')
             endpoint_match = ENDPOINT.match(entry['endpoint']) if isinstance(entry['endpoint'], str) else None
             if not endpoint_match or not 1 <= int(endpoint_match.group(2)) <= 65535:
                 raise ValueError('endpoint must be a literal loopback http address')
@@ -588,23 +599,28 @@ def validate_registry(registry: dict) -> dict:
             _int(entry['latencyBudgetMs'], 'latencyBudgetMs', lo=100)
             if entry['latencyBudgetMs'] > 5000:
                 raise ValueError('invalid latencyBudgetMs')
-            _number(entry['lambda'], 'lambda', 0)
-            if entry['lambda'] == 0:
-                raise ValueError('invalid lambda')
-            gates = entry['gates']
-            _keys(gates, ('promote', 'demote'), 'gates')
-            _keys(gates['promote'], PROMOTE_GATE_KEYS, 'gates.promote')
-            _keys(gates['demote'], DEMOTE_GATE_KEYS, 'gates.demote')
-            _int(gates['promote']['cohortSize'], 'cohortSize', lo=20)
-            _int(gates['promote']['maxPerSession'], 'maxPerSession', lo=1)
-            _number(gates['promote']['alphaBase'], 'alphaBase', 0, 0.2)
-            for key in ('maxAmbiguousShare', 'maxUnavailableShare'):
-                _number(gates['promote'][key], key, 0, 1)
-            _int(gates['demote']['minLabeled'], 'minLabeled', lo=10)
-            _number(gates['demote']['alpha'], 'demote.alpha', 0, 0.5)
-            _number(gates['demote']['maxUnavailableShare'], 'demote.maxUnavailableShare', 0, 1)
-            _int(gates['demote']['operationalWindowDays'], 'operationalWindowDays', lo=1)
-            _int(gates['demote']['latencyReportOnlyDays'], 'latencyReportOnlyDays', lo=0)
+            if credential:
+                if (entry['defaultMode'] != 'shadow' or entry['holdback'] != 0 or entry['lambda'] is not None
+                        or entry['gates'] is not None or entry['incumbent'] != 'credential-cli-first'):
+                    raise ValueError('credential workflow requires shadow default and manual-only fixed guidance')
+            else:
+                _number(entry['lambda'], 'lambda', 0)
+                if entry['lambda'] == 0:
+                    raise ValueError('invalid lambda')
+                gates = entry['gates']
+                _keys(gates, ('promote', 'demote'), 'gates')
+                _keys(gates['promote'], PROMOTE_GATE_KEYS, 'gates.promote')
+                _keys(gates['demote'], DEMOTE_GATE_KEYS, 'gates.demote')
+                _int(gates['promote']['cohortSize'], 'cohortSize', lo=20)
+                _int(gates['promote']['maxPerSession'], 'maxPerSession', lo=1)
+                _number(gates['promote']['alphaBase'], 'alphaBase', 0, 0.2)
+                for key in ('maxAmbiguousShare', 'maxUnavailableShare'):
+                    _number(gates['promote'][key], key, 0, 1)
+                _int(gates['demote']['minLabeled'], 'minLabeled', lo=10)
+                _number(gates['demote']['alpha'], 'demote.alpha', 0, 0.5)
+                _number(gates['demote']['maxUnavailableShare'], 'demote.maxUnavailableShare', 0, 1)
+                _int(gates['demote']['operationalWindowDays'], 'operationalWindowDays', lo=1)
+                _int(gates['demote']['latencyReportOnlyDays'], 'latencyReportOnlyDays', lo=0)
         else:
             for key in COSIGN_ONLY_KEYS:
                 if entry[key] is not None:
@@ -651,6 +667,9 @@ def validate_state(state: dict, registry: dict) -> dict:
             raise ValueError('invalid layaRevision')
         if entry['cohortId'] is not None and (not isinstance(entry['cohortId'], str) or not HEX32.match(entry['cohortId'])):
             raise ValueError('invalid cohortId')
+        if (entry['mode'] == 'cosign' and registry['decisions'][decision_id].get('deployablePolicy') == POLICY_CREDENTIAL
+                and (entry['layaRevision'] in (None, 'unknown') or entry['cohortId'] is not None)):
+            raise ValueError('credential cosign requires a known checkpoint and manual-only basis')
         if entry['mode'] in EARNED_MODES and (entry['policySha256'] is None or entry['instrumentSha256'] is None):
             raise ValueError(f"{entry['mode']} state must bind policy and instrument hashes")
         # shortcut: a hand-written cosign state may still omit layaRevision (the Node router suites build such

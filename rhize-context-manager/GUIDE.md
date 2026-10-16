@@ -326,6 +326,12 @@ as additional unique tasks. See `evals/memory-context/README.md` in the marketpl
 
 ## Workflow selection before composition
 
+For credential work, the separate `credential-procedure` decision can select a fixed CLI procedure at
+task intake and later tool calls. It defaults to shadow; active guidance requires explicit,
+audited activation bound to the current policy, instrument and known local checkpoint.
+It never authorizes a tool call or clears Dev Flow's Keychain GUI deny. See the reference below
+and `docs/handoffs/credential-workflow-activation.md` in the marketplace checkout.
+
 See [workflow selection](docs/workflow-selection.md) for the opt-in shared Claude/Codex
 UserPromptSubmit selector, private opportunity/decision/outcome receipts and explicit local
 skill-source allowlist. Metadata recall uses the supported procedural-memory launcher and

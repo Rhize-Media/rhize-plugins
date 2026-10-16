@@ -36,7 +36,8 @@ const { POLICIES, policySha256, defaultRoot } = require('./typed-decisions.js');
 const REGISTRY_SCHEMA_VERSION = 1;
 const STATE_SCHEMA_VERSION = 1;
 const DECISIONS = ['skill-fit', 'workflow-fit', 'procedure-pick', 'devflow-next-action', 'browser-qa-selection',
-  'model-routing', 'gsd-directive', 'check-relaxation'];
+  'model-routing', 'gsd-directive', 'check-relaxation', 'credential-procedure'];
+const POLICY_CREDENTIAL = 'credential-cli-v1';
 const MODES = ['off', 'shadow', 'advise', 'cosign'];
 const EARNED_MODES = ['advise', 'cosign'];
 const TIERS = ['advisory', 'workflow', 'critical'];
@@ -134,30 +135,43 @@ function validateRegistry(registry) {
     enumOf(entry.defaultMode, reachable, 'defaultMode');
     if (EARNED_MODES.includes(entry.defaultMode)) fail('invalid defaultMode');
     if (entry.tier === 'critical' && reachable.includes('cosign')) fail('critical decisions never reach cosign');
+    // The credential policy belongs to one manual-only decision; it is keyed on the policy, not on workflow-fit.
+    const credential = entry.deployablePolicy === POLICY_CREDENTIAL;
+    if (credential && (decisionId !== 'credential-procedure' || entry.tier !== 'workflow')) {
+      fail('the credential policy belongs to the workflow-tier credential-procedure decision');
+    }
+    if (decisionId === 'credential-procedure' && (!credential || reachable.includes('advise'))) {
+      fail('credential-procedure is manual-only credential guidance and never reaches advise');
+    }
     if (reachable.includes('cosign')) {
-      if (entry.tier !== 'advisory') fail('only advisory decisions may reach cosign');
+      if (!credential && (decisionId !== 'skill-fit' || entry.tier !== 'advisory')) fail('only advisory decisions may reach cosign');
       enumOf(entry.deployablePolicy, Object.keys(POLICIES), 'deployablePolicy');
-      if (entry.instrument !== INSTRUMENT) fail('cosign requires the laya-choice-v1 instrument');
+      if (entry.instrument !== (credential ? POLICY_CREDENTIAL : INSTRUMENT)) fail('cosign requires its shipped policy instrument');
       if (!isLoopbackEndpoint(entry.endpoint)) fail('endpoint must be a literal loopback http address');
       if (entry.model !== 'typed-decisions') fail('invalid model');
       numberOf(entry.holdback, 'holdback', 0, 0.5);
       intOf(entry.latencyBudgetMs, 'latencyBudgetMs', 100);
       if (entry.latencyBudgetMs > 5000) fail('invalid latencyBudgetMs');
-      numberOf(entry.lambda, 'lambda', 0);
-      if (entry.lambda === 0) fail('invalid lambda');
-      const gates = entry.gates;
-      keysEqual(gates, ['promote', 'demote'], 'gates');
-      keysEqual(gates.promote, PROMOTE_GATE_KEYS, 'gates.promote');
-      keysEqual(gates.demote, DEMOTE_GATE_KEYS, 'gates.demote');
-      intOf(gates.promote.cohortSize, 'cohortSize', 20);
-      intOf(gates.promote.maxPerSession, 'maxPerSession', 1);
-      numberOf(gates.promote.alphaBase, 'alphaBase', 0, 0.2);
-      for (const key of ['maxAmbiguousShare', 'maxUnavailableShare']) numberOf(gates.promote[key], key, 0, 1);
-      intOf(gates.demote.minLabeled, 'minLabeled', 10);
-      numberOf(gates.demote.alpha, 'demote.alpha', 0, 0.5);
-      numberOf(gates.demote.maxUnavailableShare, 'demote.maxUnavailableShare', 0, 1);
-      intOf(gates.demote.operationalWindowDays, 'operationalWindowDays', 1);
-      intOf(gates.demote.latencyReportOnlyDays, 'latencyReportOnlyDays', 0);
+      if (credential) {
+        if (entry.defaultMode !== 'shadow' || entry.holdback !== 0 || entry.lambda !== null || entry.gates !== null
+          || entry.incumbent !== 'credential-cli-first') fail('credential workflow requires shadow default and manual-only fixed guidance');
+      } else {
+        numberOf(entry.lambda, 'lambda', 0);
+        if (entry.lambda === 0) fail('invalid lambda');
+        const gates = entry.gates;
+        keysEqual(gates, ['promote', 'demote'], 'gates');
+        keysEqual(gates.promote, PROMOTE_GATE_KEYS, 'gates.promote');
+        keysEqual(gates.demote, DEMOTE_GATE_KEYS, 'gates.demote');
+        intOf(gates.promote.cohortSize, 'cohortSize', 20);
+        intOf(gates.promote.maxPerSession, 'maxPerSession', 1);
+        numberOf(gates.promote.alphaBase, 'alphaBase', 0, 0.2);
+        for (const key of ['maxAmbiguousShare', 'maxUnavailableShare']) numberOf(gates.promote[key], key, 0, 1);
+        intOf(gates.demote.minLabeled, 'minLabeled', 10);
+        numberOf(gates.demote.alpha, 'demote.alpha', 0, 0.5);
+        numberOf(gates.demote.maxUnavailableShare, 'demote.maxUnavailableShare', 0, 1);
+        intOf(gates.demote.operationalWindowDays, 'operationalWindowDays', 1);
+        intOf(gates.demote.latencyReportOnlyDays, 'latencyReportOnlyDays', 0);
+      }
     } else {
       for (const key of COSIGN_ONLY_KEYS) {
         if (entry[key] !== null) fail(`${key} must be null unless cosign is reachable`);
@@ -192,6 +206,10 @@ function validateState(state, registry) {
     }
     if (entry.cohortId !== null && (typeof entry.cohortId !== 'string' || !HEX32.test(entry.cohortId))) {
       fail('invalid cohortId');
+    }
+    if (entry.mode === 'cosign' && registry.decisions[decisionId].deployablePolicy === POLICY_CREDENTIAL
+      && (entry.layaRevision === null || entry.layaRevision === 'unknown' || entry.cohortId !== null)) {
+      fail('credential cosign requires a known checkpoint and manual-only basis');
     }
     if (EARNED_MODES.includes(entry.mode) && (entry.policySha256 === null || entry.instrumentSha256 === null)) {
       fail(`${entry.mode} state must bind policy and instrument hashes`);
@@ -271,7 +289,7 @@ function readDecisionConfig(decisionId, options = {}) {
           pinned = stateEntry.pinned;
           // A promotion is valid only for the policy and instrument it was tested with.
           if (mode === 'cosign' && (stateEntry.policySha256 !== policySha256(entry.deployablePolicy)
-              || stateEntry.instrumentSha256 !== instrumentSha256())) {
+              || stateEntry.instrumentSha256 !== instrumentSha256(entry.instrument))) {
             mode = 'shadow';
           }
           // ... and for the Laya checkpoint it was tested against (laya-runtime.json).

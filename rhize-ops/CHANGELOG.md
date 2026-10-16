@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- 2026-10-15: Synchronize the credential-access skill in the mirrored evaluation inventory; retain domains, capture modes, baseline policy and existing runtime behavior.
+- _2026-10-15_ version bump — 0.30.0 → 0.30.1 (patch); marketplace 2.104.5 → 2.104.6.
 - _2026-10-10_ version bump — 0.29.0 → 0.30.0 (minor); marketplace 2.100.4 → 2.101.0.
 - _2026-10-10_ Skill-map relations: cross-model-handoff depends on rhize-bridge; parallel-agent-optimization tags evidence; delegate-setup precedes delegate-to-teammate.
 - _2026-09-29_ version bump — 0.28.1 → 0.29.0 (minor); marketplace 2.96.0 → 2.97.0.

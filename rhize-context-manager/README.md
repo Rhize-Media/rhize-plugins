@@ -161,6 +161,8 @@ thresholds, and calibration data.
 
 | Hook | Event | Purpose |
 |---|---|---|
+| `credential-workflow-prompt.js` | `UserPromptSubmit` | Selects fixed credential CLI guidance only in explicitly activated bounded mode; shadow observes without injection. |
+| `credential-workflow.js` | `PreToolUse` (`*`) | Checks later credential substeps using enum-only signals; never executes commands, grants permission or clears Dev Flow's independent GUI deny. |
 | `context-window-monitor.js` | `PreToolUse` (`Edit\|Write`) | Warns once per 10% band past 75% of the **real** context window |
 | `session-disclosure.js` | `SessionStart` | Fingerprints the CWD against a small set of cheap file/dir checks (`next.config.*` → nextjs, `sanity.config.*` → sanity, `vercel.json` → vercel, `.obsidian/` → obsidian), maps any detected stack to its stack-tag edges in the compiled skill-map artifact, and surfaces up to 8 relevant skills. Silent when no stack is detected. |
 | `remediation-suggester.js` | `PostToolUse` (`Bash`) | On a failing Bash command, matches `stdout`+`stderr` against the compiled skill-map's remediation-condition patterns (`build-failure`, `type-error`, `test-failure`, `lint-failure`, `merge-conflict`) and suggests the top remediating skill/agent via `additionalContext`. Silent when nothing matches. |
@@ -340,6 +342,13 @@ The runner persists reservations and every completed trial as it goes; repetitio
 as additional unique tasks. See `evals/memory-context/README.md` in the marketplace checkout.
 
 ## Workflow selection before composition
+
+The separate bounded credential workflow hook also checks later tool calls. In explicitly
+activated `credential-procedure` cosign mode it selects fixed CLI procedure guidance, without reading
+credentials, sending raw commands/prompts to Laya, executing commands or granting permission.
+Its shadow default and existing audited activation path are described in the same reference.
+The content/general measurement pilot remains in shadow; it does not cap separately activated
+credential guidance or provide evidence that a credential operation succeeded.
 
 See [workflow selection](docs/workflow-selection.md) for the opt-in shared Claude/Codex
 UserPromptSubmit selector, private opportunity/decision/outcome receipts and explicit local

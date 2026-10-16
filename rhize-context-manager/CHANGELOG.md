@@ -26,6 +26,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-16_ version bump — 0.47.3 → 0.48.0 (minor); marketplace 2.104.6 → 2.105.0.
 - Review the three optional doctor omissions through November15 without changing required checks; add default-config and recovered-capture contracts. Historical quota errors remain preserved; credential renewal and the captured Sentry run are verified separately.
 - _2026-10-15_ version bump — 0.47.2 → 0.47.3 (patch); marketplace 2.104.2 → 2.104.3.
 - _2026-10-14_ Use direct native HTTP for loopback skill-fit requests so global-fetch initialization cannot consume the hook deadline; preserve probe-before-prompt, redirect/byte/proxy/abort checks and enforce the deadline after decoding. Remove the redundant TCP probe; routing policy, instrument and registry state are unchanged.

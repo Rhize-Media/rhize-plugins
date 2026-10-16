@@ -174,9 +174,9 @@ def key_of(obj: dict) -> tuple[str, str, str]:
 
 def deployable_hashes(entry: dict) -> tuple[str, str]:
     policy = entry.get('deployablePolicy')
-    if policy != contract.POLICY_COSIGN:
-        raise ValueError('only cosign-v1 is deployable')
-    return contract.policy_sha256(policy), instrument.instrument_sha256()
+    if policy not in (contract.POLICY_COSIGN, contract.POLICY_CREDENTIAL):
+        raise ValueError('unknown deployable policy')
+    return contract.policy_sha256(policy), instrument.instrument_sha256(entry['instrument'])
 
 
 def current_key(entry: dict, recs: list[dict]):

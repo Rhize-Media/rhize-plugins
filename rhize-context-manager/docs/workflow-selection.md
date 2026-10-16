@@ -1,5 +1,41 @@
 # Workflow selection and opportunity capture
 
+## Bounded credential CLI procedure selection
+
+`hooks/credential-workflow.js` is a separate UserPromptSubmit/PreToolUse dispatcher, including
+credential steps that arise after task intake. Its `credential-procedure` registry decision uses the policy
+`credential-cli-v1`, with fixed procedures in `catalog/credential-workflows.json`: authenticated
+service CLI first, necessary private Keychain CLI lookup, explicitly authorized storage, or
+clarification. Store candidates are excluded from lookup/unknown operations. Source reads,
+unrelated issue bodies and code-mode wrappers are not classified as executable credential steps.
+This is a narrow credential-step detector, not a replacement keyword classifier for the general
+workflow family pilot below.
+
+Only enum operation/tool-class/event signals and fixed shipped criteria reach loopback Laya.
+Raw prompts/commands, account/service names and credentials never enter its request or receipt.
+The shared identity/deadline/redirect-safe client is reused. The policy/instrument hashes bind the
+fixed procedure catalog; known host and runtime binding are required for active guidance.
+
+Mode `off` makes no call. Default `shadow` records a suggestion without injecting it. Explicit
+`cosign` selects and injects fixed procedure instructions into native additionalContext. This is
+active instruction selection, not command execution or permission approval: PreToolUse guidance
+does not by itself stop a pending tool call or prove private credential consumption. Dev Flow's
+independent GUI hard deny remains mandatory and cannot be cleared by a model response. Model none,
+timeout, malformed output or unavailable receipt falls back to CLI-first guidance (clarification
+for storage); no failure authorizes broader access. Unknown/contradictory host signals stay shadow.
+
+Activation uses the existing locked/audited `decision_registry.py set-mode credential-procedure cosign`
+operator path with `--manual-override`, current known `--laya-revision` and a reason. This explicit
+operator mode is not earned statistical authority. Automated cycle activation and reuse of skill-fit
+cohorts are refused; skill-fit's existing gates are unchanged. Deactivate with the same CLI's
+`set-mode credential-procedure off` or `shadow`. Do not hand-edit registry-state.json.
+
+The generated content/general pilot checkpoint now scopes shadow authority to that pilot and
+explicitly preserves the separate bounded credential policy and all hard denies. Its source digest
+changes, so subsequent pilot observations belong to the new source cohort; historical labels and
+receipts remain frozen and must not be pooled or rewritten. Source, native delivery and installed
+activation are separate checks. See the marketplace handoff for the remaining native/release gates.
+
 ## Scope and activation
 
 The shared Python checkpoint emits at most one bounded workflow advisory per host/session/turn.
