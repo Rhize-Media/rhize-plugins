@@ -2,6 +2,15 @@
 
 ## Verified facts
 
+- 2026-10-16: Perplexity Pro feasibility review pinned upstream `anxkhn/perplexity-mcp`
+  `356f7d0e7c8d146dce0105bf09a409046ccb923c`. Five offline checks reproduced partial-answer
+  acceptance, missing explicit Research timeout/non-measuring infinity quota, unchecked terminal
+  status, silent non-SSE responses and MCP citation/status loss. No account access or live query
+  occurred. Findings and the conditional minimal integration are in
+  `docs/research/perplexity-pro-feasibility.md`; live proof awaits an established permission basis
+  for automated subscription access, then account/mode/quota/citation verification. Cookie presence,
+  requested model IDs and generic successful searches must never be treated as that evidence.
+
 - 2026-10-15: Weekly Context Doctor configuration refused expired optional reviews. Reviewed OpenWolf (not configured), memory-adapter health (unsupported measurement contract) and host harness (not exercised); retain explicit optional NOT_RUN and renew review to November15. All five required probes and limits remain unchanged. Historical claude_mem capture failures were provider seven_day quota exhaustion; current aggregate health reports zero failures and persisted captures. Supported Claude reauthentication completed; the unchanged expiry probe now passes with refresh expiry November12. Final healthy-run acceptance awaits source/pin release and a new captured lifecycle.
 
 - 2026-10-14: Follow-up hook tracing reproduced a timeout on global-fetch GET /health before inference, despite fast direct probes and the Metal service remedy. The standard node:http candidate removes the redundant TCP probe, retains identity/redirect/size/proxy/abort safeguards and checks the final decode deadline; 26 client contracts and 1586 integration tests pass (four existing skips); required release checks pass. A full isolated synthetic native hook succeeds with Laya latency646 ms. Naturally collected timeouts and failed trials stay preserved; this does not establish post-release live performance or routing accuracy. Diagnostics release0.47.1 is merged and tagged; transport publication and native activation remain pending.

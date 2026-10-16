@@ -98,6 +98,9 @@ Version 0.4.0. Find local businesses with concrete website and search opportunit
 
 ## Design records
 
+- [`research/perplexity-pro-feasibility.md`](research/perplexity-pro-feasibility.md) — pinned
+  subscription Research client review, reproduced completion/citation gaps and live-proof prerequisites.
+
 Dated proposals and specs, preserved as written at the time they were approved — not living
 documentation, so they are not restructured or kept in sync with later changes:
 
