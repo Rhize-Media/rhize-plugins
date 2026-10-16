@@ -2,6 +2,15 @@
 
 ## Verified facts
 
+- 2026-10-16: The experimental `scripts/perplexity_research.py` CLI adds durable submit/status/
+  result/cancel, one-worker admission, no-replay request IDs, Keychain-only credentials, bounded
+  HTTPS/SSE, strict completion/citation validation and process-group cleanup. All 43 synthetic
+  checks pass, including detached workers and HTTP-to-durable-result flow. No Perplexity account,
+  credential, quota or web-parity proof was exercised. The user explicitly chose to finish and
+  preserve the local bridge without live access; full features remain conditional on a permitted
+  live Research proof. `completed` means protocol validation; actual mode, quota and UI parity
+  stay null. See `docs/research/perplexity-local-bridge.md` for commands and limitations.
+
 - 2026-10-16: Perplexity Pro feasibility review pinned upstream `anxkhn/perplexity-mcp`
   `356f7d0e7c8d146dce0105bf09a409046ccb923c`. Five offline checks reproduced partial-answer
   acceptance, missing explicit Research timeout/non-measuring infinity quota, unchecked terminal

@@ -2,6 +2,10 @@
 
 Reviewed 2026-10-16, using the Codex client date (America/New_York).
 
+Follow-up: a [minimal local CLI](perplexity-local-bridge.md) now implements the safeguards and
+passes synthetic tests. The user chose local-only preservation; no live proof or full-feature
+expansion occurred. The review below describes the original upstream, not the hardened CLI.
+
 ## Decision
 
 **Do not install the upstream MCP unchanged. A subscription Research bridge is technically
