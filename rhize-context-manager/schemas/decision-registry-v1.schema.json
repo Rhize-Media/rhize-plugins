@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rhize.media/schemas/decision-registry-v1.schema.json",
   "title": "decision-registry-v1",
-  "description": "Shipped default typed-decision registry (rhize-context-manager/catalog/decision-registry.json). Critical decisions are shadow-only; cosign is reachable only by advisory decisions with a deployable policy. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "description": "Shipped typed-decision registry. Critical decisions remain shadow/off. Skill-fit cosign retains its advisory statistical policy; workflow-fit permits only explicitly activated, fixed credential CLI guidance with a known checkpoint. Cross-field rules are enforced by the mirrored Python/Node validators.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,173 +22,236 @@
           "workflow-fit"
         ]
       },
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "tier",
-          "defaultMode",
-          "reachableModes",
-          "incumbent",
-          "deployablePolicy",
-          "instrument",
-          "holdback",
-          "latencyBudgetMs",
-          "lambda",
-          "endpoint",
-          "model",
-          "gates"
-        ],
-        "properties": {
-          "tier": {
-            "enum": [
-              "advisory",
-              "workflow",
-              "critical"
-            ]
-          },
-          "defaultMode": {
-            "enum": [
-              "off",
-              "shadow",
-              "cosign"
-            ]
-          },
-          "reachableModes": {
-            "type": "array",
-            "items": {
+      "properties": {
+        "skill-fit": {
+          "properties": {
+            "deployablePolicy": {
+              "enum": [
+                "cosign-v1",
+                null
+              ]
+            }
+          }
+        },
+        "workflow-fit": {
+          "properties": {
+            "deployablePolicy": {
+              "enum": [
+                "credential-cli-v1",
+                null
+              ]
+            }
+          }
+        }
+      },
+      "patternProperties": {
+        "^(skill-fit|workflow-fit)$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tier",
+            "defaultMode",
+            "reachableModes",
+            "incumbent",
+            "deployablePolicy",
+            "instrument",
+            "holdback",
+            "latencyBudgetMs",
+            "lambda",
+            "endpoint",
+            "model",
+            "gates"
+          ],
+          "properties": {
+            "tier": {
+              "enum": [
+                "advisory",
+                "workflow",
+                "critical"
+              ]
+            },
+            "defaultMode": {
               "enum": [
                 "off",
                 "shadow",
                 "cosign"
               ]
             },
-            "minItems": 1,
-            "uniqueItems": true
-          },
-          "incumbent": {
-            "type": "string",
-            "pattern": "^[A-Za-z0-9._-]{1,80}$"
-          },
-          "deployablePolicy": {
-            "anyOf": [
-              {
+            "reachableModes": {
+              "type": "array",
+              "items": {
                 "enum": [
-                  "cosign-v1"
+                  "off",
+                  "shadow",
+                  "cosign"
                 ]
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "instrument": {
-            "anyOf": [
-              {
-                "const": "laya-choice-v1"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "holdback": {
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 0.5
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "latencyBudgetMs": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 100,
-                "maximum": 5000
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "lambda": {
-            "anyOf": [
-              {
-                "type": "number",
-                "exclusiveMinimum": 0
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "endpoint": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^http://(127\\.0\\.0\\.1|\\[::1\\]):\\d{2,5}$"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "model": {
-            "anyOf": [
-              {
-                "const": "typed-decisions"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "gates": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "tier": {
-                  "const": "critical"
-                }
-              }
+              "minItems": 1,
+              "uniqueItems": true
             },
-            "then": {
-              "properties": {
-                "reachableModes": {
-                  "items": {
+            "incumbent": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,80}$"
+            },
+            "deployablePolicy": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "cosign-v1",
+                    "credential-cli-v1"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "instrument": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "laya-choice-v1",
+                    "credential-cli-v1"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "holdback": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 0.5
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "latencyBudgetMs": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 5000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lambda": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "endpoint": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^http://(127\\.0\\.0\\.1|\\[::1\\]):\\d{2,5}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model": {
+              "anyOf": [
+                {
+                  "const": "typed-decisions"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gates": {
+              "anyOf": [
+                {
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "tier": {
+                    "const": "critical"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "reachableModes": {
+                    "items": {
+                      "enum": [
+                        "off",
+                        "shadow"
+                      ]
+                    }
+                  },
+                  "defaultMode": {
                     "enum": [
                       "off",
                       "shadow"
                     ]
                   }
-                },
-                "defaultMode": {
-                  "enum": [
-                    "off",
-                    "shadow"
-                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "deployablePolicy": {
+                    "const": "credential-cli-v1"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "tier": {
+                    "const": "workflow"
+                  },
+                  "defaultMode": {
+                    "const": "shadow"
+                  },
+                  "incumbent": {
+                    "const": "credential-cli-first"
+                  },
+                  "instrument": {
+                    "const": "credential-cli-v1"
+                  },
+                  "holdback": {
+                    "const": 0
+                  },
+                  "lambda": {
+                    "type": "null"
+                  },
+                  "gates": {
+                    "type": "null"
+                  }
                 }
               }
             }
-          }
-        ]
-      }
+          ]
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

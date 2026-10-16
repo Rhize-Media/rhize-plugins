@@ -147,9 +147,13 @@ check('valid state without a skill-fit entry -> registry default, state revision
 }));
 
 check('fixture invalid states -> shadow / revision 0, with the contract reason', () => noEnv(() => {
+  // These frozen fixtures predate the bounded workflow policy; retain their original reachability.
+  const frozen = clone(fixtures.invalidRegistries.find((item) => item.name === 'workflow-cosign').registry);
+  frozen.decisions['workflow-fit'].reachableModes = ['shadow'];
+  const frozenPath = write('frozen-registry.json', frozen);
   for (const item of fixtures.invalidStates) {
-    assert.throws(() => reg.validateState(item.state, baseRegistry), (err) => err.message === item.reason, item.name);
-    const cfg = read({ statePath: write(`${item.name}.json`, item.state) });
+    assert.throws(() => reg.validateState(item.state, frozen), (err) => err.message === item.reason, item.name);
+    const cfg = read({ registryPath: frozenPath, statePath: write(`${item.name}.json`, item.state) });
     assert.strictEqual(cfg.mode, 'shadow', item.name);
     assert.strictEqual(cfg.registryRevision, 0, item.name);
   }
@@ -186,13 +190,13 @@ check('registry unreadable or invalid -> off (no Laya at all)', () => noEnv(() =
   assert.strictEqual(read({ registryPath: write('bad.json', bad), statePath: write('cosign.json', fixtures.validStates.cosign) }).mode, 'off');
 }));
 
-check('unknown decision -> off; workflow-fit reads as shadow with null instrument fields', () => noEnv(() => {
+check('unknown decision -> off; bounded workflow-fit defaults shadow with its own policy', () => noEnv(() => {
   assert.strictEqual(reg.readDecisionConfig('nope', { statePath: missing }).mode, 'off');
   const wf = reg.readDecisionConfig('workflow-fit', { statePath: missing });
   assert.strictEqual(wf.mode, 'shadow');
-  assert.strictEqual(wf.endpoint, null);
-  assert.strictEqual(wf.holdback, null);
-  assert.strictEqual(wf.deployablePolicy, null);
+  assert.strictEqual(wf.endpoint, 'http://127.0.0.1:8000');
+  assert.strictEqual(wf.holdback, 0);
+  assert.strictEqual(wf.deployablePolicy, 'credential-cli-v1');
 }));
 
 check('RHIZE_LAYA_ENDPOINT overrides the endpoint only when it is a literal loopback URL', () => {
@@ -204,8 +208,7 @@ check('RHIZE_LAYA_ENDPOINT overrides the endpoint only when it is a literal loop
     'http://user@127.0.0.1:80', '']) {
     assert.strictEqual(endpoint(bad), 'http://127.0.0.1:8000', JSON.stringify(bad));
   }
-  assert.strictEqual(withEnv('http://127.0.0.1:43211', () => reg.readDecisionConfig('workflow-fit', { statePath: missing }).endpoint), null,
-    'a decision without an endpoint never gets one');
+  assert.strictEqual(withEnv('http://127.0.0.1:43211', () => reg.readDecisionConfig('workflow-fit', { statePath: missing }).endpoint), 'http://127.0.0.1:43211');
 });
 
 check('the reader never writes (no files or directories are created)', () => noEnv(() => {

@@ -43,8 +43,11 @@ AUDIT_PHASES = ('intent', 'commit')
 AUDIT_ACTORS = ('cli', 'cycle', 'recovery')
 
 POLICY_COSIGN = 'cosign-v1'
+POLICY_CREDENTIAL = 'credential-cli-v1'
 POLICIES = {POLICY_COSIGN: 'emit the incumbent router suggestion iff laya.status == "ok" and laya.choice '
-                           '== incumbent.skillId; otherwise emit no router suggestion'}
+                           '== incumbent.skillId; otherwise emit no router suggestion',
+            POLICY_CREDENTIAL: 'emit only a fixed allowed credential CLI procedure selected by Laya; '
+                               'otherwise retain deterministic CLI-first guidance; never grant permissions or clear a deny'}
 MAX_SHORTLIST = 5
 MAX_RECORD_BYTES = 4096
 
@@ -460,11 +463,12 @@ def validate_registry(registry: dict) -> dict:
         if entry['tier'] == 'critical' and set(reachable) - {'off', 'shadow'}:
             raise ValueError('critical decisions are shadow-only')
         if 'cosign' in reachable:
-            if entry['tier'] != 'advisory':
+            credential = decision_id == 'workflow-fit' and entry['tier'] == 'workflow' and entry['deployablePolicy'] == POLICY_CREDENTIAL
+            if not credential and (decision_id != 'skill-fit' or entry['tier'] != 'advisory' or entry['deployablePolicy'] == POLICY_CREDENTIAL):
                 raise ValueError('only advisory decisions may reach cosign')
             _enum(entry['deployablePolicy'], tuple(POLICIES), 'deployablePolicy')
-            if entry['instrument'] != INSTRUMENT:
-                raise ValueError('cosign requires the laya-choice-v1 instrument')
+            if entry['instrument'] != (POLICY_CREDENTIAL if credential else INSTRUMENT):
+                raise ValueError('cosign requires its shipped policy instrument')
             endpoint_match = ENDPOINT.match(entry['endpoint']) if isinstance(entry['endpoint'], str) else None
             if not endpoint_match or not 1 <= int(endpoint_match.group(2)) <= 65535:
                 raise ValueError('endpoint must be a literal loopback http address')
@@ -474,6 +478,11 @@ def validate_registry(registry: dict) -> dict:
             _int(entry['latencyBudgetMs'], 'latencyBudgetMs', lo=100)
             if entry['latencyBudgetMs'] > 5000:
                 raise ValueError('invalid latencyBudgetMs')
+            if credential:
+                if (entry['defaultMode'] != 'shadow' or entry['holdback'] != 0 or entry['lambda'] is not None
+                        or entry['gates'] is not None or entry['incumbent'] != 'credential-cli-first'):
+                    raise ValueError('credential workflow requires shadow default and manual-only fixed guidance')
+                continue
             _number(entry['lambda'], 'lambda', 0)
             if entry['lambda'] == 0:
                 raise ValueError('invalid lambda')
@@ -535,6 +544,9 @@ def validate_state(state: dict, registry: dict) -> dict:
             raise ValueError('invalid cohortId')
         if entry['mode'] == 'cosign' and (entry['policySha256'] is None or entry['instrumentSha256'] is None):
             raise ValueError('cosign state must bind policy and instrument hashes')
+        if (entry['mode'] == 'cosign' and registry['decisions'][decision_id]['deployablePolicy'] == POLICY_CREDENTIAL
+                and (entry['layaRevision'] in (None, 'unknown') or entry['cohortId'] is not None)):
+            raise ValueError('credential cosign requires a known checkpoint and manual-only basis')
     return state
 
 

@@ -7,9 +7,12 @@ const { canonicalJson, sha256Hex } = require('./laya-instrument.js');
 
 const RECORD_SCHEMA = 'rhize-typed-decision-record-v1';
 const POLICY_COSIGN = 'cosign-v1';
+const POLICY_CREDENTIAL = 'credential-cli-v1';
 const POLICIES = {
   [POLICY_COSIGN]: 'emit the incumbent router suggestion iff laya.status == "ok" and laya.choice '
     + '== incumbent.skillId; otherwise emit no router suggestion',
+  [POLICY_CREDENTIAL]: 'emit only a fixed allowed credential CLI procedure selected by Laya; '
+    + 'otherwise retain deterministic CLI-first guidance; never grant permissions or clear a deny',
 };
 const HEX64 = /^[0-9a-f]{64}$/;
 
@@ -69,6 +72,6 @@ function isDisagreement(record) {
 }
 
 module.exports = {
-  RECORD_SCHEMA, POLICY_COSIGN, POLICIES, policySha256, minuteOf, occurrenceKey, armFor, isDisagreement,
+  RECORD_SCHEMA, POLICY_COSIGN, POLICY_CREDENTIAL, POLICIES, policySha256, minuteOf, occurrenceKey, armFor, isDisagreement,
   defaultRoot, recordsPath,
 };

@@ -31,84 +31,133 @@
           "workflow-fit"
         ]
       },
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "mode",
-          "pinned",
-          "since",
-          "reason",
-          "policySha256",
-          "instrumentSha256",
-          "layaRevision",
-          "cohortId"
-        ],
-        "properties": {
-          "mode": {
-            "enum": [
-              "off",
-              "shadow",
-              "cosign"
-            ]
+      "properties": {
+        "workflow-fit": {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "cosign"
+              }
+            }
           },
-          "pinned": {
-            "type": "boolean"
-          },
-          "since": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
-          },
-          "reason": {
-            "type": "string",
-            "pattern": "^[a-z_]{1,40}$"
-          },
-          "policySha256": {
-            "anyOf": [
-              {
+          "then": {
+            "properties": {
+              "layaRevision": {
                 "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
+                "pattern": "^[A-Za-z0-9._-]{1,80}$",
+                "not": {
+                  "const": "unknown"
+                }
               },
-              {
+              "cohortId": {
                 "type": "null"
               }
-            ]
-          },
-          "instrumentSha256": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "layaRevision": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[A-Za-z0-9._-]{1,80}$"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "cohortId": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9a-f]{32}$"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            }
           }
         }
-      }
+      },
+      "patternProperties": {
+        "^(skill-fit|workflow-fit)$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "pinned",
+            "since",
+            "reason",
+            "policySha256",
+            "instrumentSha256",
+            "layaRevision",
+            "cohortId"
+          ],
+          "properties": {
+            "mode": {
+              "enum": [
+                "off",
+                "shadow",
+                "cosign"
+              ]
+            },
+            "pinned": {
+              "type": "boolean"
+            },
+            "since": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[a-z_]{1,40}$"
+            },
+            "policySha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "instrumentSha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "layaRevision": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9._-]{1,80}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cohortId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "cosign"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "policySha256": {
+                    "type": "string"
+                  },
+                  "instrumentSha256": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

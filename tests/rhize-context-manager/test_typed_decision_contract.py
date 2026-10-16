@@ -136,7 +136,9 @@ def test_registry_state_and_audit():
     _check_invalid(contract.validate_registry, data['invalidRegistries'], 'registry')
     for state in data['validStates'].values():
         contract.validate_state(state, shipped)
-    _check_invalid(contract.validate_state, data['invalidStates'], 'state', shipped)
+    frozen = json.loads(json.dumps(next(c['registry'] for c in data['invalidRegistries'] if c['name'] == 'workflow-cosign')))
+    frozen['decisions']['workflow-fit']['reachableModes'] = ['shadow']
+    _check_invalid(contract.validate_state, data['invalidStates'], 'state', frozen)
     for line in data['validAudit'].values():
         contract.validate_audit(line)
     _check_invalid(contract.validate_audit, data['invalidAudit'], 'line')
@@ -169,6 +171,25 @@ def test_json_schemas_accept_valid_fixtures():
     critical = [c['registry'] for c in load('registry.json')['invalidRegistries'] if c['name'] == 'critical-cosign']
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.Draft202012Validator(schema('decision-registry-v1')).validate(critical[0])
+    # Named decision constraints must retain the common required shape, not bypass additionalProperties.
+    shipped = json.loads((REPO / 'rhize-context-manager/catalog/decision-registry.json').read_text())
+    registry_validator = jsonschema.Draft202012Validator(schema('decision-registry-v1'))
+    for field in ('tier', 'gates', 'model'):
+        broken = json.loads(json.dumps(shipped))
+        del broken['decisions']['workflow-fit'][field]
+        with pytest.raises(jsonschema.ValidationError): registry_validator.validate(broken)
+    state = json.loads(json.dumps(load('registry.json')['validStates']['cosign']))
+    entry = state['decisions'].pop('skill-fit')
+    entry.update(layaRevision='fixture-known', cohortId=None,
+                 policySha256=contract.policy_sha256(contract.POLICY_CREDENTIAL),
+                 instrumentSha256=instrument.instrument_sha256(contract.POLICY_CREDENTIAL))
+    state['decisions']['workflow-fit'] = entry
+    state_validator = jsonschema.Draft202012Validator(schema('decision-registry-state-v1'))
+    state_validator.validate(state)
+    for field, value in [('layaRevision', None), ('layaRevision', 'unknown'), ('cohortId', 'a' * 32),
+                         ('policySha256', None)]:
+        broken = json.loads(json.dumps(state)); broken['decisions']['workflow-fit'][field] = value
+        with pytest.raises(jsonschema.ValidationError): state_validator.validate(broken)
 
 
 def test_records_storage_roundtrip(tmp_path):

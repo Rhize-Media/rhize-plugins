@@ -165,10 +165,12 @@ def test_invalid_arguments_are_refused_before_any_write(root, kwargs, code):
 # ---------------------------------------------------------------- reachability
 
 def test_unreachable_modes_are_refused(root):
+    frozen = copy.deepcopy(reg.load_registry())
+    frozen['decisions']['workflow-fit']['reachableModes'] = ['shadow']
     for mode in ('off', 'cosign'):
         with pytest.raises(reg.RegistryError) as err:
             reg.mutate(root, 'workflow-fit', mode, actor='cli', reason='nope', expected_revision=0,
-                       binding=binding() if mode == 'cosign' else None)
+                       binding=binding() if mode == 'cosign' else None, registry=frozen)
         assert err.value.code == 'unreachable_mode'
     with pytest.raises(reg.RegistryError) as err:
         reg.mutate(root, 'workflow-fit', 'shadow', actor='cli', reason='same', expected_revision=0)
@@ -179,6 +181,8 @@ def test_critical_tier_never_leaves_shadow_or_off(root):
     registry = copy.deepcopy(reg.load_registry())
     entry = registry['decisions']['workflow-fit']
     entry['tier'], entry['reachableModes'] = 'critical', ['off', 'shadow']
+    for key in ('deployablePolicy', 'instrument', 'holdback', 'latencyBudgetMs', 'lambda', 'endpoint', 'model', 'gates'):
+        entry[key] = None
     contract.validate_registry(registry)
     state = reg.mutate(root, 'workflow-fit', 'off', actor='cli', reason='manual_off', expected_revision=0,
                        registry=registry)
@@ -508,7 +512,7 @@ def test_cli_show_set_mode_pin_and_recover(root):
     code, out = run_cli(root, 'set-mode', SKILL, 'cosign', '--reason', 'manual_pin', '--pin')
     assert (code, out['pinned']) == (0, True)
     code, out = run_cli(root, 'set-mode', 'workflow-fit', 'cosign', '--reason', 'nope', '--laya-revision', LAYA_REV)
-    assert code == 2 and out['error'] == 'unreachable_mode'
+    assert code == 2 and out['error'] == 'binding_required'
     code, out = run_cli(root, 'set-mode', SKILL, 'off', '--reason', 'BAD REASON')
     assert code == 2 and out['error'] == 'invalid_reason'
     code, out = run_cli(root, 'recover')

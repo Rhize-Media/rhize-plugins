@@ -33,15 +33,15 @@
     "workflow-fit": {
       "tier": "workflow",
       "defaultMode": "shadow",
-      "reachableModes": ["shadow"],
-      "incumbent": "arm-a",
-      "deployablePolicy": null,
-      "instrument": null,
-      "holdback": null,
-      "latencyBudgetMs": null,
+      "reachableModes": ["off", "shadow", "cosign"],
+      "incumbent": "credential-cli-first",
+      "deployablePolicy": "credential-cli-v1",
+      "instrument": "credential-cli-v1",
+      "holdback": 0,
+      "latencyBudgetMs": 800,
       "lambda": null,
-      "endpoint": null,
-      "model": null,
+      "endpoint": "http://127.0.0.1:8000",
+      "model": "typed-decisions",
       "gates": null
     }
   }

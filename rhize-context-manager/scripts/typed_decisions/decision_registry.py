@@ -99,6 +99,10 @@ def binding_stale(decision: str, registry: dict, entry: dict, laya_revision: str
     """
     if not entry or entry.get('mode') != 'cosign':
         return None
+    if (registry['decisions'][decision]['deployablePolicy'] == contract.POLICY_CREDENTIAL
+            and (entry.get('layaRevision') in (None, 'unknown') or laya_revision in (None, 'unknown')
+                 or entry.get('cohortId') is not None)):
+        return 'laya_revision_changed'
     try:
         policy_hash, instrument_hash = cohorts.deployable_hashes(registry['decisions'][decision])
     except ValueError:
@@ -233,7 +237,8 @@ def _check_binding(root, registry_entry: dict, actor: str, binding) -> dict:
         policy_hash, instrument_hash = cohorts.deployable_hashes(registry_entry)
     except ValueError as err:
         raise RegistryError('policy_not_deployable', str(err)) from None
-    if registry_entry['instrument'] != instrument.INSTRUMENT:
+    credential = registry_entry['deployablePolicy'] == contract.POLICY_CREDENTIAL
+    if registry_entry['instrument'] != (contract.POLICY_CREDENTIAL if credential else instrument.INSTRUMENT):
         raise RegistryError('invalid_binding', 'registry instrument is not the shipped instrument')
     if binding['policySha256'] != policy_hash:
         raise RegistryError('invalid_binding', 'policySha256 is not the deployable policy hash')
@@ -248,6 +253,8 @@ def _check_binding(root, registry_entry: dict, actor: str, binding) -> dict:
     if actor == 'cycle' and rev == 'unknown':
         raise RegistryError('invalid_binding', 'the cycle never promotes on an unknown Laya revision')
     cohort_id = binding['cohortId']
+    if credential and (actor != 'cli' or cohort_id is not None or rev == 'unknown'):
+        raise RegistryError('invalid_binding', 'credential guidance requires explicit CLI override and a known checkpoint; skill-fit cohorts cannot activate it')
     if cohort_id is None:
         if actor != 'cycle':
             return binding  # operator override through the CLI: audited with actor 'cli'

@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-16_ version bump — 2.27.1 → 2.27.2 (patch); marketplace 2.105.0 → 2.105.1.
 - 2026-10-15: Add CLI-first credential-access skill and pre-execution Keychain GUI guard; cover shell escaping, CUA code, source-only code-mode wrappers, redacted denials and harmless native marker fixtures. Native results and unresolved activation/authority gates are recorded in STATE.md; no Laya promotion.
 - _2026-10-15_ version bump — 2.27.0 → 2.27.1 (patch); marketplace 2.104.3 → 2.104.4.
 - _2026-10-10_ version bump — 2.26.0 → 2.27.0 (minor); marketplace 2.101.1 → 2.102.0.

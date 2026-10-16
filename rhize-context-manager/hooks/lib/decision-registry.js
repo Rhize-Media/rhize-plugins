@@ -95,14 +95,21 @@ function validateRegistry(registry) {
       fail('critical decisions are shadow-only');
     }
     if (reachable.includes('cosign')) {
-      if (entry.tier !== 'advisory') fail('only advisory decisions may reach cosign');
+      const credential = decisionId === 'workflow-fit' && entry.tier === 'workflow'
+        && entry.deployablePolicy === 'credential-cli-v1';
+      if (!credential && (decisionId !== 'skill-fit' || entry.tier !== 'advisory' || entry.deployablePolicy === 'credential-cli-v1')) fail('only advisory decisions may reach cosign');
       enumOf(entry.deployablePolicy, Object.keys(POLICIES), 'deployablePolicy');
-      if (entry.instrument !== INSTRUMENT) fail('cosign requires the laya-choice-v1 instrument');
+      if (entry.instrument !== (credential ? 'credential-cli-v1' : INSTRUMENT)) fail('cosign requires its shipped policy instrument');
       if (!isLoopbackEndpoint(entry.endpoint)) fail('endpoint must be a literal loopback http address');
       if (entry.model !== 'typed-decisions') fail('invalid model');
       numberOf(entry.holdback, 'holdback', 0, 0.5);
       intOf(entry.latencyBudgetMs, 'latencyBudgetMs', 100);
       if (entry.latencyBudgetMs > 5000) fail('invalid latencyBudgetMs');
+      if (credential) {
+        if (entry.defaultMode !== 'shadow' || entry.holdback !== 0 || entry.lambda !== null || entry.gates !== null
+          || entry.incumbent !== 'credential-cli-first') fail('credential workflow requires shadow default and manual-only fixed guidance');
+        continue;
+      }
       numberOf(entry.lambda, 'lambda', 0);
       if (entry.lambda === 0) fail('invalid lambda');
       const gates = entry.gates;
@@ -153,6 +160,10 @@ function validateState(state, registry) {
     }
     if (entry.mode === 'cosign' && (entry.policySha256 === null || entry.instrumentSha256 === null)) {
       fail('cosign state must bind policy and instrument hashes');
+    }
+    if (entry.mode === 'cosign' && registry.decisions[decisionId].deployablePolicy === 'credential-cli-v1'
+      && (entry.layaRevision === null || entry.layaRevision === 'unknown' || entry.cohortId !== null)) {
+      fail('credential cosign requires a known checkpoint and manual-only basis');
     }
   }
   return state;
@@ -227,7 +238,7 @@ function readDecisionConfig(decisionId, options = {}) {
           pinned = stateEntry.pinned;
           // A promotion is valid only for the policy and instrument it was tested with.
           if (mode === 'cosign' && (stateEntry.policySha256 !== policySha256(entry.deployablePolicy)
-              || stateEntry.instrumentSha256 !== instrumentSha256())) {
+              || stateEntry.instrumentSha256 !== instrumentSha256(entry.instrument))) {
             mode = 'shadow';
           }
           // ... and for the Laya checkpoint it was tested against (laya-runtime.json).

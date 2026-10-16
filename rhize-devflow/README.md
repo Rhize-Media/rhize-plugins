@@ -413,7 +413,10 @@ encoded code, opaque app handles, or tools that omit native hooks. Hook errors, 
 untrusted hooks, and specialized host paths can leave coverage unavailable. It is a guardrail
 against the observed workflow mistake, not an OS security sandbox. The guard does not parse
 all possible CLI secret-output patterns; the skill governs private credential consumption.
-Laya's current shadow-only contract and deterministic policy authority are unchanged.
+Context Manager can separately select fixed credential CLI procedure guidance in its bounded
+active policy. It never clears this deterministic GUI deny or grants execution authority.
+The content/general research pilot remains observational; installed activation and native
+interception must be verified separately.
 
 Migrated from `~/dev-local/CLAUDE-SKILLS` (archived 2026-06). The `skill-refinement` meta-skill
 was promoted to the `rhize-meta` plugin (2026-06-15), then, along with `rhize-meta`'s external-skill

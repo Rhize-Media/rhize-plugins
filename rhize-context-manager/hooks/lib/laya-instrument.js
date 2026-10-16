@@ -44,7 +44,11 @@ function sha256Hex(text) {
   return crypto.createHash('sha256').update(String(text), 'utf8').digest('hex');
 }
 
-function instrumentSha256() {
+function instrumentSha256(instrument = INSTRUMENT) {
+  if (instrument === 'credential-cli-v1') {
+    return sha256Hex(canonicalJson(require('../../catalog/credential-workflows.json')));
+  }
+  if (instrument !== INSTRUMENT) throw new Error('unknown instrument');
   return sha256Hex(canonicalJson({
     instrument: INSTRUMENT, model: MODEL, question: QUESTION, questionId: QUESTION_ID,
     noneKey: NONE_KEY, noneCriterion: NONE_CRITERION,

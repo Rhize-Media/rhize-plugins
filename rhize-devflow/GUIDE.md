@@ -16,7 +16,10 @@ denied GUI request; an agent refusal before tool dispatch is not proof that the 
 anything. Harmless native probe fixtures under `tests/rhize-devflow/fixtures/` record markers
 and never execute supplied code or launch apps. Native proof and remaining coverage limits are
 recorded in repository `STATE.md`. The guard cannot contain arbitrary encoded code or tools
-that skip the hook path. Laya remains observational under the current decision contract.
+that skip the hook path. Context Manager's separately activated credential workflow policy
+can choose fixed CLI procedure guidance; it never clears this guard or grants permission.
+The content/general measurement pilot remains in shadow. See the marketplace's
+`docs/handoffs/credential-workflow-activation.md` for release and fresh-session verification.
 
 rhize-devflow is Rhize's engineering control plane: the executable workflow that takes a change
 from "what will this touch" through "does it pass" to "is it safe to ship" —

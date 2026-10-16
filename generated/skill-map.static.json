@@ -801,6 +801,18 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "hook:rhize-context-manager/credential-workflow",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/credential-workflow-prompt",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "hook:rhize-context-manager/duplicate-check",
       "type": "contains"
     },
@@ -4079,6 +4091,28 @@
       "status": "wired"
     },
     {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/credential-workflow.js\"",
+      "event": "PreToolUse",
+      "id": "hook:rhize-context-manager/credential-workflow",
+      "kind": "hook",
+      "matcher": "*",
+      "name": "credential-workflow",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/credential-workflow-prompt.js\"",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/credential-workflow-prompt",
+      "kind": "hook",
+      "matcher": "",
+      "name": "credential-workflow-prompt",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/duplicate-check.sh",
       "event": "PreToolUse",
       "id": "hook:rhize-context-manager/duplicate-check",
@@ -4910,7 +4944,7 @@
       "treeHash": "9e674d0cbe185944e20c23e316e1f82f8200bb1ce06f8fed2608459786b9e960"
     },
     {
-      "contentHash": "923d78c99ec63595f495be00b7382e06d1d4111102ae4f4526fc794e625bf903",
+      "contentHash": "f384bc7b0316fdf058220d56912e51ac4f9c7aadf82c3780ec867fdde25f257a",
       "description": "Use when authenticating a CLI or retrieving a stored credential, password, token, or API key from macOS Keychain. Choose CLI-first access and private child-process consumption; never open Keychain Access or expose secrets in tool output.",
       "fileCount": 1,
       "id": "skill:rhize-devflow/credential-access",
@@ -4922,8 +4956,8 @@
         "keychain credentials",
         "stored credentials"
       ],
-      "totalBytes": 2629,
-      "treeHash": "635da6e2b49828c0c7a4fc2dcdc2b00902d83abd141d9d326daceceee986fa96"
+      "totalBytes": 2956,
+      "treeHash": "14e4d85f326ec56ac8d1f54c4e34f969e654fdd512f680f5738d7721726fa18a"
     },
     {
       "contentHash": "06e735f04458cc2dd5aa0ccc5e8d45e2140add57c9f3b465919b4e461c91eba6",
