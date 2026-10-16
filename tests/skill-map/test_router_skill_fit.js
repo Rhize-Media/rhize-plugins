@@ -506,6 +506,10 @@ function track(sc) { cleanup.push(sc.home); return sc; }
       throw new Error('uncaught in the same tick');
     }, 100));
     if (mode === 'ok-disagree') client.callChoice = async () => ({ status: 'ok', choice: 'none', probabilities: probs, latencyMs: 5 });
+    if (mode === 'record-endpoint') client.callChoice = async ({ endpoint }) => {
+      require('fs').writeFileSync(process.env.TEST_ENDPOINT_RECORD, endpoint);
+      return { status: 'unavailable' };
+    };
   `);
   const stubCases = [
     { mode: 'never', status: 'timeout', maxMs: 800 + 50 + 600 },
@@ -727,8 +731,12 @@ function track(sc) { cleanup.push(sc.home); return sc; }
     const server = await layaServer();
     const sc = track(scenario({ mode: 'cosign', env: { RHIZE_LAYA_ENDPOINT: `http://localhost:${new URL(server.endpoint).port}` } }));
     sc.env.RHIZE_LAYA_ENDPOINT = `http://localhost:${new URL(server.endpoint).port}`;
-    const out = await runHook(sc, { sessionId: TREATMENT });
+    sc.env.TEST_CLIENT_MODE = 'record-endpoint';
+    sc.env.TEST_ENDPOINT_RECORD = path.join(sc.home, 'endpoint.txt');
+    const out = await runHook(sc, { sessionId: TREATMENT, preload });
     assert.strictEqual(out.stdout, INCUMBENT_LINE);
+    const registry = JSON.parse(fs.readFileSync(path.join(REPO, 'rhize-context-manager', 'catalog', 'decision-registry.json'), 'utf8'));
+    assert.strictEqual(fs.readFileSync(sc.env.TEST_ENDPOINT_RECORD, 'utf8'), registry.decisions['skill-fit'].endpoint);
     assert.strictEqual(server.hits.health + server.hits.post, 0, 'localhost override must not be used');
     await server.close();
   });

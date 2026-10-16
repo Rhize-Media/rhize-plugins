@@ -1107,6 +1107,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-e12f824e",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "hook:rhize-devflow/inline-ea6a756f",
       "type": "contains"
     },
@@ -1150,6 +1156,12 @@
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "skill:rhize-devflow/completed-branch-promotion",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/credential-access",
       "type": "contains"
     },
     {
@@ -2324,6 +2336,18 @@
       "from": "skill:rhize-devflow/completed-branch-promotion",
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/credential-access",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/credential-access",
+      "source": "frontmatter",
+      "to": "tag:topic/security",
       "type": "topic-tag"
     },
     {
@@ -4253,6 +4277,17 @@
       "status": "wired"
     },
     {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/credential_guard.py\"",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/inline-e12f824e",
+      "kind": "hook",
+      "matcher": "*",
+      "name": "inline-e12f824e",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-prompt",
       "event": "UserPromptSubmit",
       "id": "hook:rhize-devflow/inline-ea6a756f",
@@ -4873,6 +4908,22 @@
       "path": "rhize-devflow/skills/completed-branch-promotion/SKILL.md",
       "totalBytes": 10911,
       "treeHash": "9e674d0cbe185944e20c23e316e1f82f8200bb1ce06f8fed2608459786b9e960"
+    },
+    {
+      "contentHash": "923d78c99ec63595f495be00b7382e06d1d4111102ae4f4526fc794e625bf903",
+      "description": "Use when authenticating a CLI or retrieving a stored credential, password, token, or API key from macOS Keychain. Choose CLI-first access and private child-process consumption; never open Keychain Access or expose secrets in tool output.",
+      "fileCount": 1,
+      "id": "skill:rhize-devflow/credential-access",
+      "kind": "skill",
+      "name": "credential-access",
+      "path": "rhize-devflow/skills/credential-access/SKILL.md",
+      "routerPhrases": [
+        "keychain access",
+        "keychain credentials",
+        "stored credentials"
+      ],
+      "totalBytes": 2629,
+      "treeHash": "635da6e2b49828c0c7a4fc2dcdc2b00902d83abd141d9d326daceceee986fa96"
     },
     {
       "contentHash": "06e735f04458cc2dd5aa0ccc5e8d45e2140add57c9f3b465919b4e461c91eba6",

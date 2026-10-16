@@ -234,3 +234,9 @@ disable actions for Codex rows; Claude snapshots cannot establish Codex dormancy
 
 The evaluation catalog includes the canonical `procedural-memory:rhize-content-engine` skill.
 Local coverage checks do not execute or approve its graph, enable capture, or establish task benefit.
+
+## Credential workflow evaluation coverage
+
+The shared evaluation inventory includes `rhize-devflow:credential-access`. Coverage checks
+do not retrieve credentials, activate native hooks, or establish baseline benefit. Existing
+domains, capture modes and user-confirmed baseline decisions are unchanged.

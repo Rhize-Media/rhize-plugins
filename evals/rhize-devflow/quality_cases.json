@@ -203,5 +203,36 @@
       {"type": "contains", "value": "logger.fmt", "name": "Covers structured logging"},
       {"type": "contains", "value": "defer to the official sentry:* developer-kit skills", "name": "Defers full SDK setup"}
     ]
+  },
+  {
+    "id": "quality-credential-private-cli-boundary",
+    "target_file": "rhize-devflow/skills/credential-access/SKILL.md",
+    "assertions": [
+      {
+        "type": "contains",
+        "value": "already authenticated CLI/API",
+        "name": "Prefer existing service authentication"
+      },
+      {
+        "type": "contains",
+        "value": "never open Keychain Access",
+        "name": "Prohibit GUI credential retrieval"
+      },
+      {
+        "type": "contains",
+        "value": "consuming subprocess",
+        "name": "Keep lookup output process-local"
+      },
+      {
+        "type": "contains",
+        "value": "Missing credentials or OS access denial stop",
+        "name": "No broader fallback after denial"
+      },
+      {
+        "type": "contains",
+        "value": "each nested executable/MCP call must receive its own hook",
+        "name": "Declare actual code-mode boundary"
+      }
+    ]
   }
 ]

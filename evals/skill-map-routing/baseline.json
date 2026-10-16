@@ -107,15 +107,15 @@
   "rhize-devflow": {
    "eval_negatives": {
     "false_trigger": 0,
-    "n": 20,
+    "n": 22,
     "other_cross_plugin": 0,
     "other_same_plugin": 0,
-    "silent": 20
+    "silent": 22
    },
    "eval_positives": {
     "hit": 1,
-    "n": 13,
-    "silent": 12,
+    "n": 15,
+    "silent": 14,
     "wrong": 0
    },
    "long_negative_fires": 1,
@@ -1569,6 +1569,42 @@
   },
   {
    "group": "eval",
+   "id": "rhize-devflow/trigger-credential-keychain",
+   "outcome": "silent",
+   "prompt": "Use stored credentials in Keychain Access to authenticate this service CLI privately.",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/credential-access",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-credential-stored",
+   "outcome": "silent",
+   "prompt": "Find the appropriate CLI workflow for stored credentials in the OS keychain.",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/credential-access",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-credential-neg-browser",
+   "outcome": "silent",
+   "prompt": "Check this public page in the browser.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/credential-access",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-credential-neg-validation",
+   "outcome": "silent",
+   "prompt": "Implement password strength validation in the signup form.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/credential-access",
+   "top": null
+  },
+  {
+   "group": "eval",
    "id": "procedural-memory/procedural-positive",
    "outcome": "silent",
    "prompt": "Is there already a proven working artifact for this deployment task? Check the registry fi",
@@ -2684,20 +2720,20 @@
    "top": null
   }
  ],
- "rows_sha": "d690fb0e04edfd90",
+ "rows_sha": "dd1ae1a79f07d02a",
  "schema": 1,
  "summary": {
   "eval_negatives": {
    "false_trigger": 0,
-   "n": 110,
+   "n": 112,
    "other_cross_plugin": 0,
    "other_same_plugin": 0,
-   "silent": 110
+   "silent": 112
   },
   "eval_positives": {
    "hit": 13,
-   "n": 72,
-   "silent": 54,
+   "n": 74,
+   "silent": 56,
    "wrong": 5
   },
   "long_negatives": {

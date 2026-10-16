@@ -308,5 +308,29 @@
     "target": "skill:test-evidence",
     "prompt": "Explain how mutation testing works in genetics research.",
     "should_trigger": false
+  },
+  {
+    "id": "trigger-credential-keychain",
+    "target": "skill:credential-access",
+    "prompt": "Use stored credentials in Keychain Access to authenticate this service CLI privately.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-credential-stored",
+    "target": "skill:credential-access",
+    "prompt": "Find the appropriate CLI workflow for stored credentials in the OS keychain.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-credential-neg-browser",
+    "target": "skill:credential-access",
+    "prompt": "Check this public page in the browser.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-credential-neg-validation",
+    "target": "skill:credential-access",
+    "prompt": "Implement password strength validation in the signup form.",
+    "should_trigger": false
   }
 ]

@@ -67,7 +67,10 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
 ## Committed artifacts
 
 - `baseline.json`, `inferred_baseline.json`: the harness run against unmodified `main` at
-  the time of writing (commit `1ace47d`). Refresh with `run.py` and copy
+  the credential-skill corpus refresh (commit `6203848`). All 279 pre-existing
+  rows retain their prior control routing records; only four credential cases were added.
+  This is a deterministic development fixture, not pilot or task-benefit evidence.
+  Refresh with `run.py --checkout <unmodified-control>` and copy
   `out/results.json` and `out/inferred_signals.json`.
 - `corpus.json`: the corpus as built from the repo, for review; `run.py` rebuilds it.
 - `third_party_snapshot.json`: **a point-in-time snapshot of the third-party (marketplace)

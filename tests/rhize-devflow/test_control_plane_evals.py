@@ -48,10 +48,10 @@ def test_devflow_control_plane_evals_pass() -> None:
     )
     report = json.loads(result.stdout)
     assert report["coverage"]["ok"] is True
-    assert len(report["coverage"]["discoveredSkills"]) == 9
-    assert len(report["coverage"]["qualitySkills"]) == 9
+    assert len(report["coverage"]["discoveredSkills"]) == 10
+    assert len(report["coverage"]["qualitySkills"]) == 10
     assert report["benchmark"]["ok"] is True
-    assert report["benchmark"]["skillCount"] == 9
+    assert report["benchmark"]["skillCount"] == 10
 
 
 def test_benchmark_contract_rejects_ambiguous_or_swapped_arms() -> None:

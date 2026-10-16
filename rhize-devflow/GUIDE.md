@@ -4,6 +4,20 @@ This guide explains what the rhize-devflow plugin does, how its pieces fit toget
 
 ## What This Plugin Does
 
+When a task needs stored credentials, use the `credential-access` skill. It starts with an
+already authenticated service CLI, then uses an exact Keychain CLI lookup only if necessary.
+Keep the value inside the consuming child process; report metadata only. Missing credentials
+or OS consent stop that step rather than opening Keychain Access.
+
+The auto-wired credential guard rejects explicit Keychain GUI selection/launch requests before
+supported tools run, including during existing tasks. Codex must trust the current hook
+definition first, and updated hosts must reload it. Verify both an allowed control and a
+denied GUI request; an agent refusal before tool dispatch is not proof that the hook blocked
+anything. Harmless native probe fixtures under `tests/rhize-devflow/fixtures/` record markers
+and never execute supplied code or launch apps. Native proof and remaining coverage limits are
+recorded in repository `STATE.md`. The guard cannot contain arbitrary encoded code or tools
+that skip the hook path. Laya remains observational under the current decision contract.
+
 rhize-devflow is Rhize's engineering control plane: the executable workflow that takes a change
 from "what will this touch" through "does it pass" to "is it safe to ship" —
 
