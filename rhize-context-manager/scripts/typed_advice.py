@@ -372,7 +372,7 @@ def _write_atomic(path: Path, value) -> None:
             os.unlink(temporary)
 
 
-def _write_once(store: Path, decision, kind, decision_id, value) -> bool:
+def write_once(store: Path, decision, kind, decision_id, value) -> bool:
     """Publish `value` at <store>/<decision>/<kind>/<id>.json unless it exists. True when this call wrote it."""
     if not _DECISION.fullmatch(decision) or not _DECISION_ID.fullmatch(decision_id):
         raise ValueError('invalid record path component')
@@ -456,10 +456,10 @@ def advise(decision, request, candidates, key, *, critical_if_wrong, question, p
                   'laya': {k: answer.get(k) for k in ('status', 'choice', 'probabilities', 'latencyMs')}}
         try:
             if snapshot:
-                _write_once(store, decision, 'snapshot', decision_id,
+                write_once(store, decision, 'snapshot', decision_id,
                             {'request': scrub(request), 'files': clean_files(files), 'question': question,
                              'candidates': candidates, 'scrub': SCRUB_VERSION})
-            _write_once(store, decision, 'choice', decision_id, record)
+            write_once(store, decision, 'choice', decision_id, record)
         except (OSError, ValueError):
             return result  # no durable record, no advice
         existing = load(decision, decision_id, store=store)
@@ -481,7 +481,7 @@ def record_outcome(decision, decision_id, chosen, store=None) -> bool:
     if record is None or chosen not in record.get('candidates', ()):
         return False
     try:
-        return _write_once(store, decision, 'outcome', decision_id,
+        return write_once(store, decision, 'outcome', decision_id,
                            {'schema': OUTCOME_SCHEMA, 'decision': decision, 'decisionId': decision_id,
                             'chosen': chosen, 'followed': chosen == (record.get('laya') or {}).get('choice'),
                             'ts': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())})

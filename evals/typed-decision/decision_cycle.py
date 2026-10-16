@@ -9,12 +9,12 @@ touches the workflow-v2 pilot paths under ~/.local/share/rhize/workflow-selectio
 
 One run, in order:
   1. registry recovery (finishes an interrupted audited update);
-  2. a fully labeled, unconsumed reserved cohort is tested once; a 'pass' while the mode is shadow promotes
-     skill-fit to cosign through the locked registry mutation path (actor 'cycle'). Only policy cosign-v1
+  2. a fully labeled, unconsumed reserved cohort is tested once; a 'pass' while the mode is shadow or advise
+     promotes skill-fit to cosign through the locked registry mutation path (actor 'cycle'). Only policy cosign-v1
      can ever be deployed, and only through a passed cohort bound to its policy/instrument/Laya hashes;
   3. in cosign, the demotion check runs and falls back to shadow when the quality, operational or
      (after the report-only window) latency trigger fires;
-  4. in shadow with no open cohort, a new cohort is reserved (labeling is the L2 labeler's job);
+  4. in shadow or advise with no open cohort, a new cohort is reserved (labeling is the L2 labeler's job);
   5. report-only alternatives are scored on the scoreboard label pool with Horvitz-Thompson weights and
      session-cluster bootstrap 90% intervals. They are never deployed; a stricter router floor that beats
      both the incumbent and cosign-v1 becomes a recommendation string for code review;
@@ -406,6 +406,9 @@ def _run(root, now, dry_run, seed, registry) -> dict:
     else:
         promoted_now = False
         flow = mode                      # what the remaining steps act on; a dry run plans without changing `mode`
+        # advise and cosign are earned separately (plan §3, gates are per target mode): a skill-fit in advise
+        # still reserves, evaluates and promotes cosign cohorts, exactly like shadow.
+        cosign_attempts = ('shadow', 'advise')
         # 1b. a cosign state that no longer binds (policy/instrument changed by an update, or a new Laya
         # checkpoint) already reads as shadow in the hook; make the state say so, then re-gate from shadow.
         stale = decision_registry.binding_stale(DECISION, registry, current, laya_revision) if current else None
@@ -419,7 +422,7 @@ def _run(root, now, dry_run, seed, registry) -> dict:
                     current = new_state['decisions'].get(DECISION)
             flow = 'shadow'
         # 2. test a fully labeled open cohort once; promote only a passed, current-key cohort
-        if flow == 'shadow':
+        if flow in cosign_attempts:
             applied = _cohorts_ever_promoted(root)
             for row in cohorts.cohort_table(root):
                 # A passed cohort whose promotion never landed (stale revision, lock timeout) is applied now,
@@ -468,8 +471,8 @@ def _run(root, now, dry_run, seed, registry) -> dict:
                                             actions, 'demote')
                     if new_state is not None:
                         state, revision, mode, flow = new_state, new_state['revision'], 'shadow', 'shadow'
-        # 4. reserve a new cohort while in shadow
-        if flow == 'shadow':
+        # 4. reserve a new cohort while cosign is not yet earned
+        if flow in cosign_attempts:
             result = cohorts.reserve(root, registry, now, seed, dry_run=dry_run)
             reserved = result['status'] in ('reserved', 'would_reserve')
             actions.append({'type': ('would_reserve' if dry_run else 'reserve') if reserved else 'reserve_held',
@@ -521,7 +524,6 @@ def _write_receipt(root, receipt: dict) -> Path:
 # ---------------------------------------------------------------- advise (majority-baseline gate, plan §3, §8)
 
 WORKFLOW_FIT = 'workflow-fit'               # pilot_cycle.py owns its gate
-DEMOTION_FILE = 'advise-demotion.json'
 SKILL_ADVISE_POLICY = 'skill-fit-advise-v1'
 
 
@@ -569,25 +571,10 @@ def _skill_rows(root, instrument_sha, revision):
     return skill_advise_policy_sha256(instrument_sha), sorted(rows, key=lambda r: (r['ts'], r['id']))
 
 
-def _advise_mutate(root, registry, decision, to_mode, reason, revision, binding, now):
-    """The single mutation path; a refusal is a recorded hold, never a crash."""
-    try:
-        state = decision_registry.mutate(root, decision, to_mode, actor='cycle', reason=reason, expected_revision=revision,
-                                         binding=binding, now=now, registry=registry)
-        return {'status': 'mutated', 'to': to_mode, 'reason': reason, 'revision': state['revision']}
-    except decision_registry.RegistryError as err:
-        return {'status': 'held', 'to': to_mode, 'code': err.code}
-
-
 def _demote_check(root, registry, decision, cfg, critical, rows, saved, revision, now, dry_run):
     """Rolling live check of an earned advise on the latest labelled advise-arm treatment cases (plan §3.7)."""
     window = [r for r in rows if r['mode'] == 'advise' and r['arm'] == 'treatment']
-    path = Path(root) / decision / DEMOTION_FILE
-    try:
-        stored = locked_io.read_json_file(path)
-        history, seen = list(stored['history']), set(stored['seen'])
-    except (OSError, ValueError, KeyError, TypeError):
-        history, seen = [], set()
+    history, seen = typed_promotion.read_demotion_state(root, decision)
     latest = window[-cfg['demote']['window']:]
     ids = [r['id'] for r in latest]
     reserved = [e for e in advise_ledger.read(root, decision) if e['event'] == 'reserve' and e['cohortId'] == saved.get('cohortId')]
@@ -595,19 +582,9 @@ def _demote_check(root, registry, decision, cfg, critical, rows, saved, revision
         latest, len(set(ids) - seen), history, baseline=reserved[0].get('baseline') if reserved else None,
         critical=critical, window=cfg['demote']['window'], fresh_labels=cfg['demote']['freshLabels'],
         consecutive=cfg['demote']['consecutive'])
-    result = {'status': 'evaluated', 'branch': 'demotion', 'earnedMode': 'advise', 'registry': None,
-              'demotion': {k: v for k, v in outcome.items() if k != 'history'}}
-    if not dry_run and (outcome['evaluated'] or outcome['demote']):
-        locked_io.write_private_atomic(path, json.dumps({'history': outcome['history'], 'seen': sorted(ids)}).encode())
-    if outcome['demote']:
-        reason = 'critical_miss' if outcome['reason'] == 'critical_miss' else 'gate_demote'
-        if dry_run:
-            result['registry'] = {'status': 'would_mutate', 'to': 'shadow', 'reason': reason}
-        else:
-            result['registry'] = _advise_mutate(root, registry, decision, 'shadow', reason, revision, None, now)
-            if result['registry']['status'] == 'mutated':
-                result['earnedMode'] = 'shadow'
-    return result
+    return typed_promotion.demotion_result(
+        root, registry, decision, outcome, ids, expected_revision=revision, now=now, dry_run=dry_run,
+        reason='critical_miss' if outcome['reason'] == 'critical_miss' else 'gate_demote')
 
 
 def _advise_one(root, registry, decision, state, status, revision_laya, now, dry_run, probe):
@@ -634,7 +611,7 @@ def _advise_one(root, registry, decision, state, status, revision_laya, now, dry
         # A stale binding already reads as shadow at runtime; say so in the state so the gate can earn it again.
         if dry_run:
             return {'status': 'held', 'reason': 'would_reset_stale_binding'}
-        moved = _advise_mutate(root, registry, decision, 'shadow', 'binding_stale', revision, None, now)
+        moved = typed_promotion.registry_mutate(root, registry, decision, 'shadow', 'binding_stale', revision, now=now)
         if moved['status'] != 'mutated':
             return {'status': 'held', 'reason': 'registry_refused', 'registry': moved}
         revision = moved['revision']
@@ -658,18 +635,9 @@ def _advise_one(root, registry, decision, state, status, revision_laya, now, dry
         dry_run=dry_run, predict_one=predict_one, probe=probe)
     if receipt['status'] == 'held':
         return {**receipt, 'earnedMode': 'shadow'}
-    result = {'status': receipt['status'], 'earnedMode': 'shadow', 'registry': None,
-              **{k: receipt[k] for k in ('verdict', 'reasons', 'stats', 'cohortId', 'attempt', 'alpha', 'baseline')}}
-    if receipt['verdict'] == 'pass':
-        binding = {'policySha256': policy, 'instrumentSha256': instrument_sha, 'layaRevision': revision_laya,
-                   'cohortId': receipt['cohortId']}
-        if dry_run:
-            result['registry'] = {'status': 'would_mutate', 'to': 'advise', 'reason': 'gate_pass'}
-        else:
-            result['registry'] = _advise_mutate(root, registry, decision, 'advise', 'gate_pass', revision, binding, now)
-            if result['registry']['status'] == 'mutated':
-                result['earnedMode'] = 'advise'
-    return result
+    return typed_promotion.earned_result(
+        root, registry, decision, receipt, policy_sha=policy, instrument_sha=instrument_sha, laya_revision=revision_laya,
+        expected_revision=revision, now=now, dry_run=dry_run)
 
 
 def run_advise(root, now=None, dry_run: bool = False, registry=None, probe=None) -> dict:

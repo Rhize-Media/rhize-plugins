@@ -1518,3 +1518,58 @@ def test_the_skill_fit_cosign_path_is_unchanged_by_the_advise_pass(root, registr
     with_advise = CYCLE.run_cycle(root, NOW, registry=registry, seed=1, dry_run=True, probe=OPEN_PROBE)
     assert 'advise' not in plain and {k: v for k, v in with_advise.items() if k != 'advise'} == plain
     assert plain['actions'] == ['would_reserve']
+
+
+# ---- advise and cosign are earned separately (plan §3: gates are per target mode)
+
+def skill_in_advise(root, registry):
+    """skill-fit already on the earned advise mode (CLI manual override, like go_cosign)."""
+    instrument_hash = reg.advise_instrument_sha256('laya-choice-v1')
+    return reg.mutate(root, SKILL, 'advise', actor='cli', reason='manual_override', expected_revision=0, registry=registry,
+                      now='2026-10-01T00:00:00Z',
+                      binding={'policySha256': CYCLE.skill_advise_policy_sha256(instrument_hash),
+                               'instrumentSha256': instrument_hash, 'layaRevision': LAYA_REV, 'cohortId': None})
+
+
+def test_skill_fit_in_advise_still_reserves_evaluates_and_promotes_a_cosign_cohort(root, registry):
+    recs = disagreements(45)
+    write_records(root, recs)
+    skill_in_advise(root, registry)
+    first = run(root, registry, now='2026-10-11T00:00:00Z', advise=False)
+    assert action_types(first) == ['reserve'] and first['mode'] == 'advise'
+    event = cohorts.cohort_ledger(root)[first['cohorts'][0]['cohortId']]['reserve']
+    label_cohort(root, event, by_key(recs), not_hit=min_pass_x(20))
+    done = run(root, registry, now='2026-10-11T06:00:00Z', advise=False)
+    assert action_types(done) == ['evaluate', 'promote'] and done['mode'] == 'cosign'
+    entry = state_of(root, SKILL)
+    assert entry['mode'] == 'cosign' and entry['reason'] == 'gate_passed' and entry['cohortId'] == event['cohortId']
+    assert entry['policySha256'] == contract.policy_sha256('cosign-v1')
+
+
+def test_a_failed_cosign_cohort_leaves_an_earned_advise_in_place(root, registry):
+    recs = disagreements(45)
+    write_records(root, recs)
+    skill_in_advise(root, registry)
+    first = run(root, registry, now='2026-10-11T00:00:00Z', advise=False)
+    event = cohorts.cohort_ledger(root)[first['cohorts'][0]['cohortId']]['reserve']
+    label_cohort(root, event, by_key(recs), not_hit=min_pass_x(20) - 1)
+    second = run(root, registry, now='2026-10-11T06:00:00Z', advise=False)
+    assert action_types(second) == ['evaluate', 'reserve'] and second['mode'] == 'advise'
+    assert state_of(root, SKILL)['mode'] == 'advise' and state_of(root, SKILL)['reason'] == 'manual_override'
+
+
+def test_an_advise_pass_never_yields_cosign_and_a_cosign_never_yields_advise(root, registry):
+    recs = [make_record(i, choice=[INC, ALT1, ALT2][i % 3], incumbent=INC) for i in range(120)]
+    write_records(root, recs)
+    write_labels(root, [make_label(r, acceptable=[r['laya']['choice']], stratum='agreement') for r in recs])
+    earned = run(root, registry, now='2026-10-11T00:00:00Z', probe=OPEN_PROBE)
+    assert earned['advise'][SKILL]['earnedMode'] == 'advise' and 'promote' not in action_types(earned)
+    assert state_of(root, SKILL)['mode'] == 'advise'
+    later = run(root, registry, now='2026-10-11T01:00:00Z', probe=OPEN_PROBE)      # the open, unlabeled cosign cohort
+    assert 'promote' not in action_types(later) and state_of(root, SKILL)['mode'] == 'advise'
+
+
+def test_a_promoted_cosign_suppresses_the_skill_fit_advise_pass(root, registry):
+    go_cosign(root, registry=registry)
+    result = run(root, registry, probe=OPEN_PROBE)['advise'][SKILL]
+    assert result == {'status': 'held', 'reason': 'mode_cosign'} and state_of(root, SKILL)['mode'] == 'cosign'

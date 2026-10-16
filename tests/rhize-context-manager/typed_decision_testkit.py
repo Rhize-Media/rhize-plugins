@@ -199,7 +199,7 @@ def write_choice(root, decision, i, *, laya, group=None, critical=False, status=
 
 def write_choice_label(root, decision, decision_id, label, *, ambiguous=False):
     import typed_advice
-    return typed_advice._write_once(Path(root), decision, 'label', decision_id, {
+    return typed_advice.write_once(Path(root), decision, 'label', decision_id, {
         'schema': 'rhize-typed-choice-label-v1', 'decision': decision, 'decisionId': decision_id,
         'label': None if ambiguous else label, 'ambiguous': ambiguous, 'basis': 'ai_model_reviewed',
         'rubricVersion': 'choice-rubric-v1', 'annotators': ['claude-sonnet-5-5', 'gpt-5.6-sol'], 'reviewer': None,

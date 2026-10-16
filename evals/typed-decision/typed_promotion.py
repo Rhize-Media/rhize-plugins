@@ -3,8 +3,9 @@
 
 Pure functions generic over decisions (stdlib only, Python 3.9 compatible). `evaluate` is the paired sign test
 on a reserved promotion cohort, `demotion` the rolling live check, `run_attempt` the ledger-bound attempt flow
-(reserve before evaluating, one consumed verdict per cohort, alpha spent per decision). The gate never writes
-the registry; the caller does, through decision_registry.mutate.
+(reserve before evaluating, one consumed verdict per cohort, alpha spent per decision). The gate itself never
+writes the registry; its callers (decision_cycle, pilot_cycle) do, through the shared `registry_mutate`,
+`earned_result` and `demotion_result` below, which wrap decision_registry.mutate.
 """
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ from pathlib import Path
 _SCRIPTS = str(Path(__file__).resolve().parents[2] / 'rhize-context-manager/scripts')
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
-from typed_decisions import advise_ledger, locked_io  # noqa: E402
+from typed_decisions import advise_ledger, decision_registry, locked_io  # noqa: E402
 from typed_decisions.cohorts import alpha_for_attempt, cp_lower  # noqa: E402
 
 RECEIPT_SCHEMA = 'rhize-advise-baseline-receipt-v1'
@@ -28,6 +29,7 @@ MIN_CLASS_RECALL = 0.5
 DEFAULT_GATE = {'minCohort': 30, 'alphaBase': 0.10, 'minCoverage': 0.9, 'minCriticalCases': 0,
                 'demote': {'freshLabels': 10, 'window': 30, 'consecutive': 2}}
 CRITICAL_MIN_CASES = 10
+DEMOTION_FILE = 'advise-demotion.json'   # <root>/<decision>/: the rolling check's history and seen case ids
 
 
 def sha256(value):
@@ -190,6 +192,68 @@ def run_attempt(root, decision, candidate_cases, *, policy_sha, instrument_sha, 
         advise_ledger.append(root, decision, {**base, 'event': 'consumed', 'verdict': result['verdict'],
                                               'receiptSha256': receipt_sha, 'ts': _iso(now)})
     return {'status': 'dry_run' if dry_run else 'evaluated', **receipt, 'receiptSha256': receipt_sha}
+
+
+# ---------------------------------------------------------------- shared cycle plumbing (registry writes)
+
+def registry_mutate(root, registry, decision, to_mode, reason, expected_revision, binding=None, now=None):
+    """The cycles' single registry write; a refusal is a recorded hold, never a crash."""
+    try:
+        state = decision_registry.mutate(root, decision, to_mode, actor='cycle', reason=reason,
+                                         expected_revision=expected_revision, binding=binding, now=now, registry=registry)
+    except decision_registry.RegistryError as err:
+        return {'status': 'held', 'to': to_mode, 'code': err.code}
+    return {'status': 'mutated', 'to': to_mode, 'reason': reason, 'revision': state['revision']}
+
+
+def earned_result(root, registry, decision, receipt, *, policy_sha, instrument_sha, laya_revision, expected_revision,
+                  now=None, dry_run=False):
+    """Fold a finished `run_attempt` receipt into the cycle's result: a 'pass' moves the decision to advise through
+    the registry (only planned on a dry run), bound to the cohort that earned it."""
+    result = {'status': receipt['status'], 'earnedMode': 'shadow', 'registry': None,
+              **{key: receipt[key] for key in ('verdict', 'reasons', 'stats', 'cohortId', 'attempt', 'alpha',
+                                               'receiptSha256', 'baseline')}}
+    if receipt['verdict'] == 'pass':
+        if dry_run:
+            result['registry'] = {'status': 'would_mutate', 'to': 'advise', 'reason': 'gate_pass'}
+        else:
+            binding = {'policySha256': policy_sha, 'instrumentSha256': instrument_sha, 'layaRevision': laya_revision,
+                       'cohortId': receipt['cohortId']}
+            result['registry'] = registry_mutate(root, registry, decision, 'advise', 'gate_pass', expected_revision,
+                                                 binding, now)
+            if result['registry']['status'] == 'mutated':
+                result['earnedMode'] = 'advise'
+    return result
+
+
+def read_demotion_state(root, decision):
+    """(history, seen ids) of the rolling demotion check; empty when never written or unreadable."""
+    try:
+        value = locked_io.read_json_file(Path(root) / decision / DEMOTION_FILE)
+        return list(value['history']), set(value['seen'])
+    except (OSError, ValueError, KeyError, TypeError):
+        return [], set()
+
+
+def demotion_result(root, registry, decision, outcome, seen, *, expected_revision, reason, now=None, dry_run=False,
+                    guard=None):
+    """Persist a `demotion()` outcome's history (never on a dry run) and, when it demotes, move the decision to
+    shadow with `reason`. `guard()` runs just before that write (it may raise to refuse it)."""
+    result = {'status': 'evaluated', 'branch': 'demotion', 'earnedMode': 'advise', 'registry': None,
+              'demotion': {key: value for key, value in outcome.items() if key != 'history'}}
+    if not dry_run and (outcome['evaluated'] or outcome['demote']):
+        locked_io.write_private_atomic(Path(root) / decision / DEMOTION_FILE,
+                                       json.dumps({'history': outcome['history'], 'seen': sorted(seen)}).encode())
+    if outcome['demote']:
+        if dry_run:
+            result['registry'] = {'status': 'would_mutate', 'to': 'shadow', 'reason': reason}
+        else:
+            if guard:
+                guard()
+            result['registry'] = registry_mutate(root, registry, decision, 'shadow', reason, expected_revision, None, now)
+            if result['registry']['status'] == 'mutated':
+                result['earnedMode'] = 'shadow'
+    return result
 
 
 def main():

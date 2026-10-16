@@ -237,25 +237,7 @@ class ChoiceEngine(sl.Engine):
     def __init__(self, root, config, runner, clock=time.monotonic):
         super().__init__(root, config, runner, None, {}, clock)
 
-    def label(self, cases, labeled_at):
-        written = []
-        framing = len(annotation_prompt([]).encode('utf-8', 'replace'))
-        fitting = []
-        for case in cases:
-            if framing + auto.entry_bytes(case['entry']) > auto.MAX_PROMPT_BYTES:
-                self.stats['promptTooLarge'] += 1
-            else:
-                fitting.append(case)
-        batches = auto.batch_by_size(fitting, lambda c: auto.entry_bytes(c['entry']),
-                                     self.config['packetBytes'] - framing)
-        for number, batch in enumerate(batches):
-            try:
-                written += self._label_batch(batch, labeled_at)
-            except auto.LabelerError as exc:
-                self.stats['aborted' if str(exc) == 'aborted_repeated_failures' else 'deadline'] += 1
-                self.stats['notAttempted'] += sum(len(b) for b in batches[number:])
-                break
-        return written
+    annotation_prompt = staticmethod(annotation_prompt)
 
     def _label_batch(self, batch, labeled_at):
         expected = {c['caseId']: list(c['keyToId']) for c in batch}
@@ -328,7 +310,7 @@ class ChoiceEngine(sl.Engine):
                  'reviewer': reviewer, 'evidenceSha256': case['evidenceSha256'], 'redactor': redactor_sha256(),
                  'labeledAt': labeled_at}
         try:
-            fresh = typed_advice._write_once(self.root, case['decision'], 'label', record['decisionId'], label)
+            fresh = typed_advice.write_once(self.root, case['decision'], 'label', record['decisionId'], label)
         except (OSError, ValueError):
             self.stats['invalidLabels'] += 1
             return None
@@ -419,7 +401,7 @@ def run(root, decision=None, max_cases=None, dry_run=False, runner=None, config=
             summary['status'] = 'prepared' if dry_run else 'nothing_to_do'
             return summary, EXIT_OK
         engine = ChoiceEngine(root, config, None, clock)
-        backend, cleanup = sl.start_runner(runner, config, root)
+        backend, cleanup = sl.start_runner(runner, config, root, root / 'choice-labels' / 'labeling')
         try:
             engine.runner = backend
             if hasattr(backend, 'preflight'):

@@ -238,6 +238,8 @@ def review_prompt(cases, proposals) -> str:
 class Engine:
     """Prepares cases from records, labels them with the runner and appends labels."""
 
+    annotation_prompt = staticmethod(annotation_prompt)   # subclasses with other prompts override it for batching
+
     def __init__(self, root, config, runner, scanner, descriptions, clock=time.monotonic):
         self.root, self.config, self.runner, self.scanner = Path(root), config, runner, scanner
         self.descriptions, self.clock = descriptions, clock
@@ -282,7 +284,7 @@ class Engine:
     def label(self, cases, labeled_at):
         """Annotate, review and append labels batch by batch. Returns the labels written."""
         written = []
-        framing = len(annotation_prompt([]).encode('utf-8', 'replace'))
+        framing = len(self.annotation_prompt([]).encode('utf-8', 'replace'))
         fitting = []
         for case in cases:
             if framing + auto.entry_bytes(case['entry']) > auto.MAX_PROMPT_BYTES:
@@ -415,11 +417,13 @@ def unique_records(root):
     return records.dedupe_by_occurrence(recs)
 
 
-def start_runner(runner, config, root):
-    """(runner, cleanup). A default CliBackend works in a private temp dir that cleanup removes."""
+def start_runner(runner, config, root, workdir_parent=None):
+    """(runner, cleanup). A default CliBackend works in a private temp dir under `workdir_parent` (default
+    <root>/skill-fit/labeling) that cleanup removes."""
     if runner is not None:
         return runner, (lambda: None)
-    workdir = evidence_fs.private_dir(Path(root) / DECISION / 'labeling' / ('run-' + uuid.uuid4().hex[:12]), anchor=Path(root))
+    parent = Path(workdir_parent) if workdir_parent else Path(root) / DECISION / 'labeling'
+    workdir = evidence_fs.private_dir(parent / ('run-' + uuid.uuid4().hex[:12]), anchor=Path(root))
     backend = auto.CliBackend(config['claudeBin'], config['codexBin'], config['effort'], workdir)
     def cleanup():
         # Keep only sanitized failure receipts, never the CLI's transient home or other files.

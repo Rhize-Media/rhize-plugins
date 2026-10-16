@@ -25,7 +25,7 @@ from decision_pilot_v2 import ADVICE_POLICY, ADVICE_QUESTION, COHORT, NORMALIZAT
 import pilot_labels
 import typed_advice
 import typed_promotion
-from typed_decisions import decision_registry, locked_io
+from typed_decisions import decision_registry
 
 DECISION = 'workflow-fit'
 
@@ -302,27 +302,6 @@ def majority(rows):
     return typed_promotion.majority(labels), dict(Counter(labels))
 
 
-DEMOTION_FILE = 'advise-demotion.json'
-
-
-def _mutate(registry_root, registry, to_mode, expected, reason, binding=None):
-    """One registry write through the single locked path; a refusal is a held result, never a crash."""
-    try:
-        state = decision_registry.mutate(registry_root, DECISION, to_mode, actor='cycle', reason=reason,
-                                         expected_revision=expected, binding=binding, registry=registry)
-        return {'status': 'mutated', 'to': to_mode, 'revision': state['revision']}
-    except decision_registry.RegistryError as exc:
-        return {'status': 'held', 'to': to_mode, 'code': exc.code}
-
-
-def _demotion_state(path):
-    try:
-        value = locked_io.read_json_file(path)
-        return list(value['history']), set(value['seen'])
-    except (OSError, ValueError, KeyError, TypeError):
-        return [], set()
-
-
 def advise_gate(registry_root, registry, check_sources, predict_one, rows, promotion, baseline, prior, probe=None):
     """Earn or lose `advise` for the default wording of workflow-fit (plan §3): demotion when the registry already
     says advise, otherwise one ledger-bound baseline-gate attempt. Registry refusals are recorded, not raised."""
@@ -345,7 +324,7 @@ def advise_gate(registry_root, registry, check_sources, predict_one, rows, promo
             return demote_check(registry_root, registry, cfg, critical, check_sources, predict_one, rows, baseline,
                                 expected)
         # A stale binding already reads as shadow at runtime; record that so the gate can earn it again.
-        moved = _mutate(registry_root, registry, 'shadow', expected, 'binding_stale')
+        moved = typed_promotion.registry_mutate(registry_root, registry, DECISION, 'shadow', 'binding_stale', expected)
         if moved['status'] != 'mutated':
             return {'status': 'held', 'reason': 'registry_refused', 'earnedMode': mode, 'registry': moved}
         expected = moved['revision']
@@ -357,23 +336,15 @@ def advise_gate(registry_root, registry, check_sources, predict_one, rows, promo
     if receipt['status'] == 'held':
         return {**receipt, 'earnedMode': 'shadow'}
     check_sources()  # a changed evaluator, decoder or promoter never mutates the registry
-    result = {'status': 'evaluated', 'earnedMode': 'shadow', 'registry': None,
-              **{key: receipt[key] for key in ('verdict', 'reasons', 'stats', 'cohortId', 'attempt', 'alpha',
-                                               'receiptSha256', 'baseline')}}
-    if receipt['verdict'] == 'pass':
-        result['registry'] = _mutate(registry_root, registry, 'advise', expected, 'gate_pass', {
-            'policySha256': policy_sha, 'instrumentSha256': instrument_sha, 'layaRevision': revision,
-            'cohortId': receipt['cohortId']})
-        if result['registry']['status'] == 'mutated':
-            result['earnedMode'] = 'advise'
-    return result
+    return typed_promotion.earned_result(
+        registry_root, registry, DECISION, receipt, policy_sha=policy_sha, instrument_sha=instrument_sha,
+        laya_revision=revision, expected_revision=expected)
 
 
 def demote_check(registry_root, registry, cfg, critical, check_sources, predict_one, rows, baseline, expected):
     """Rolling live check of an earned `advise` (plan §3.7) on the latest labelled cases."""
     demote_cfg = cfg['demote']
-    path = registry_root / DECISION / DEMOTION_FILE
-    history, seen = _demotion_state(path)
+    history, seen = typed_promotion.read_demotion_state(registry_root, DECISION)
     latest = rows[-demote_cfg['window']:]
     hashes = {digest(row['case_id']) for row in latest}
     fresh = len(hashes - seen)
@@ -389,16 +360,8 @@ def demote_check(registry_root, registry, cfg, critical, check_sources, predict_
     outcome = typed_promotion.demotion(cases, fresh, history, baseline=baseline, critical=critical,
                                        window=demote_cfg['window'], fresh_labels=demote_cfg['freshLabels'],
                                        consecutive=demote_cfg['consecutive'])
-    result = {'status': 'evaluated', 'branch': 'demotion', 'earnedMode': 'advise', 'registry': None,
-              'demotion': {key: value for key, value in outcome.items() if key != 'history'}}
-    if outcome['evaluated'] or outcome['demote']:
-        locked_io.write_private_atomic(path, json.dumps({'history': outcome['history'], 'seen': sorted(hashes)}).encode())
-    if outcome['demote']:
-        check_sources()
-        result['registry'] = _mutate(registry_root, registry, 'shadow', expected, 'gate_demote')
-        if result['registry']['status'] == 'mutated':
-            result['earnedMode'] = 'shadow'
-    return result
+    return typed_promotion.demotion_result(registry_root, registry, DECISION, outcome, hashes,
+                                           expected_revision=expected, reason='gate_demote', guard=check_sources)
 
 
 def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, run=subprocess.run,

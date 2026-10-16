@@ -351,3 +351,22 @@ def test_status_cli_prints_the_ledger(tmp_path):
     done = subprocess.run([sys.executable, str(ROOT / 'evals/typed-decision/typed_promotion.py'), 'status',
                            '--root', str(tmp_path), '--decision', D], text=True, capture_output=True, timeout=20)
     assert done.returncode == 0 and [e['event'] for e in json.loads(done.stdout)] == ['reserve', 'consumed']
+
+
+# ---- shared cycle plumbing (registry writes and the rolling demotion state)
+
+def test_registry_mutate_records_a_refusal_as_a_hold(tmp_path):
+    held = tp.registry_mutate(tmp_path, None, 'no-such-decision', 'shadow', 'gate_demote', 0)
+    assert held == {'status': 'held', 'to': 'shadow', 'code': 'unknown_decision'}
+
+
+def test_demotion_state_round_trips_and_a_dry_run_never_writes_it(tmp_path):
+    assert tp.read_demotion_state(tmp_path, D) == ([], set())
+    outcome = {'demote': False, 'evaluated': True, 'history': [False], 'reason': None}
+    dry = tp.demotion_result(tmp_path, None, D, outcome, ['a', 'b'], expected_revision=0, reason='gate_demote', dry_run=True)
+    assert dry['registry'] is None and not (tmp_path / D).exists()
+    tp.demotion_result(tmp_path, None, D, outcome, ['b', 'a'], expected_revision=0, reason='gate_demote')
+    assert tp.read_demotion_state(tmp_path, D) == ([False], {'a', 'b'})
+    quiet = {'demote': False, 'evaluated': False, 'history': [False, True], 'reason': None}
+    tp.demotion_result(tmp_path, None, D, quiet, ['c'], expected_revision=0, reason='gate_demote')
+    assert tp.read_demotion_state(tmp_path, D) == ([False], {'a', 'b'})              # not evaluated: state untouched
