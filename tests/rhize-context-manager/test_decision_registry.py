@@ -178,7 +178,7 @@ def test_unreachable_modes_are_refused(root):
 def test_critical_tier_never_leaves_shadow_or_off(root):
     registry = copy.deepcopy(reg.load_registry())
     entry = registry['decisions']['workflow-fit']
-    entry['tier'], entry['reachableModes'] = 'critical', ['off', 'shadow']
+    entry['tier'], entry['reachableModes'], entry['advise'] = 'critical', ['off', 'shadow'], None
     contract.validate_registry(registry)
     state = reg.mutate(root, 'workflow-fit', 'off', actor='cli', reason='manual_off', expected_revision=0,
                        registry=registry)

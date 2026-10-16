@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rhize.media/schemas/decision-registry-state-v1.schema.json",
   "title": "decision-registry-state-v1",
-  "description": "Machine-local registry state (~/.local/share/rhize/typed-decisions/registry-state.json). Written only through scripts/typed_decisions/decision_registry.py (lock, revision check, audit intent, atomic replace, audit commit). Readers treat a corrupt or invalid file as shadow. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "description": "Machine-local registry state (~/.local/share/rhize/typed-decisions/registry-state.json). Written only through scripts/typed_decisions/decision_registry.py (lock, revision check, audit intent, atomic replace, audit commit). Readers treat a corrupt or invalid file as shadow. An entry in mode advise or cosign must bind non-null policySha256, instrumentSha256 and layaRevision. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -28,7 +28,13 @@
       "propertyNames": {
         "enum": [
           "skill-fit",
-          "workflow-fit"
+          "workflow-fit",
+          "procedure-pick",
+          "devflow-next-action",
+          "browser-qa-selection",
+          "model-routing",
+          "gsd-directive",
+          "check-relaxation"
         ]
       },
       "additionalProperties": {
@@ -49,6 +55,7 @@
             "enum": [
               "off",
               "shadow",
+              "advise",
               "cosign"
             ]
           },
@@ -107,7 +114,37 @@
               }
             ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "advise",
+                    "cosign"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "policySha256": {
+                  "type": "string"
+                },
+                "instrumentSha256": {
+                  "type": "string"
+                },
+                "layaRevision": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
       }
     }
   }

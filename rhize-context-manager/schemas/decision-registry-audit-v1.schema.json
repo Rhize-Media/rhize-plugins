@@ -47,7 +47,13 @@
         "decision": {
           "enum": [
             "skill-fit",
-            "workflow-fit"
+            "workflow-fit",
+            "procedure-pick",
+            "devflow-next-action",
+            "browser-qa-selection",
+            "model-routing",
+            "gsd-directive",
+            "check-relaxation"
           ]
         },
         "fromMode": {
@@ -56,6 +62,7 @@
               "enum": [
                 "off",
                 "shadow",
+                "advise",
                 "cosign"
               ]
             },
@@ -68,6 +75,7 @@
           "enum": [
             "off",
             "shadow",
+            "advise",
             "cosign"
           ]
         },
@@ -128,7 +136,13 @@
         "decision": {
           "enum": [
             "skill-fit",
-            "workflow-fit"
+            "workflow-fit",
+            "procedure-pick",
+            "devflow-next-action",
+            "browser-qa-selection",
+            "model-routing",
+            "gsd-directive",
+            "check-relaxation"
           ]
         },
         "fromMode": {
@@ -137,6 +151,7 @@
               "enum": [
                 "off",
                 "shadow",
+                "advise",
                 "cosign"
               ]
             },
@@ -149,6 +164,7 @@
           "enum": [
             "off",
             "shadow",
+            "advise",
             "cosign"
           ]
         },

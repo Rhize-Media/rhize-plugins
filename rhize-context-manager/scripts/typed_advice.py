@@ -21,6 +21,7 @@ import re
 import stat
 import tempfile
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -34,7 +35,8 @@ MODES = ('off', 'shadow', 'advise', 'cosign')
 REQUEST_CHARS = 1500
 MAX_FILES = 20
 MAX_CANDIDATES = 16
-MAX_RESPONSE_BYTES = 256 * 1024
+MAX_RESPONSE_BYTES = 64 * 1024
+CHUNK_BYTES = 8192
 PROBE_TTL_SECONDS = 60
 HOLDBACK = {'advisory': 0.10, 'workflow': 0.10, 'critical': 0.15}
 
@@ -46,7 +48,8 @@ _DECISION_ID = re.compile(r'[0-9a-f]{32}')
 _REVISION = re.compile(r'[A-Za-z0-9._-]{1,80}')
 _SECRET_ASSIGN = re.compile(
     r'(?i)\b([A-Za-z0-9_]*(?:pass(?:word|wd)?|secret|token|api[_-]?key|auth[A-Za-z_]*|bearer|credential|private[_-]?key)'
-    r'[A-Za-z0-9_]*)(\s*[:=]\s*|\s+)(["\']?)[^\s"\']+\3')
+    r'[A-Za-z0-9_]*)(?:["\']?\s*[:=]\s*|\s+)(?:(?:bearer|basic)\s+)?'
+    r'("[^"]*"|\'[^\']*\'|["\']?[^\s"\']+)')
 _SECRET_RUN = re.compile(r'[A-Za-z0-9+/_=-]{32,}')
 _SECRET_FILE = re.compile(r'(?i)(^|/)(\.env[^/]*|.*\.(pem|key|p12|pfx|keystore)|id_[a-z0-9]+|.*credential[^/]*|.*secret[^/]*)$')
 _WS = re.compile(r'\s+')
@@ -131,12 +134,38 @@ def _remaining(deadline) -> float:
     return left
 
 
-def _get_json(opener, request, deadline, max_bytes):
-    with opener.open(request, timeout=_remaining(deadline)) as response:
-        raw = response.read(max_bytes + 1)
-    _remaining(deadline)
-    if len(raw) > max_bytes:
+def _read_bounded(response, deadline, max_bytes) -> bytes:
+    """Read at most max_bytes, re-arming the socket timeout from the shared deadline before every chunk."""
+    length = getattr(response, 'headers', None) and response.headers.get('Content-Length')
+    if length and str(length).isdigit() and int(length) > max_bytes:
         raise ValueError('response_too_large')
+    chunks, total = [], 0
+    while True:
+        try:
+            response.fp.raw._sock.settimeout(max(_remaining(deadline), 0.001))
+        except AttributeError:  # a custom response may expose no socket; the per-open timeout still applies
+            _remaining(deadline)
+        # read1 returns whatever one socket read yields, so a slow trickle re-checks the deadline between
+        # chunks; read(n) would block until n bytes arrive and ignore it.
+        chunk = getattr(response, 'read1', response.read)(min(CHUNK_BYTES, max_bytes + 1 - total))
+        if not chunk:
+            return b''.join(chunks)
+        total += len(chunk)
+        if total > max_bytes:
+            raise ValueError('response_too_large')
+        chunks.append(chunk)
+
+
+def _get_json(opener, request, deadline, max_bytes):
+    try:
+        with opener.open(request, timeout=_remaining(deadline)) as response:
+            raw = _read_bounded(response, deadline, max_bytes)
+    except urllib.error.HTTPError as exc:
+        exc.close()
+        if 300 <= exc.code < 400:  # e.g. a 307/308 on POST, which urllib does not route through redirect_request
+            raise ValueError('redirect_refused') from None
+        raise
+    _remaining(deadline)
     try:
         value = json.loads(raw)
     except ValueError:
@@ -174,7 +203,12 @@ def post_local(base_url, path, payload, timeout, max_bytes=MAX_RESPONSE_BYTES, h
     model = body['model']
     opener = _opener()
     if not (health_cache and _probe_fresh(health_cache, health, model)):
-        document = _get_json(opener, urllib.request.Request(health, method='GET'), deadline, 16384)
+        try:
+            document = _get_json(opener, urllib.request.Request(health, method='GET'), deadline, 16384)
+        except ValueError as exc:
+            if str(exc) in ('response_not_json', 'response_not_object'):
+                raise ValueError('identity_failed') from None  # not a Laya /health document
+            raise
         loaded = document.get('loaded')
         if not isinstance(loaded, list) or model not in loaded:
             raise ValueError('identity_failed')
@@ -230,8 +264,9 @@ def choice(request, files, question, candidates, *, endpoint=ENDPOINT, budget_ms
         decoded, status = decode(response, key_map), 'ok'
     except ValueError as exc:
         code = str(exc)
-        status = code if code in ('timeout', 'identity_failed', 'redirect_refused') else (
-            'invalid' if code.startswith(('invalid', 'response')) else 'unavailable')
+        status = ('timeout' if code == 'invalid_timeout' else code
+                  if code in ('timeout', 'identity_failed', 'redirect_refused') else
+                  'invalid' if code.startswith(('invalid', 'response')) else 'unavailable')
     except Exception as exc:  # noqa: BLE001 - the contract is "never raises"
         status = 'timeout' if 'timed out' in str(exc).lower() else 'unavailable'
     return {'status': status, 'choice': decoded and decoded['choice'],

@@ -21,9 +21,13 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / 'rhize-context-manager/scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from decision_pilot import export_cases, inventory, DEFAULT_ROOT, read_json, locked_update, digest
-from decision_pilot_v2 import COHORT, NORMALIZATION
+from decision_pilot_v2 import ADVICE_POLICY, ADVICE_QUESTION, COHORT, NORMALIZATION
 import pilot_labels
+import typed_advice
 import typed_promotion
+from typed_decisions import decision_registry, locked_io
+
+DECISION = 'workflow-fit'
 
 
 def legacy_candidates():
@@ -201,9 +205,10 @@ def grouping(rows, assignments):
     for keys in components.values():
         keys = sorted(keys)
         group_id = digest(json.dumps(keys, separators=(',', ':')))
-        bucket = int(digest(COHORT + ':' + group_id)[:8], 16) % 6
+        bucket = int(digest(COHORT + ':' + group_id)[:8], 16) % 2
         old = previous.get(find(keys[0]), set())
-        split = next(iter(old)) if old else ('promotion' if bucket < 2 else 'train' if bucket < 4 else 'validation')
+        split = next(iter(old)) if old else ('promotion' if typed_promotion.split_of(group_id) == 'promotion'
+                                             else 'train' if bucket == 0 else 'validation')
         records.append({'cohort': COHORT, 'normalization': NORMALIZATION, 'keys': keys, 'split': split})
         for key in keys:
             mapping[key] = (group_id, split)
@@ -297,10 +302,109 @@ def majority(rows):
     return sorted(counts, key=lambda name: (-counts[name], name))[0], dict(counts)
 
 
+DEMOTION_FILE = 'advise-demotion.json'
+
+
+def _mutate(registry_root, registry, to_mode, expected, reason, binding=None):
+    """One registry write through the single locked path; a refusal is a held result, never a crash."""
+    try:
+        state = decision_registry.mutate(registry_root, DECISION, to_mode, actor='cycle', reason=reason,
+                                         expected_revision=expected, binding=binding, registry=registry)
+        return {'status': 'mutated', 'to': to_mode, 'revision': state['revision']}
+    except decision_registry.RegistryError as exc:
+        return {'status': 'held', 'to': to_mode, 'code': exc.code}
+
+
+def _demotion_state(path):
+    try:
+        value = locked_io.read_json_file(path)
+        return list(value['history']), set(value['seen'])
+    except (OSError, ValueError, KeyError, TypeError):
+        return [], set()
+
+
+def advise_gate(registry_root, registry, check_sources, predict_one, rows, promotion, baseline, prior):
+    """Earn or lose `advise` for the default wording of workflow-fit (plan §3): demotion when the registry already
+    says advise, otherwise one ledger-bound baseline-gate attempt. Registry refusals are recorded, not raised."""
+    registry_root = Path(registry_root or typed_advice.root())
+    registry = registry or decision_registry.load_registry()
+    entry = registry['decisions'][DECISION]
+    cfg, critical = entry['advise'], entry['tier'] == 'critical'
+    policy_sha = typed_advice.policy_sha256(DECISION, ADVICE_QUESTION, ADVICE_POLICY)
+    instrument_sha = decision_registry.advise_instrument_sha256(cfg['instrument'])
+    revision = typed_advice.laya_revision(registry_root)
+    state, status = decision_registry.read_state(registry_root, registry)
+    if status == 'corrupt':
+        return {'status': 'held', 'reason': 'registry_state_corrupt', 'earnedMode': 'shadow'}
+    saved = ((state or {}).get('decisions') or {}).get(DECISION) or {}
+    mode, expected = saved.get('mode', entry['defaultMode']), state['revision'] if state else 0
+    if mode == 'advise':
+        bound = (decision_registry.effective_mode(DECISION, registry, state, status, revision) == 'advise'
+                 and saved.get('policySha256') == policy_sha)
+        if bound:
+            return demote_check(registry_root, registry, cfg, critical, check_sources, predict_one, rows, baseline,
+                                expected)
+        # A stale binding already reads as shadow at runtime; record that so the gate can earn it again.
+        moved = _mutate(registry_root, registry, 'shadow', expected, 'binding_stale')
+        if moved['status'] != 'mutated':
+            return {'status': 'held', 'reason': 'registry_refused', 'earnedMode': mode, 'registry': moved}
+        expected = moved['revision']
+    cases = [{'id': row['case_id'], 'group': row['group_id'], 'label': row['routing_choice'],
+              'critical_if_wrong': bool(row.get('critical_if_wrong'))} for row in promotion]
+    receipt = typed_promotion.run_attempt(
+        registry_root, DECISION, cases, policy_sha=policy_sha, instrument_sha=instrument_sha, laya_revision=revision,
+        gate_cfg=cfg, prior=prior, baseline=baseline, critical=critical, predict_one=predict_one)
+    if receipt['status'] == 'held':
+        return {**receipt, 'earnedMode': 'shadow'}
+    check_sources()  # a changed evaluator, decoder or promoter never mutates the registry
+    result = {'status': 'evaluated', 'earnedMode': 'shadow', 'registry': None,
+              **{key: receipt[key] for key in ('verdict', 'reasons', 'stats', 'cohortId', 'attempt', 'alpha',
+                                               'receiptSha256', 'baseline')}}
+    if receipt['verdict'] == 'pass':
+        result['registry'] = _mutate(registry_root, registry, 'advise', expected, 'gate_pass', {
+            'policySha256': policy_sha, 'instrumentSha256': instrument_sha, 'layaRevision': revision,
+            'cohortId': receipt['cohortId']})
+        if result['registry']['status'] == 'mutated':
+            result['earnedMode'] = 'advise'
+    return result
+
+
+def demote_check(registry_root, registry, cfg, critical, check_sources, predict_one, rows, baseline, expected):
+    """Rolling live check of an earned `advise` (plan §3.7) on the latest labelled cases."""
+    demote_cfg = cfg['demote']
+    path = registry_root / DECISION / DEMOTION_FILE
+    history, seen = _demotion_state(path)
+    latest = rows[-demote_cfg['window']:]
+    hashes = {digest(row['case_id']) for row in latest}
+    fresh = len(hashes - seen)
+    cases = []
+    if fresh >= demote_cfg['freshLabels'] or critical:
+        for row in latest:
+            try:
+                choice, status = predict_one({'id': row['case_id']}), 'ok'
+            except Exception:  # noqa: BLE001 - unavailable counts as wrong, like the gate
+                choice, status = None, 'unavailable'
+            cases.append({'id': row['case_id'], 'label': row['routing_choice'], 'choice': choice, 'status': status,
+                          'critical_if_wrong': bool(row.get('critical_if_wrong'))})
+    outcome = typed_promotion.demotion(cases, fresh, history, baseline=baseline, critical=critical,
+                                       window=demote_cfg['window'], fresh_labels=demote_cfg['freshLabels'],
+                                       consecutive=demote_cfg['consecutive'])
+    result = {'status': 'evaluated', 'branch': 'demotion', 'earnedMode': 'advise', 'registry': None,
+              'demotion': {key: value for key, value in outcome.items() if key != 'history'}}
+    if outcome['evaluated'] or outcome['demote']:
+        locked_io.write_private_atomic(path, json.dumps({'history': outcome['history'], 'seen': sorted(hashes)}).encode())
+    if outcome['demote']:
+        check_sources()
+        result['registry'] = _mutate(registry_root, registry, 'shadow', expected, 'gate_demote')
+        if result['registry']['status'] == 'mutated':
+            result['earnedMode'] = 'shadow'
+    return result
+
+
 def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, run=subprocess.run,
-          call=None, modes_root=None):
+          call=None, registry_root=None, registry=None):
     """Automatic v3 development: replay -> stable tuning/promotion split -> bounded search on tuning only ->
-    one frozen-candidate evaluation on the promotion split -> typed_promotion state update.
+    one advise-v1 baseline-gate attempt for the default wording on the promotion split -> registry mutation.
 
     Original v1/v2 experiments and records remain untouched; legacy human labels are not replayed.
     """
@@ -348,6 +452,8 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
                         for path in (evaluator, promoter, decoder, Path(__file__),
                                      *(scripts / name for name in (
                                          'decision_pilot.py', 'decision_pilot_v2.py', 'pilot_labels.py',
+                                         'typed_advice.py', 'typed_decisions/advise_ledger.py',
+                                         'typed_decisions/decision_registry.py',
                                          'workflow_task_context.py', 'workflow_context_packet.py',
                                          'workflow_selection.py', 'pilot_redaction.py')))}}, sort_keys=True))
         failures = version_root / 'preflight-failures'
@@ -476,23 +582,22 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
                       'corpusSha256': digest(corpus_bytes), 'tuningCorpusSha256': manifest['corpus_sha256'],
                       'promotionSplitSha256': digest(promotion_path.read_bytes()),
                       'coverage': coverage, 'holdout': 'not_run', 'releaseEligible': False}
-            # Promotion: the frozen candidate meets the promotion split exactly once, through the same Laya call path.
-            config_sha = typed_promotion.config_sha256(selected, NORMALIZATION, list(promotion[0]['candidate_ids']),
-                                                       promotion[0]['questions'])
-            fresh, new_cases = typed_promotion.check_novelty([row['case_id'] for row in promotion], config_sha, modes_root)
-            if not fresh:
-                return finish({**result, 'status': 'held', 'reason': 'insufficient_new_promotion_cases',
-                               'newPromotionCases': new_cases, 'promotion': 'not_performed'})
+            # Advise promotion: only the default wording (no overrides, no abstention) is deployable. The search
+            # winner stays a review artifact; it never earns a mode.
+            default = options[0]
             stop_at = time.monotonic() + deadline
             def bounded(request):
                 if time.monotonic() > stop_at:
                     raise TimeoutError('promotion deadline exceeded')
                 return (call or (lambda r: module.local_call(LAYA_URL, r)))(request)
-            predictions = module.predict(promotion, selected, bounded)
-            check_sources()  # before update: a changed evaluator, decoder or promoter never writes modes.json
-            decision = typed_promotion.update(promotion, predictions, baseline_choice, prior, config_sha, modes_root)
-            return finish({**result, 'status': 'review_required', 'promotion': decision,
-                           'releaseEligible': decision.get('releaseEligible', False),
+            by_id = {row['case_id']: row for row in rows}
+            def predict_one(case):
+                return module.predict([by_id[case['id']]], default, bounded)[case['id']]
+            gate = advise_gate(registry_root, registry, check_sources, predict_one, rows, promotion, baseline_choice, prior)
+            result = {**result, 'advise': gate}
+            return finish({**result, 'status': 'held' if gate['status'] == 'held' else 'review_required',
+                           **({'reason': gate['reason']} if gate['status'] == 'held' else {}),
+                           'promotion': gate, 'releaseEligible': gate.get('earnedMode') == 'advise',
                            'wallMs': round((time.monotonic() - started) * 1000)})
         except ValueError as exc:
             reason = str(exc)

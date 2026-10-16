@@ -1,209 +1,199 @@
 #!/usr/bin/env python3
-"""Earned-mode promotion check for typed decisions (stdlib only, Python 3.9 compatible).
+"""advise-v1 promotion gate: Laya must beat the frozen majority-class baseline (plan §3, §11).
 
-A frozen candidate config is evaluated once per cycle on a promotion split the search never saw.
-It earns `advise` only if it beats the always-baseline majority guess with statistical margin, covers
-every non-trivial class, and makes no critical miss. State lives in modes.json and is keyed by config:
-a different config starts from `shadow`. S1 writes and reports only; nothing consumes the mode yet.
+Pure functions generic over decisions (stdlib only, Python 3.9 compatible). `evaluate` is the paired sign test
+on a reserved promotion cohort, `demotion` the rolling live check, `run_attempt` the ledger-bound attempt flow
+(reserve before evaluating, one consumed verdict per cohort, alpha spent per decision). The gate never writes
+the registry; the caller does, through decision_registry.mutate.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import math
-import os
-import tempfile
-import time
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA = 'rhize-typed-modes-v1'
-DECISION_TYPE = 'workflow_fit'
-Z_ONE_SIDED_90 = 1.2816
+_SCRIPTS = str(Path(__file__).resolve().parents[2] / 'rhize-context-manager/scripts')
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+from typed_decisions import advise_ledger, locked_io  # noqa: E402
+from typed_decisions.cohorts import alpha_for_attempt, cp_lower  # noqa: E402
+
+RECEIPT_SCHEMA = 'rhize-advise-baseline-receipt-v1'
 PRIOR_SHARE_FLOOR = 0.10      # classes below this share of the tuning split are not scored
 MIN_CLASS_CASES = 3
 MIN_CLASS_RECALL = 0.5
-MIN_NEW_CASES = 10            # a re-attempt of the same config needs this many unseen promotion cases
-DEMOTE_AFTER_CYCLES = 2
+DEFAULT_GATE = {'minCohort': 30, 'alphaBase': 0.10, 'minCoverage': 0.9, 'minCriticalCases': 0,
+                'demote': {'freshLabels': 10, 'window': 30, 'consecutive': 2}}
+CRITICAL_MIN_CASES = 10
 
 
 def sha256(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
-def wilson_lower(k, n, z=Z_ONE_SIDED_90):
-    """One-sided 90% Wilson lower bound for a binomial proportion."""
-    if n <= 0:
-        return 0.0
-    p = k / n
-    z2 = z * z
-    centre = p + z2 / (2 * n)
-    margin = z * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n))
-    return (centre - margin) / (1 + z2 / n)
+def split_of(group):
+    """Stable session-group split: promotion 1/3, tuning 2/3 (plan §3.1)."""
+    return 'promotion' if int(hashlib.sha256(('split:' + str(group)).encode()).hexdigest(), 16) % 3 == 2 else 'tuning'
 
 
-def config_sha256(candidate, normalization_version, candidate_ids, questions):
-    """Digest of the frozen candidate; the display id is deliberately excluded.
+def majority(labels):
+    """Most common label; ties resolve to the lexicographically smallest."""
+    counts = {}
+    for label in labels:
+        counts[label] = counts.get(label, 0) + 1
+    return sorted(counts, key=lambda name: (-counts[name], name))[0] if counts else None
 
-    `questions` is a promotion row's question set; the candidate's instruction overrides are applied on top,
-    so the digest covers the effective wording and criteria and a wording edit resets earned mode.
+
+def _answered(case):
+    return case.get('status') == 'ok' and case.get('choice') is not None
+
+
+def _laya_right(case):
+    return _answered(case) and case['choice'] == case['label']
+
+
+def evaluate(cases, *, baseline, alpha, prior, min_cohort, min_coverage, critical=False, min_critical=CRITICAL_MIN_CASES):
+    """Gate one reserved promotion cohort. case = {id, group, label, choice, status, critical_if_wrong}.
+
+    Laya is wrong on a non-ok status, an abstention (choice None) or a different choice. Returns
+    {verdict, reasons, stats}; verdict is 'pass' only when every condition holds.
     """
-    effective = {name: {**question, 'instructions': candidate.get('instructions', {}).get(name, question['instructions'])}
-                 for name, question in questions.items()}
-    return sha256({'model': candidate['model'], 'questions': effective,
-                   'instructions': candidate.get('instructions', {}),
-                   'abstain_below': candidate.get('abstain_below', 0.0),
-                   'normalization_version': normalization_version, 'candidate_ids': list(candidate_ids)})
-
-
-def evaluate(promotion_cases, predictions, baseline_choice, prior):
-    """Score predictions ({case_id: choice or None}) on promotion cases and decide promotability.
-
-    prior is the tuning split's class distribution (counts or shares); None predictions are abstentions
-    and count as wrong. A miss on a stratum starting with 'critical_' is a critical miss.
-    """
+    n = len(cases)
+    right = sum(_laya_right(c) for c in cases)
+    base_right = sum(baseline == c['label'] for c in cases)
+    b = sum(_laya_right(c) and baseline != c['label'] for c in cases)
+    c_ = sum(not _laya_right(c) and baseline == c['label'] for c in cases)
+    coverage = sum(_answered(c) for c in cases) / n if n else 0.0
+    lower = cp_lower(b, b + c_, alpha) if b + c_ > 0 else 0.0
+    classes = sorted({c['label'] for c in cases})
+    counts = {k: sum(c['label'] == k for c in cases) for k in classes}
+    recall = {k: sum(_laya_right(c) for c in cases if c['label'] == k) / counts[k] for k in classes}
+    balanced = sum(recall.values()) / len(classes) if classes else 0.0
+    base_balanced = sum(float(k == baseline) for k in classes) / len(classes) if classes else 0.0
+    critical_cases = sum(bool(c.get('critical_if_wrong')) for c in cases)
+    critical_misses = sum(bool(c.get('critical_if_wrong')) and _answered(c) and c['choice'] != c['label'] for c in cases)
     total = float(sum(prior.values())) or 1.0
-    shares = {name: value / total for name, value in prior.items()}
-    scored = sorted(name for name, share in shares.items() if share >= PRIOR_SHARE_FLOOR)
-    classes = {name: {'count': 0, 'correct': 0} for name in set(scored) | {case['routing_choice'] for case in promotion_cases}}
-    correct = abstentions = critical_misses = 0
-    for case in promotion_cases:
-        guess = predictions.get(case['case_id'])
-        hit = guess is not None and guess == case['routing_choice']
-        classes[case['routing_choice']]['count'] += 1
-        classes[case['routing_choice']]['correct'] += int(hit)
-        correct += int(hit)
-        abstentions += int(guess is None)
-        critical_misses += int(not hit and str(case.get('stratum', '')).startswith('critical_'))
-    n = len(promotion_cases)
-    baseline_correct = sum(case['routing_choice'] == baseline_choice for case in promotion_cases)
-    present = [name for name in scored if classes[name]['count'] > 0]
-    recall = {name: (item['correct'] / item['count'] if item['count'] else None) for name, item in classes.items()}
-    balanced = sum(recall[name] for name in present) / len(present) if present else 0.0
-    baseline_balanced = sum(float(name == baseline_choice) for name in present) / len(present) if present else 0.0
-    lower = wilson_lower(correct, n)
-    accuracy = correct / n if n else 0.0
-    baseline_accuracy = baseline_correct / n if n else 0.0
-    blockers = []
-    if n < 1:
-        blockers.append('no_promotion_cases')
-    if not lower > baseline_accuracy:
-        blockers.append('wilson_lower_not_above_baseline')
-    if not balanced > baseline_balanced:
-        blockers.append('balanced_accuracy_not_above_baseline')
-    for name in scored:
-        if classes[name]['count'] < MIN_CLASS_CASES:
-            blockers.append('class_coverage:' + name)
-        elif recall[name] < MIN_CLASS_RECALL:
-            blockers.append('class_recall:' + name)
-    if critical_misses:
-        blockers.append('critical_miss')
-    return {'n': n, 'correct': correct, 'accuracy': accuracy, 'wilsonLower': lower,
-            'baselineChoice': baseline_choice, 'baselineAccuracy': baseline_accuracy,
-            'balancedAccuracy': balanced, 'baselineBalancedAccuracy': baseline_balanced,
-            'scoredClasses': scored, 'priorShares': dict(sorted(shares.items())),
-            'classes': {name: {'count': item['count'], 'correct': item['correct'], 'recall': recall[name]}
-                        for name, item in sorted(classes.items())},
-            'criticalMisses': critical_misses, 'abstentions': abstentions,
-            'promote': not blockers, 'blockers': blockers}
+    scored = sorted(k for k, v in prior.items() if v / total >= PRIOR_SHARE_FLOOR)
+    reasons = []
+    if n < min_cohort:
+        reasons.append('cohort_too_small')
+    if len({c['group'] for c in cases}) < min_cohort:
+        reasons.append('too_few_groups')
+    if coverage < min_coverage:
+        reasons.append('coverage_below_minimum')
+    if b + c_ == 0:
+        reasons.append('no_discordant_cases')
+    elif not lower > 0.5:
+        reasons.append('sign_test_not_significant')
+    if not balanced > base_balanced:
+        reasons.append('balanced_accuracy_not_above_baseline')
+    for k in scored:
+        if counts.get(k, 0) < MIN_CLASS_CASES:
+            reasons.append('class_coverage:' + k)
+        elif recall[k] < MIN_CLASS_RECALL:
+            reasons.append('class_recall:' + k)
+    if critical:
+        if critical_cases < min_critical:
+            reasons.append('critical_cases_below_minimum')
+        if critical_misses:
+            reasons.append('critical_miss')
+    return {'verdict': 'hold' if reasons else 'pass', 'reasons': reasons,
+            'stats': {'n': n, 'b': b, 'c': c_, 'cpLower': lower, 'alpha': alpha, 'coverage': coverage,
+                      'accuracy': right / n if n else 0.0, 'baselineAccuracy': base_right / n if n else 0.0,
+                      'balancedAccuracy': balanced, 'baselineBalancedAccuracy': base_balanced,
+                      'recall': recall, 'criticalCases': critical_cases, 'criticalMisses': critical_misses}}
 
 
-def modes_path(root=None):
-    base = root or os.environ.get('RHIZE_TYPED_DECISIONS_ROOT') or '~/.local/share/rhize/typed-decisions'
-    return Path(base).expanduser() / 'modes.json'
+def demotion(window_cases, fresh_count, history, *, baseline=None, critical=False, window=30, fresh_labels=10, consecutive=2):
+    """Live demotion (plan §3.7). `window_cases` are labelled advise-arm cases, oldest first; `fresh_count` the labels
+    accrued since the last evaluation; `history` the prior evaluations' below-baseline flags (oldest first).
+
+    A critical miss demotes at once. Otherwise nothing is evaluated until `fresh_labels` new labels exist; then the
+    latest `window` cases are scored and `consecutive` evaluations in a row below the baseline demote. Callers
+    should pass the frozen `baseline`; without one the window's own majority label stands in.
+    """
+    history = list(history)
+    if critical and any(c.get('critical_if_wrong') and _answered(c) and c['choice'] != c['label'] for c in window_cases):
+        return {'demote': True, 'reason': 'critical_miss', 'evaluated': False, 'history': []}
+    latest = list(window_cases)[-window:]
+    if fresh_count < fresh_labels or not latest:
+        return {'demote': False, 'reason': None, 'evaluated': False, 'history': history}
+    baseline = baseline if baseline is not None else majority([c['label'] for c in latest])
+    accuracy = sum(_laya_right(c) for c in latest) / len(latest)
+    base_accuracy = sum(baseline == c['label'] for c in latest) / len(latest)
+    history.append(accuracy < base_accuracy)
+    demote = len(history) >= consecutive and all(history[-consecutive:])
+    return {'demote': demote, 'reason': 'below_baseline_consecutive' if demote else None, 'evaluated': True,
+            'below': history[-1], 'accuracy': accuracy, 'baselineAccuracy': base_accuracy, 'n': len(latest),
+            'history': [] if demote else history}
 
 
-def load_modes(root=None):
-    path = modes_path(root)
-    if path.is_symlink():
-        raise ValueError('symlink modes file refused')
-    if not path.is_file():
-        return {'schema': SCHEMA, 'decisionTypes': {}}
-    value = json.loads(path.read_text())
-    if not isinstance(value, dict) or value.get('schema') != SCHEMA or not isinstance(value.get('decisionTypes'), dict):
-        raise ValueError('invalid typed modes file')
-    return value
+def _iso(now):
+    if isinstance(now, (int, float)) and not isinstance(now, bool):
+        now = datetime.fromtimestamp(now, timezone.utc)
+    return locked_io.iso(now)
 
 
-def write_modes(value, root=None):
-    """Atomic private write: temp file in the same directory, fsync, os.replace; dir 0700, file 0600."""
-    path = modes_path(root)
-    if path.parent.is_symlink() or path.is_symlink():
-        raise ValueError('symlink modes path refused')
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    os.chmod(path.parent, 0o700)
-    handle, temporary = tempfile.mkstemp(prefix='.modes-', dir=path.parent)
-    try:
-        with os.fdopen(handle, 'w') as stream:
-            stream.write(json.dumps(value, sort_keys=True, indent=2) + '\n')
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.chmod(temporary, 0o600)
-        os.replace(temporary, path)
-    except BaseException:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
-        raise
+def run_attempt(root, decision, candidate_cases, *, policy_sha, instrument_sha, laya_revision, gate_cfg, prior,
+                baseline, critical=False, now=None, dry_run=False, predict_one):
+    """One ledger-bound attempt. `candidate_cases` carry id, group, label, critical_if_wrong; `predict_one(case)`
+    returns Laya's choice (None to abstain) and may raise, which counts as an unavailable answer (Laya wrong).
 
-
-def _id_hashes(case_ids):
-    return sorted({hashlib.sha256(str(case_id).encode()).hexdigest() for case_id in case_ids})
-
-
-def check_novelty(case_ids, config_sha, root=None):
-    """(ok, new_case_count): a repeat attempt of the same config needs >= MIN_NEW_CASES unseen cases."""
-    entry = load_modes(root)['decisionTypes'].get(DECISION_TYPE)
-    previous = (entry or {}).get('lastAttempt') if entry and entry.get('configSha256') == config_sha else None
-    if not previous:
-        return True, len(set(case_ids))
-    seen = set(previous.get('promotionCaseIdHashes', []))
-    new = len(set(_id_hashes(case_ids)) - seen)
-    return new >= MIN_NEW_CASES, new
-
-
-def update(promotion_cases, predictions, baseline_choice, prior, config_sha, root=None, now=None):
-    """Evaluate, apply the earned-mode rules and persist. Returns the decision, or a `held` result
-    that leaves state untouched when the same config has too few new promotion cases."""
-    case_ids = [case['case_id'] for case in promotion_cases]
-    ok, new = check_novelty(case_ids, config_sha, root)
-    if not ok:
-        return {'status': 'held', 'reason': 'insufficient_new_promotion_cases', 'newCases': new,
-                'required': MIN_NEW_CASES}
-    modes = load_modes(root)
-    entry = modes['decisionTypes'].get(DECISION_TYPE)
-    if not entry or entry.get('configSha256') != config_sha:
-        entry = {'earnedMode': 'shadow', 'configSha256': config_sha, 'belowBaselineStreak': 0}
-    previous_mode = entry['earnedMode']
-    metrics = evaluate(promotion_cases, predictions, baseline_choice, prior)
-    streak = entry.get('belowBaselineStreak', 0)
-    mode, reason = previous_mode, None
-    if metrics['criticalMisses']:
-        mode, streak, reason = 'shadow', 0, 'critical_miss'
-    elif metrics['promote']:
-        mode, streak = 'advise', 0
-    else:
-        streak = streak + 1 if metrics['accuracy'] < metrics['baselineAccuracy'] else 0
-        if streak >= DEMOTE_AFTER_CYCLES and mode == 'advise':
-            mode, streak, reason = 'shadow', 0, 'below_baseline_two_cycles'
-    attempt = {**metrics, 'promotionCaseIds': sha256(sorted(case_ids)),
-               'promotionCaseIdHashes': _id_hashes(case_ids), 'newCases': new}
-    modes['decisionTypes'][DECISION_TYPE] = {
-        'earnedMode': mode, 'configSha256': config_sha, 'lastAttempt': attempt,
-        'belowBaselineStreak': streak, 'updatedAt': now if now is not None else time.time()}
-    write_modes(modes, root)
-    return {'status': 'updated', 'earnedMode': mode, 'previousMode': previous_mode,
-            'promoted': mode == 'advise' and previous_mode != 'advise',
-            'demoted': previous_mode == 'advise' and mode != 'advise', 'demotionReason': reason,
-            'releaseEligible': mode == 'advise', 'belowBaselineStreak': streak, 'metrics': metrics}
+    Picks promotion-split cases never reserved before; holds without touching the ledger below minCohort. Otherwise
+    appends `reserve` (case ids, frozen baseline) BEFORE predicting, evaluates at alpha_for_attempt(alphaBase,
+    next_attempt), stores the receipt and appends the single `consumed` event. dry_run evaluates without any ledger
+    or receipt write.
+    """
+    cfg = {**DEFAULT_GATE, **(gate_cfg or {})}
+    used = advise_ledger.consumed_case_ids(root, decision)
+    selected = sorted((c for c in candidate_cases if split_of(c['group']) == 'promotion' and c['id'] not in used),
+                      key=lambda c: c['id'])
+    if len(selected) < cfg['minCohort']:
+        return {'status': 'held', 'reason': 'insufficient_promotion_cases', 'available': len(selected),
+                'required': cfg['minCohort']}
+    attempt = advise_ledger.next_attempt(root, decision)
+    alpha = alpha_for_attempt(cfg['alphaBase'], attempt)
+    ids = [c['id'] for c in selected]
+    cohort = sha256({'decision': decision, 'policy': policy_sha, 'instrument': instrument_sha,
+                     'attempt': attempt, 'caseIds': ids})[:32]
+    base = {'cohortId': cohort, 'decision': decision, 'policySha256': policy_sha, 'instrumentSha256': instrument_sha,
+            'layaRevision': laya_revision, 'attempt': attempt, 'alpha': alpha}
+    if not dry_run:
+        advise_ledger.append(root, decision, {**base, 'event': 'reserve', 'caseIds': ids, 'baseline': baseline,
+                                              'ts': _iso(now)})
+    scored = []
+    for case in selected:
+        try:
+            choice, status = predict_one(case), 'ok'
+        except Exception:  # noqa: BLE001 - any failure is an unavailable answer, counted wrong
+            choice, status = None, 'unavailable'
+        scored.append({**case, 'choice': choice, 'status': status})
+    result = evaluate(scored, baseline=baseline, alpha=alpha, prior=prior, min_cohort=cfg['minCohort'],
+                      min_coverage=cfg['minCoverage'], critical=critical,
+                      min_critical=cfg.get('minCriticalCases') or CRITICAL_MIN_CASES)
+    receipt = {'schema': RECEIPT_SCHEMA, **base, 'baseline': baseline, 'critical': critical, 'gate': cfg,
+               'caseIdsSha256': sha256(ids), **result, 'dryRun': dry_run}
+    receipt_sha = sha256(receipt)
+    if not dry_run:
+        directory = locked_io.private_dir(Path(root) / decision / 'advise-receipts', anchor=Path(root))
+        locked_io.write_private_exclusive(directory / (cohort + '.json'),
+                                          (json.dumps(receipt, sort_keys=True, indent=2) + '\n').encode())
+        advise_ledger.append(root, decision, {**base, 'event': 'consumed', 'verdict': result['verdict'],
+                                              'receiptSha256': receipt_sha, 'ts': _iso(now)})
+    return {'status': 'dry_run' if dry_run else 'evaluated', **receipt, 'receiptSha256': receipt_sha}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    status = sub.add_parser('status')
-    status.add_argument('--root', help='override the typed-decisions state directory')
+    status = sub.add_parser('status', help='print the advise cohort ledger of a decision')
+    status.add_argument('--root', required=True, help='typed-decisions state directory')
+    status.add_argument('--decision', default='workflow-fit')
     args = parser.parse_args()
-    print(json.dumps(load_modes(args.root), sort_keys=True, indent=2))
+    print(json.dumps(advise_ledger.read(args.root, args.decision), sort_keys=True, indent=2))
     return 0
 
 

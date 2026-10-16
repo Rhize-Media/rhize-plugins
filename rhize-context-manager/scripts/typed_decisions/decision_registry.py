@@ -21,7 +21,8 @@ repository writes registry-state.json; the Node hook reads it with the same read
 CLI:
     decision_registry.py show
     decision_registry.py set-mode <decision> <mode> --reason <slug> [--pin | --unpin]
-                         [--cohort-id <hex32>] [--laya-revision <rev>]      (cosign needs --laya-revision)
+                         [--cohort-id <hex32>] [--laya-revision <rev>] [--manual-override]
+                         [--policy-sha256 <hex64>]    (cosign/advise need --laya-revision; advise also --policy-sha256)
     decision_registry.py recover
 All commands take --root DIR. Output is one JSON object; errors exit 2.
 """
@@ -38,6 +39,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE.parent) not in sys.path:
     sys.path.insert(0, str(HERE.parent))
 
+import typed_advice  # noqa: E402  (shared island module; read-only use: its instrument hash)
 from typed_decisions import cohorts, contract, instrument, locked_io, records  # noqa: E402
 
 STATE_FILE = 'registry-state.json'
@@ -90,20 +92,35 @@ def read_state(root, registry=None):
     return state, 'ok'
 
 
-def binding_stale(decision: str, registry: dict, entry: dict, laya_revision: str | None) -> str | None:
-    """Why a cosign state no longer binds to what would run now, or None when it still does.
+def advise_instrument_sha256(name: str) -> str:
+    """Hash of the instrument an `advise` entry names (typed-advice-v1 -> typed_advice, laya-choice-v1 -> skill fit)."""
+    if name == 'typed-advice-v1':
+        return typed_advice.INSTRUMENT_SHA256
+    if name == 'laya-choice-v1':
+        return instrument.instrument_sha256()
+    raise ValueError('unknown advise instrument')
 
-    A promotion is valid only for the policy and instrument it was tested with ('binding_stale') and for the
-    Laya checkpoint it was tested against ('laya_revision_changed', when the state recorded one). Mirrors the
-    Node reader (hooks/lib/decision-registry.js), which reads such a state as shadow.
+
+def binding_stale(decision: str, registry: dict, entry: dict, laya_revision: str | None) -> str | None:
+    """Why an earned (advise or cosign) state no longer binds to what would run now, or None when it still does.
+
+    A promotion is valid only for the instrument (and, for cosign, the policy) it was tested with
+    ('binding_stale') and for the Laya checkpoint it was tested against ('laya_revision_changed'). The advise
+    policy hash is per surface and is checked by each surface (typed_advice.effective_mode), not here.
+    Mirrors the Node reader (hooks/lib/decision-registry.js), which reads such a state as shadow.
     """
-    if not entry or entry.get('mode') != 'cosign':
+    if not entry or entry.get('mode') not in contract.EARNED_MODES:
         return None
     try:
-        policy_hash, instrument_hash = cohorts.deployable_hashes(registry['decisions'][decision])
-    except ValueError:
+        if entry['mode'] == 'cosign':
+            policy_hash, instrument_hash = cohorts.deployable_hashes(registry['decisions'][decision])
+            if entry.get('policySha256') != policy_hash:
+                return 'binding_stale'
+        else:
+            instrument_hash = advise_instrument_sha256(registry['decisions'][decision]['advise']['instrument'])
+    except (ValueError, KeyError, TypeError):
         return 'binding_stale'
-    if entry.get('policySha256') != policy_hash or entry.get('instrumentSha256') != instrument_hash:
+    if entry.get('instrumentSha256') != instrument_hash:
         return 'binding_stale'
     if entry.get('layaRevision') is not None and laya_revision is not None and entry['layaRevision'] != laya_revision:
         return 'laya_revision_changed'
@@ -115,7 +132,8 @@ def effective_mode(decision: str, registry: dict, state, status: str, laya_revis
 
     missing -> shipped default; corrupt -> 'shadow'; ok -> the state's mode (default if no entry), except that a
     cosign state whose policy/instrument hashes differ from the deployable ones, or whose recorded Laya revision
-    differs from `laya_revision` (records.laya_revision(root); pass it whenever a root is known), reads as 'shadow'.
+    differs from `laya_revision` (records.laya_revision(root); pass it whenever a root is known), reads as 'shadow';
+    an advise state reads as 'shadow' on a different instrument hash or Laya revision (see binding_stale).
     """
     default = registry['decisions'][decision]['defaultMode']
     if status == 'corrupt':
@@ -226,17 +244,23 @@ def recover(root, registry=None, now=None) -> dict:
         raise RegistryError('lock_timeout', 'another registry writer holds the lock') from None
 
 
-def _check_binding(root, registry_entry: dict, actor: str, binding) -> dict:
+def _check_binding(root, decision: str, registry_entry: dict, mode: str, actor: str, binding) -> dict:
     if not isinstance(binding, dict) or set(binding) != set(BINDING_KEYS):
-        raise RegistryError('binding_required', f'cosign needs a binding with keys {list(BINDING_KEYS)}')
-    try:
-        policy_hash, instrument_hash = cohorts.deployable_hashes(registry_entry)
-    except ValueError as err:
-        raise RegistryError('policy_not_deployable', str(err)) from None
-    if registry_entry['instrument'] != instrument.INSTRUMENT:
-        raise RegistryError('invalid_binding', 'registry instrument is not the shipped instrument')
-    if binding['policySha256'] != policy_hash:
-        raise RegistryError('invalid_binding', 'policySha256 is not the deployable policy hash')
+        raise RegistryError('binding_required', f'{mode} needs a binding with keys {list(BINDING_KEYS)}')
+    if mode == 'cosign':
+        try:
+            policy_hash, instrument_hash = cohorts.deployable_hashes(registry_entry)
+        except ValueError as err:
+            raise RegistryError('policy_not_deployable', str(err)) from None
+        if registry_entry['instrument'] != instrument.INSTRUMENT:
+            raise RegistryError('invalid_binding', 'registry instrument is not the shipped instrument')
+        if binding['policySha256'] != policy_hash:
+            raise RegistryError('invalid_binding', 'policySha256 is not the deployable policy hash')
+    else:
+        instrument_hash = advise_instrument_sha256(registry_entry['advise']['instrument'])
+        # The advise policy hash is per surface (typed_advice.policy_sha256); here it must at least be a hash.
+        if not isinstance(binding['policySha256'], str) or not contract.HEX64.match(binding['policySha256']):
+            raise RegistryError('invalid_binding', 'invalid policySha256')
     if binding['instrumentSha256'] != instrument_hash:
         raise RegistryError('invalid_binding', 'instrumentSha256 is not the current instrument hash')
     rev = binding['layaRevision']
@@ -255,7 +279,11 @@ def _check_binding(root, registry_entry: dict, actor: str, binding) -> dict:
     if not isinstance(cohort_id, str) or not contract.HEX32.match(cohort_id):
         raise RegistryError('invalid_binding', 'invalid cohortId')
     try:
-        cohorts.verify_passed_cohort(root, registry_entry, binding)
+        if mode == 'cosign':
+            cohorts.verify_passed_cohort(root, registry_entry, binding)
+        else:  # the advise ledger is separate: a cosign cohort never authorizes advise, nor the reverse
+            from typed_decisions import advise_ledger
+            advise_ledger.verify_pass(root, decision, binding)
     except ValueError as err:
         raise RegistryError('invalid_binding', str(err)) from None
     return binding
@@ -271,10 +299,12 @@ def mutate(root, decision: str, to_mode: str, *, actor: str, reason: str, expect
     policy_not_deployable, no_change, lock_timeout, recovery_blocked.
 
     Rules: actor 'cycle' is refused for a pinned decision and may never change a pin; a mode must be in
-    the registry's reachableModes (a critical tier never leaves shadow/off); cosign needs a binding
-    {policySha256, instrumentSha256, layaRevision, cohortId} naming the deployable policy and the current
-    instrument, and the cycle's cohortId must be a consumed 'pass' cohort of that exact key (the CLI may
-    pass cohortId None as an audited manual override). A dangling audit intent is recovered first.
+    the registry's reachableModes (a critical tier never reaches cosign); cosign and advise need a binding
+    {policySha256, instrumentSha256, layaRevision, cohortId} naming the policy and the current instrument
+    (cosign: the deployable policy hash; advise: any surface policy hash plus the entry's advise.instrument
+    hash), and the cycle's cohortId must be a consumed 'pass' cohort of that exact key in the mode's own
+    ledger (cosign: cohorts; advise: advise-cohorts.jsonl) - the CLI may pass cohortId None as an audited
+    manual override. A dangling audit intent is recovered first.
     """
     root = Path(root)
     registry = registry if registry is not None else load_registry()
@@ -287,7 +317,7 @@ def mutate(root, decision: str, to_mode: str, *, actor: str, reason: str, expect
     entry = registry['decisions'][decision]
     if to_mode not in contract.MODES:
         raise RegistryError('unreachable_mode', f'unknown mode {to_mode!r}')
-    if to_mode not in entry['reachableModes'] or (entry['tier'] == 'critical' and to_mode not in ('off', 'shadow')):
+    if to_mode not in entry['reachableModes'] or (entry['tier'] == 'critical' and to_mode == 'cosign'):
         raise RegistryError('unreachable_mode', f'{decision} cannot reach {to_mode}')
     if isinstance(expected_revision, bool) or not isinstance(expected_revision, int) or expected_revision < 0:
         raise RegistryError('stale_revision', 'expected_revision must be a non-negative integer')
@@ -295,8 +325,8 @@ def mutate(root, decision: str, to_mode: str, *, actor: str, reason: str, expect
         raise RegistryError('invalid_reason', 'pinned must be a boolean or None')
     if actor == 'cycle' and pinned is not None:
         raise RegistryError('pin_forbidden', 'only the CLI changes pins')
-    if to_mode != 'cosign' and binding is not None:
-        raise RegistryError('invalid_binding', 'a binding only applies to cosign')
+    if to_mode not in contract.EARNED_MODES and binding is not None:
+        raise RegistryError('invalid_binding', 'a binding only applies to advise or cosign')
 
     locked_io.private_dir(root, anchor=root)
     try:
@@ -310,7 +340,7 @@ def mutate(root, decision: str, to_mode: str, *, actor: str, reason: str, expect
 def _mutate_locked(root, registry, entry, decision, to_mode, actor, reason, expected_revision, pinned, binding,
                    now) -> dict:
     recovery = _recover_locked(root, registry, now)
-    if recovery['action'] == 'blocked' and (to_mode == 'cosign' or actor != 'cli'):
+    if recovery['action'] == 'blocked' and (to_mode in contract.EARNED_MODES or actor != 'cli'):
         # An unresolved transaction (diverged state, revision gap, invalid intent) must be fixed before any
         # escalation or automated change. A CLI de-escalation (the kill switch: off/shadow) still proceeds: it
         # writes a newer committed revision, which supersedes the dangling intent.
@@ -328,15 +358,15 @@ def _mutate_locked(root, registry, entry, decision, to_mode, actor, reason, expe
         raise RegistryError('pinned', f'{decision} is pinned; automation is suspended')
     from_mode = existing['mode'] if existing else entry['defaultMode']
     new_pinned = was_pinned if pinned is None else pinned
-    if to_mode == 'cosign':
-        if binding is None and actor == 'cli' and existing and existing['mode'] == 'cosign':
-            binding = {key: existing[key] for key in BINDING_KEYS}  # pin/unpin of a deployed cosign: keep its basis
+    if to_mode in contract.EARNED_MODES:
+        if binding is None and actor == 'cli' and existing and existing['mode'] == to_mode:
+            binding = {key: existing[key] for key in BINDING_KEYS}  # pin/unpin of a deployed mode: keep its basis
         elif binding is None:
-            raise RegistryError('binding_required', f'cosign needs a binding with keys {list(BINDING_KEYS)}')
+            raise RegistryError('binding_required', f'{to_mode} needs a binding with keys {list(BINDING_KEYS)}')
         else:
-            binding = _check_binding(root, entry, actor, binding)
+            binding = _check_binding(root, decision, entry, to_mode, actor, binding)
     unchanged = (to_mode == from_mode and new_pinned == was_pinned
-                 and (existing is None or to_mode != 'cosign' or all(existing[k] == binding[k] for k in BINDING_KEYS)))
+                 and (existing is None or binding is None or all(existing[k] == binding[k] for k in BINDING_KEYS)))
     if unchanged and (existing is not None or to_mode == entry['defaultMode']):
         raise RegistryError('no_change', f'{decision} is already {to_mode} with pinned={new_pinned}')
     stamp = locked_io.iso(now)
@@ -385,18 +415,24 @@ def _cli_set_mode(args, root, registry) -> dict:
     if entry is None:
         raise RegistryError('unknown_decision', args.decision)
     already = ((state or {}).get('decisions') or {}).get(args.decision)
-    pin_only = bool(already and already['mode'] == 'cosign' and not args.laya_revision and not args.cohort_id)
-    if args.mode == 'cosign' and 'cosign' in entry['reachableModes'] and not pin_only:
+    earned = args.mode in contract.EARNED_MODES and args.mode in entry['reachableModes']
+    pin_only = bool(already and already['mode'] == args.mode and not args.laya_revision and not args.cohort_id)
+    if earned and not pin_only:
         if not args.laya_revision:
-            raise RegistryError('binding_required', 'cosign needs --laya-revision (and --cohort-id for a gated promotion)')
+            raise RegistryError('binding_required', f'{args.mode} needs --laya-revision (and --cohort-id for a gated promotion)')
         if not args.cohort_id and not args.manual_override:
             # Omitting the cohort must never grant authority by accident: an ungated promotion is explicit.
-            raise RegistryError('binding_required', 'cosign without --cohort-id is an ungated manual override; '
+            raise RegistryError('binding_required', f'{args.mode} without --cohort-id is an ungated manual override; '
                                                     'pass --manual-override to confirm')
-        try:
-            policy_hash, instrument_hash = cohorts.deployable_hashes(entry)
-        except ValueError as err:
-            raise RegistryError('policy_not_deployable', str(err)) from None
+        if args.mode == 'advise':
+            if not args.policy_sha256:
+                raise RegistryError('binding_required', 'advise needs --policy-sha256 (the surface policy hash)')
+            policy_hash, instrument_hash = args.policy_sha256, advise_instrument_sha256(entry['advise']['instrument'])
+        else:
+            try:
+                policy_hash, instrument_hash = cohorts.deployable_hashes(entry)
+            except ValueError as err:
+                raise RegistryError('policy_not_deployable', str(err)) from None
         binding = {'policySha256': policy_hash, 'instrumentSha256': instrument_hash,
                    'layaRevision': args.laya_revision, 'cohortId': args.cohort_id}
     pinned = True if args.pin else (False if args.unpin else None)
@@ -420,10 +456,11 @@ def main(argv=None) -> int:
     group = setter.add_mutually_exclusive_group()
     group.add_argument('--pin', action='store_true', help='suspend automatic mode changes')
     group.add_argument('--unpin', action='store_true', help='resume automatic mode changes')
-    setter.add_argument('--cohort-id', help='passed cohort backing a cosign change (omit for a manual override)')
-    setter.add_argument('--laya-revision', help='Laya revision the cosign change is bound to')
+    setter.add_argument('--cohort-id', help='passed cohort backing a cosign/advise change (omit for a manual override)')
+    setter.add_argument('--laya-revision', help='Laya revision the cosign/advise change is bound to')
+    setter.add_argument('--policy-sha256', help='surface policy hash an advise change is bound to (64 hex)')
     setter.add_argument('--manual-override', action='store_true',
-                        help='confirm an ungated cosign (no --cohort-id); audited as actor cli')
+                        help='confirm an ungated cosign/advise (no --cohort-id); audited as actor cli')
     sub.add_parser('recover', help='finish an interrupted update from the audit log')
     args = parser.parse_args(argv)
     root = Path(args.root) if args.root else records.default_root()

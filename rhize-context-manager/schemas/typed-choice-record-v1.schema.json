@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/typed-choice-record-v1.schema.json",
+  "title": "typed-choice-record-v1",
+  "description": "Generic write-once record of one advise-v1 decision (typed_advice.advise), stored at <root>/<decision>/choice/<decisionId>.json (0600). Holds hashes, candidate ids and Laya's answer, never prompt text; the scrubbed request snapshot is a separate owner-only file under <decision>/snapshot/. Cross-field rules (laya.choice is a candidate, probabilities cover every candidate) are enforced by contract.validate_choice_record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "decision",
+    "decisionId",
+    "ts",
+    "mode",
+    "arm",
+    "tier",
+    "policySha256",
+    "instrumentSha256",
+    "layaRevision",
+    "candidates",
+    "criticalIfWrong",
+    "requestSha256",
+    "files",
+    "laya"
+  ],
+  "properties": {
+    "schema": {
+      "const": "rhize-typed-choice-record-v1"
+    },
+    "decision": {
+      "enum": [
+        "skill-fit",
+        "workflow-fit",
+        "procedure-pick",
+        "devflow-next-action",
+        "browser-qa-selection",
+        "model-routing",
+        "gsd-directive",
+        "check-relaxation"
+      ]
+    },
+    "decisionId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "ts": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+    },
+    "mode": {
+      "enum": [
+        "shadow",
+        "advise"
+      ]
+    },
+    "arm": {
+      "enum": [
+        "treatment",
+        "holdback"
+      ]
+    },
+    "tier": {
+      "enum": [
+        "advisory",
+        "workflow",
+        "critical"
+      ]
+    },
+    "policySha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "instrumentSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "layaRevision": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,80}$"
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$"
+      }
+    },
+    "criticalIfWrong": {
+      "type": "boolean"
+    },
+    "requestSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "files": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "laya": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "choice",
+        "probabilities",
+        "latencyMs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "timeout",
+            "unavailable",
+            "invalid",
+            "identity_failed",
+            "redirect_refused"
+          ]
+        },
+        "choice": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "probabilities": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latencyMs": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

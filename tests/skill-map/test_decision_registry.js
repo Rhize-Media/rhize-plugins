@@ -109,7 +109,8 @@ check('cosign bound to another Laya revision (or to one the runtime pin no longe
   assert.strictEqual(read({ statePath: write('rev2.json', fixtures.validStates.cosign), layaRuntimePath: missing }).mode, 'shadow');
   const unbound = clone(fixtures.validStates.cosign);
   unbound.decisions['skill-fit'].layaRevision = null;
-  assert.strictEqual(read({ statePath: write('rev3.json', unbound), layaRuntimePath: missing }).mode, 'cosign');
+  // an earned mode must bind a Laya revision: a state without one is invalid, so it reads as shadow
+  assert.strictEqual(read({ statePath: write('rev3.json', unbound), layaRuntimePath: missing }).mode, 'shadow');
   assert.strictEqual(reg.currentLayaRevision(RUNTIME), FIXTURE_REVISION);
   assert.strictEqual(reg.currentLayaRevision(missing), 'unknown');
 }));
@@ -215,6 +216,60 @@ check('the reader never writes (no files or directories are created)', () => noE
   assert.deepStrictEqual(fs.readdirSync(sandbox), before);
 }));
 
+// ---- advise (plan 2026-10-16 §3): earned like cosign, bound to instrument + Laya revision
+const adviseState = (fn) => {
+  const state = clone(fixtures.validStates.cosign);
+  const entry = state.decisions['skill-fit'];
+  entry.mode = 'advise';
+  if (fn) fn(state, entry);
+  return state;
+};
+
+check('advise bound to the current instrument and Laya revision reads as advise', () => noEnv(() => {
+  const cfg = read({ statePath: write('advise.json', adviseState()) });
+  assert.strictEqual(cfg.mode, 'advise');
+  assert.strictEqual(cfg.registryRevision, fixtures.validStates.cosign.revision);
+}));
+
+check('advise with a stale instrument hash, a changed or unknown Laya revision, or no binding reads as shadow', () => noEnv(() => {
+  assert.strictEqual(read({ statePath: write('adv-instr.json', adviseState((s, e) => { e.instrumentSha256 = 'f'.repeat(64); })) }).mode, 'shadow');
+  assert.strictEqual(read({ statePath: write('adv-rev.json', adviseState()), layaRuntimePath: write('rt-other.json', { revision: 'ffffffffffff' }) }).mode, 'shadow');
+  assert.strictEqual(read({ statePath: write('adv-rev2.json', adviseState()), layaRuntimePath: missing }).mode, 'shadow');
+  for (const field of ['policySha256', 'instrumentSha256', 'layaRevision']) {
+    const cfg = read({ statePath: write(`adv-null-${field}.json`, adviseState((s, e) => { e[field] = null; })) });
+    assert.strictEqual(cfg.mode, 'shadow', field);
+    assert.strictEqual(cfg.registryRevision, 0, field);
+  }
+}));
+
+check('an advise state for an instrument this reader cannot compute (typed-advice-v1) reads as shadow', () => noEnv(() => {
+  const state = clone(fixtures.validStates.cosign);
+  state.decisions = { 'procedure-pick': { ...state.decisions['skill-fit'], mode: 'advise' } };
+  assert.strictEqual(reg.readDecisionConfig('procedure-pick', { statePath: write('proc.json', state), layaRuntimePath: RUNTIME }).mode, 'shadow');
+  // legacy state files that only know the original two decisions still read
+  assert.strictEqual(reg.readDecisionConfig('procedure-pick', { statePath: write('legacy.json', fixtures.validStates.cosign) }).mode, 'shadow');
+}));
+
+check('an overriding endpoint also demotes an earned advise unless authority is asserted', () => {
+  const statePath = write('adv-override.json', adviseState());
+  const prior = process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY;
+  delete process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY;
+  try {
+    withEnv('http://127.0.0.1:9999', () => assert.strictEqual(read({ statePath }).mode, 'shadow'));
+    withEnv('http://127.0.0.1:8000', () => assert.strictEqual(read({ statePath }).mode, 'advise'));
+  } finally {
+    if (prior === undefined) delete process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY; else process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY = prior;
+  }
+});
+
+check('the shipped catalog loads every decision and workflow-fit is a null-cosign advise decision', () => noEnv(() => {
+  assert.strictEqual(Object.keys(baseRegistry.decisions).length, 8);
+  for (const id of Object.keys(baseRegistry.decisions)) {
+    const cfg = reg.readDecisionConfig(id, { statePath: missing });
+    assert.strictEqual(cfg.mode, 'shadow', id);
+  }
+}));
+
 // ---- parity with contract.py on mutated documents
 function pythonVerdicts(registries, states) {
   const code = [
@@ -276,6 +331,40 @@ check('validators agree with contract.validate_registry / validate_state on muta
     mutateRegistry((e, r) => { r.decisions['unknown'] = e; }),
     mutateRegistry((e, r) => { r.decisions['workflow-fit'].endpoint = 'http://127.0.0.1:8000'; }),
     mutateRegistry((e, r) => { r.decisions['workflow-fit'].reachableModes = ['shadow', 'cosign']; }),
+    // advise (absent `advise` == null; reachable iff configured; critical needs >= 10 critical cases)
+    mutateRegistry((e) => { delete e.advise; }),
+    mutateRegistry((e) => { delete e.advise; e.reachableModes = ['off', 'shadow', 'cosign']; }),
+    mutateRegistry((e) => { e.advise = null; }),
+    mutateRegistry((e) => { e.reachableModes = ['off', 'shadow', 'cosign']; }),
+    mutateRegistry((e) => { e.defaultMode = 'advise'; }),
+    mutateRegistry((e) => { e.defaultMode = 'cosign'; }),
+    mutateRegistry((e) => { e.advise.policy = 'cosign-v1'; }),
+    mutateRegistry((e) => { e.advise.gate = 'cosign-disagreement'; }),
+    mutateRegistry((e) => { e.advise.instrument = 'other'; }),
+    mutateRegistry((e) => { e.advise.instrument = 'typed-advice-v1'; }),
+    mutateRegistry((e) => { e.advise.holdback = 0.51; }),
+    mutateRegistry((e) => { e.advise.holdback = 0.5; }),
+    mutateRegistry((e) => { e.advise.minCohort = 19; }),
+    mutateRegistry((e) => { e.advise.minCohort = 20; }),
+    mutateRegistry((e) => { e.advise.minCriticalCases = -1; }),
+    mutateRegistry((e) => { e.advise.alphaBase = 0; }),
+    mutateRegistry((e) => { e.advise.alphaBase = 0.2; }),
+    mutateRegistry((e) => { e.advise.alphaBase = 0.21; }),
+    mutateRegistry((e) => { e.advise.minCoverage = 1.1; }),
+    mutateRegistry((e) => { e.advise.minCoverage = 0; }),
+    mutateRegistry((e) => { e.advise.demote.freshLabels = 4; }),
+    mutateRegistry((e) => { e.advise.demote.window = 19; }),
+    mutateRegistry((e) => { e.advise.demote.consecutive = 0; }),
+    mutateRegistry((e) => { e.advise.demote.extra = 1; }),
+    mutateRegistry((e) => { e.advise.extra = 1; }),
+    mutateRegistry((e) => { delete e.advise.demote; }),
+    mutateRegistry((e, r) => { r.decisions['gsd-directive'].advise.minCriticalCases = 9; }),
+    mutateRegistry((e, r) => { r.decisions['gsd-directive'].advise.minCriticalCases = 10; }),
+    mutateRegistry((e, r) => { r.decisions['gsd-directive'].reachableModes = ['off', 'shadow']; }),
+    mutateRegistry((e, r) => { r.decisions['gsd-directive'].reachableModes = ['off', 'shadow', 'advise', 'cosign']; }),
+    mutateRegistry((e, r) => { r.decisions['procedure-pick'].advise = null; }),
+    mutateRegistry((e, r) => { r.decisions['procedure-pick'].holdback = 0.1; }),
+    mutateRegistry((e, r) => { r.decisions['procedure-pick'].tier = 'critical'; }),
   ];
   const mutateState = (fn) => { const s = clone(fixtures.validStates.cosign); fn(s, s.decisions['skill-fit'] || s.decisions[Object.keys(s.decisions)[0]]); return s; };
   const states = [
@@ -310,6 +399,18 @@ check('validators agree with contract.validate_registry / validate_state on muta
     mutateState((s, e) => { e.extra = 1; }),
     mutateState((s, e) => { delete e.cohortId; }),
     mutateState((s) => { s.decisions = {}; }),
+    // advise states bind policy, instrument and Laya revision; the state may name any of the eight decisions
+    adviseState(),
+    adviseState((s, e) => { e.policySha256 = null; }),
+    adviseState((s, e) => { e.instrumentSha256 = null; }),
+    adviseState((s, e) => { e.layaRevision = null; }),
+    adviseState((s, e) => { e.cohortId = null; }),
+    adviseState((s) => { s.decisions['procedure-pick'] = clone(s.decisions['skill-fit']); }),
+    adviseState((s) => { s.decisions['workflow-fit'] = clone(s.decisions['skill-fit']); }),
+    adviseState((s) => { s.decisions['workflow-fit'] = clone(s.decisions['skill-fit']); s.decisions['workflow-fit'].mode = 'cosign'; }),
+    adviseState((s) => { s.decisions['gsd-directive'] = clone(s.decisions['skill-fit']); s.decisions['gsd-directive'].mode = 'cosign'; }),
+    adviseState((s) => { s.decisions['gsd-directive'] = clone(s.decisions['skill-fit']); s.decisions['gsd-directive'].mode = 'off'; }),
+    adviseState((s) => { s.decisions['workflow-fit'] = { ...clone(s.decisions['skill-fit']), mode: 'off' }; }),
   ];
   const py = pythonVerdicts(registries, states);
   registries.forEach((r, i) => assert.strictEqual(jsOk(() => reg.validateRegistry(clone(r))), py.registries[i], `registry case ${i}: ${JSON.stringify(r).slice(0, 160)}`));
