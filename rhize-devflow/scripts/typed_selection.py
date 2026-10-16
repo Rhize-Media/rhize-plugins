@@ -75,7 +75,7 @@ def validate(state: object) -> dict:
     return state
 
 
-def assess(state: dict, model: str, base_url: str, call=call_laya) -> dict:
+def assess(state: dict, model: str, base_url: str, call=None) -> dict:
     state = validate(state)
     if not isinstance(model, str) or not TOKEN.fullmatch(model):
         raise ValueError("invalid pinned model")
@@ -92,7 +92,8 @@ def assess(state: dict, model: str, base_url: str, call=call_laya) -> dict:
         "capability": state["capability"], "taskSignals": state["taskSignals"],
         "candidates": state["candidates"], "policy": state["policy"],
     }, "questions": questions}
-    response, latency = call(base_url, request)
+    # Resolved at call time so a patched module-level call_laya applies (a default arg binds at import).
+    response, latency = (call or call_laya)(base_url, request)
     rows = [{"candidateId": candidate["id"], "score": float(response["answers"][f"c{index}"]["noul"]),
              "incumbentIncluded": candidate["id"] in state["incumbentIds"]}
             for index, candidate in enumerate(state["candidates"])]
