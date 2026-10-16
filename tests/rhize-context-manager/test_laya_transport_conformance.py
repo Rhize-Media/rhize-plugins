@@ -223,8 +223,6 @@ def test_laya_choice_slow_post_stops_at_its_budget():
         _timeout_within_budget(lambda: ask_laya(fake.url, 300))
 
 
-@pytest.mark.xfail(strict=True, reason='laya_choice reads with response.read(n), which blocks until n bytes arrive; '
-                   'a trickling body overruns the budget. Reported, not edited here (typed_advice uses read1).')
 def test_laya_choice_trickled_post_stops_at_its_budget():
     with FakeLaya('ok', 'trickle') as fake:
         _timeout_within_budget(lambda: ask_laya(fake.url, 300))

@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-16_ Laya advise everywhere. `typed_checkpoint.py --mode advise` (`devflow-next-action`, critical when hard gates are not all true) and `typed_selection.py --mode advise` (`browser-qa-selection`) use the shared `typed_advice.py` and gain an `outcome` subcommand; the advisory line never changes an obligation, approval or gate, and `RHIZE_LAYA_DEVFLOW_SHADOW` is removed in favour of the registry mode. New `check_plan.py` (`plan`, `verify`, `outcome`) is the S4 deterministic relaxation planner for `/rhize-devflow:check` Phase 3a: it reads git itself, relaxes only `test-full`, `lint`, `browser-qa` and `mutation` on eligible routine diffs, never touches protected paths or the never-relaxable set (deploy, publish, credentials, approvals, security review, required CI, production-merge review), binds the plan to the diff hash and fails closed to the full list; Laya can only keep the full list. See [check relaxation](docs/check-relaxation.md). Everything ships in `shadow` until the baseline gate earns `advise`.
+- _2026-10-16_ version bump — 2.27.2 → 2.28.0 (minor); marketplace 2.105.1 → 2.106.0.
 - _2026-10-16_ version bump — 2.27.1 → 2.27.2 (patch); marketplace 2.105.0 → 2.105.1.
 - 2026-10-15: Add CLI-first credential-access skill and pre-execution Keychain GUI guard; cover shell escaping, CUA code, source-only code-mode wrappers, redacted denials and harmless native marker fixtures. Native results and unresolved activation/authority gates are recorded in STATE.md; no Laya promotion.
 - _2026-10-15_ version bump — 2.27.0 → 2.27.1 (patch); marketplace 2.104.3 → 2.104.4.

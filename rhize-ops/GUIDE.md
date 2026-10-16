@@ -216,6 +216,10 @@ only already-authorized model or worker options and records the user pin. The ho
 still validates the task graph and chooses whether to dispatch. See
 [the pilot matrix](../docs/typed-decision-layer.md).
 
+`typed_routing.py --mode advise` adds one advisory pick among those same options and an `outcome --decision-id <id>
+--chosen <option>` subcommand. It shows nothing until the baseline gate earns `advise` for `model-routing`, and a user
+pin skips Laya entirely. See the [advise-everywhere plan](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md).
+
 Export Codex user config/cache evidence with
 `python3 scripts/host_inventory.py --project /absolute/project > codex-inventory.json`
 (Python 3.11+), then use Skill Forge 0.19+

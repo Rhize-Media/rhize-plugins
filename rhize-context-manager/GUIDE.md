@@ -359,6 +359,14 @@ Any Laya failure emits today's output byte for byte. The hook needs a host timeo
 8 s. Inspect, pin or roll back with `scripts/typed_decisions/decision_registry.py`; the operator
 guide is [skill fit](../docs/typed-decisions/skill-fit.md).
 
+**Advise mode.** Laya can now also give one labelled recommendation (not a decision) for workflow fit, procedure
+pick, skill fit and the other registry decisions, but only once a decision has beaten its majority baseline in the
+gate; everything starts and stays in `shadow` until then, and nothing is in `advise` today. To see it: run
+`scripts/workflow_selection.py context` (look for `layaAdvice`) or pipe procedural-memory recall hits into
+`recommend-procedure --id <opportunity>`, then record what you did with `decide --procedure`. The daily labeler
+(`choice_labels.py run`) and cycle (`decision_cycle.py run`) feed the gate. See the
+[advise-everywhere plan](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md) and the [typed decision layer](../docs/typed-decision-layer.md#earned-authority-registry).
+
 The router is wired into `hooks/hooks.json` for both Claude and Codex as an opt-in packaged entry. To enable it, write `{"schemaVersion":1,"enabled":true}` to `~/.local/share/rhize/skill-router/config.json`. If you previously added the router to `~/.claude/settings.json` by hand, remove that entry: until you do, the packaged copy defers to it, so the router still runs only once. Codex asks you to trust the new hook through its own trust prompt. Codex runs the router only on your own threads, never on guardian reviews, subagents or automations, and keeps skill fit in shadow until a Codex-specific gate exists. Skill fit also has three companion tools:
 - `laya_keepwarm.py` keeps the local Laya model warm while you work;
 - `harvest_signals.py` turns decision evidence into `/learn-harvest` review candidates;

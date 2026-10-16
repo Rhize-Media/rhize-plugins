@@ -5,7 +5,7 @@ Skill fit is the first decision governed by the earned-authority registry. The s
 Laya starts in `shadow`. It earns `cosign` only by passing a frozen statistical gate, and it loses it again automatically.
 
 - Design and reviews: [the plan](../superpowers/specs/2026-10-11-laya-earned-authority-plan.md).
-- Tier policy: [typed decision layer](../typed-decision-layer.md#earned-authority-advisory-tier).
+- Tier policy: [typed decision layer](../typed-decision-layer.md#earned-authority-registry).
 
 ## What happens on each prompt
 

@@ -175,6 +175,7 @@ has emitted a calibration-temperature warning during local startup, so its
 confidence is uncalibrated until the Rhize holdout says otherwise. The
 [typed-decision research runner](../evals/typed-decision/README.md) provides a
 bounded autoresearch-style search and locked holdout using benchmark labels.
+
 ### Advising the GSD directive (local Laya)
 
 `install --local-laya` writes `RHIZE_DECISION_MODE=advisory`, `TYPESAFE_BASE_URL=http://127.0.0.1:8000` and
@@ -188,7 +189,7 @@ unless checks and review passed, and ~15% of keys are a holdback that never sees
 approval gates are untouched (tested). `outcome --decision-id <id> --chosen <directive>` records the real action
 (write-once) and is the only way an outcome is recorded; the SubagentStop hook records none and never adds a
 block. `status` reports `configured_mode`, `effective_mode` and `local_laya`.
-Hosted Jev keeps the existing observational path with no advice call.
+Hosted Jev keeps the existing observational path with no advice call. See the [advise-everywhere plan](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md).
 
 Foreman-style multi-check results and a deterministic candidate directive are
 recorded in shadow for planner, executor, and verifier; no automatic steering,

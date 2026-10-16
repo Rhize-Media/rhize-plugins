@@ -368,6 +368,26 @@ Skill-router suggestions can be co-signed by the local Laya server under the ear
 
 The [typed decision pilot](../docs/typed-decision-layer.md) also scores bounded skill and workflow shortlists, governed graph query results, and source-bound retention candidates. All scores remain private shadow evidence; existing selectors and protected context continue to decide.
 
+## Laya advise mode
+
+The registry (`catalog/decision-registry.json`) now holds nine decisions and a fourth mode, `advise`: a labelled,
+uncalibrated Laya recommendation shown next to the incumbent path, which stays authoritative. Every decision
+ships in `shadow` and moves only through the baseline gate (a paired Clopper-Pearson test against the majority
+baseline on at least 30 promotion cases; critical decisions also need at least 10 critical cases and zero critical
+misses) or an operator pin. The 200-label floor no longer applies to workflow fit. Nothing is in `advise` until it
+is earned. `credential-procedure` is manual-only and never reaches `advise`.
+
+- `scripts/workflow_selection.py context` adds a `layaAdvice` object for `workflow-fit`; `recommend-procedure --id ID`
+  (recall hits as `{"hits":[...]}` on stdin) asks `procedure-pick`; `decide --decision reuse|adapt --procedure ID`
+  records the outcome. Details: [workflow selection](docs/workflow-selection.md).
+- `hooks/skill-router.js` appends one `advise` line for skill fit when Laya disagrees; the cosign branch is unchanged.
+- `scripts/typed_decisions/choice_labels.py run [--decision D] [--max-cases N] [--dry-run]` labels choice records
+  and applies critical-miss demotion; `evals/typed-decision/decision_cycle.py run` dispatches on `gateKind` and runs
+  the advise pass (`--no-advise` skips it); `scripts/typed_decisions/scoreboard.py render` shows one row per decision.
+- The shared stdlib client `scripts/typed_advice.py` is byte-identical in Context Manager, Dev Flow, Ops and
+  Project Launcher (drift-tested). Plan: [advise everywhere](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md); matrix and gates:
+  [typed decision layer](../docs/typed-decision-layer.md#earned-authority-registry).
+
 ## Workflow decision measurement pilot
 
 The opt-in [workflow pilot](docs/decision-pilot.md) connects existing workflow opportunities to

@@ -590,3 +590,9 @@ you expected delegation to happen.
 **Heavier guard hooks (prewrite mutation check, protect-files, mutation/sentry-stale-data suggesters) don't seem to be running:** They're opt-in by design — all four ship under `hooks/` but nothing is auto-wired. See the README's Hooks section (or `setup/manifest.json`, which the `/rhize-core:setup` wizard in `rhize-ops` reads) for the full list and exact commands, and wire in the ones you want per-project rather than expecting them to fire out of the box.
 
 To get Laya's next-action signal, run `scripts/typed_checkpoint.py --mode advise` at existing Dev Flow stages per the [typed checkpoint contract](docs/typed-checkpoint.md). The registry decides what is shown (shadow until earned) and it never changes obligations; `--mode shadow` is the observational receipt for measured pilots. Unavailable responses leave the incumbent workflow in force.
+
+`/rhize-devflow:check` can also run fewer routine checks on a low-risk diff: it asks `scripts/check_plan.py plan` which
+checks to run and re-verifies the plan right before the verdict. Docs-only changes swap the full test suite for affected
+tests, and a diff without UI or logic files skips browser QA or mutation analysis. Protected paths (CI, auth, env, lockfiles,
+migrations, infra) and anything release-stage always get the full list, and Laya (`check-relaxation`, shadow until earned)
+can only keep it. See [check relaxation](docs/check-relaxation.md).

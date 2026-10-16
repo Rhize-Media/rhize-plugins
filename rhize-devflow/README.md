@@ -440,3 +440,15 @@ From the "self-improving agent system" pattern — no run is complete until it l
 Dev Flow can optionally record local Laya multi-check shadow signals at impact-map, check, test-evidence, review and completion checkpoints. The [typed checkpoint contract](docs/typed-checkpoint.md) keeps all deterministic gates and release authority unchanged; no accuracy or task-benefit claim is established.
 
 The [typed decision pilot](../docs/typed-decision-layer.md) additionally scores source-bound tool-risk and legal browser QA candidates through `scripts/typed_selection.py`. It cannot authorize an action or change a check, review, or release gate.
+
+### Laya advise mode and check relaxation
+
+`scripts/typed_checkpoint.py --mode advise` (`devflow-next-action`, critical) and `scripts/typed_selection.py --mode advise`
+(`browser-qa-selection`) print an advisory line only after the baseline gate earns `advise` (shadow until then); both
+have an `outcome --decision-id ID --chosen X` subcommand. `RHIZE_LAYA_DEVFLOW_SHADOW` is gone: the registry mode
+decides. `scripts/check_plan.py plan|verify|outcome` is the deterministic S4 planner behind `/check` Phase 3a: it may
+relax only routine `test-full`, `lint`, `browser-qa` and `mutation` checks on docs-only or UI/logic-free diffs, never
+protected paths, deploy, publish, credentials, approvals, security review, required CI or the production-merge review,
+and Laya can only keep the full list. See [check relaxation](docs/check-relaxation.md), the
+[typed checkpoint contract](docs/typed-checkpoint.md#advise-mode), the
+[advise-everywhere plan](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md) and the [decision layer](../docs/typed-decision-layer.md).
