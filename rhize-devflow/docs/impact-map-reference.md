@@ -160,6 +160,53 @@ hashes any component registry, and records explicit `rg` fallback evidence where
 absent or unhealthy. It never initializes CodeGraph. Do not bypass the gate merely because a
 repository lacks one of the optional artifacts.
 
+The map must live inside `--workspace`. When the workspace is a linked Git worktree (an
+executor's isolated checkout), a map in the primary checkout is also accepted, so an
+orchestrator can prepare the subagent's worktree from its own `.claude/plans/` without copying
+the file. Prepare the executor's worktree before dispatching it: a worktree nested in a pending
+parent checkout is an untracked directory there, so the parent's after-the-fact check cannot see
+edits inside it.
+
+### Shell writes: static block plus after-the-fact check
+
+Native edit tools are checked before they write. Shell commands are checked twice, because no
+static reading of a shell command is complete:
+
+- **Before the command (`hook-command`, PreToolUse).** The gate parses the command and blocks,
+  with the same exemptions and `prepare` instructions as an edit tool, when it would write
+  source while the receipt is `pending`: output redirects (`>`, `>>`, `>|`, `&>`), `tee`,
+  in-place editors (`sed -i`, `perl -i`, `ruby -i`), `cp`/`mv`/`install` destinations,
+  `git apply`/`patch` targets read from the patch, and `open(..., 'w')`, `write_text`,
+  `writeFileSync` and similar calls in Python/Node/Ruby/Perl `-c`/`-e` snippets or heredoc
+  bodies. Snippet targets count when they are literals, `Path('…')`, or a name assigned a literal
+  or looped over a literal list; files a snippet only reads are not charged. Quoted or escaped
+  operator characters (`grep -c '>' f`) are arguments, and comments follow bash's word-start
+  rule. A leading `rtk`/`rtk proxy`, `env`, `VAR=value`, `npx`, `uv run` or `pnpm exec` prefix is
+  ignored. A target counts only when it is tracked, or is a new, non-ignored code file inside the
+  workspace; scratch and `/tmp` paths, ignored build output, logs, docs and plans pass. After
+  `prepare`, the same commands are allowed and move the receipt to `implementation` with the
+  session as an owner.
+- **After the command (`hook-command-post`, PostToolUse).** While `pending`, the tree is compared
+  with the dirty snapshot taken when the prompt armed the receipt, using the same source rule.
+  When the command itself ran `git commit`, the commit's files are compared too; other HEAD moves
+  (pull, checkout, rebase) only advance the stored HEAD, so someone else's commits are never
+  charged. The commit is recognised from the command text (so `bash -c '… && git commit'`
+  counts); a command that merely mentions `git commit` right after HEAD moved outside the hooks
+  would charge that move, a deliberate narrow false positive. New source changes are reported once, recorded as `unprepared_source_changes`, and
+  kept as evidence: `prepare` reuses the arm-time snapshot (with a fresh `HEAD`), and `reconcile`
+  requires every recorded path in the map even if a later prompt re-armed the receipt.
+
+The trade-off: the static check stops the common cases before they happen but misses commands
+it cannot read — `bash -c`, `eval`, running a script, `npm run`/`make` targets, `xargs`,
+`find -exec`, formatters with `--write`/`--fix`, `rm`, `git checkout`/`restore`, a `cd` on its own
+line or inside a subshell, snippet targets built from expressions, and paths held in shell
+variables. Commands over 100 KB skip static parsing. The after-the-fact check sees every one of
+those, but only once the write has happened; it cannot undo it. It makes the bypass visible and
+keeps it from disappearing into the baseline, including a hidden write committed in the same
+command. Writes through tools that have no hook at all (for example an MCP filesystem server)
+surface at the next shell command's comparison or at `prepare`, unless a new material prompt
+re-arms the receipt first and folds them into the fresh snapshot.
+
 ### Optional local context-pack bridge
 
 When `rhize-context-manager` is installed, the persisted semantic map may guide its native local
