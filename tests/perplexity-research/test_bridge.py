@@ -30,7 +30,9 @@ def root(tmp_path):
 
 @pytest.fixture
 def payload():
-    return {"status": "COMPLETED", "model_preference": "pplx_alpha", "backend_uuid": str(uuid.uuid4()),
+    backend = str(uuid.uuid4())
+    return {"status": "COMPLETED", "model_preference": "pplx_alpha", "backend_uuid": backend,
+            "thread_url": b.ORIGIN + "/search/" + backend,
             "blocks": [{"intended_usage": "ask_text", "markdown_block": {"answer": "Public answer [1]"}},
                        {"intended_usage": "web_results", "web_result_block": {"web_results": [
                            {"id": 1, "url": "https://example.org/doc", "name": "Public source"}]}}]}
@@ -54,7 +56,7 @@ class Response(io.BytesIO):
         return self.url
 
 
-def network(monkeypatch, payload, raw=None, tier="pro", model_mode="research"):
+def network(monkeypatch, payload, raw=None, tier="pro", model_mode="research", thread=None, config=None):
     calls = []
     client = b.WebClient({"__Secure-next-auth.session-token": SECRET})
 
@@ -65,7 +67,10 @@ def network(monkeypatch, payload, raw=None, tier="pro", model_mode="research"):
         if request.full_url.endswith("/api/auth/session"):
             data = {"user": {"subscription_tier": tier, "subscription_status": "active"}}
         elif "/models/" in request.full_url:
-            data = {"default_models": {"research": "pplx_alpha"}, "models": {"pplx_alpha": {"mode": model_mode}}}
+            data = config or {"config_schema": "v2", "default_models": {"research": "pplx_alpha"}, "models": {"pplx_alpha": {"mode": model_mode}}}
+        elif "/rest/thread/" in request.full_url:
+            assert request.data is None
+            data = {"entries": thread if isinstance(thread, list) else [thread]}
         else:
             return Response(wire(payload) if raw is None else raw, request.full_url, "text/event-stream")
         return Response(json.dumps(data).encode(), request.full_url)
@@ -191,8 +196,283 @@ def test_unsupported_ids_urls_and_model_refused(payload):
         b.snapshot(payload)
     source["url"] = "https://example.org"
     del source["id"]
-    with pytest.raises(b.BridgeError, match="explicit_citation_ids_required"):
-        b.snapshot(payload)
+    value = b.snapshot(payload)
+    assert value["sources"][0]["id"] is None and not value["citations"]
+    with pytest.raises(b.BridgeError, match="incomplete_answer_or_sources"):
+        b.validate_final(value, "pplx_alpha")
+
+
+@pytest.fixture
+def modern_payload(payload):
+    payload["search_mode"] = "RESEARCH"
+    payload["query_str"] = "Public"
+    payload["thread_url_slug"] = payload["backend_uuid"]
+    sources = [{"url": "https://example.org/first", "name": "First"},
+               {"url": "https://example.org/second", "name": "Second"}]
+    payload["blocks"][0]["markdown_block"]["answer"] = "Summary [1] [Full report](artifact:fixture)"
+    payload["blocks"][1]["web_result_block"]["web_results"] = sources
+    payload["blocks"].extend([
+        {"intended_usage": "sources_answer_mode", "sources_mode_block": {"rows": [
+            {"status": "SELECTED", "citation": 1, "web_result": sources[1]},
+            {"status": "REVIEWED", "web_result": sources[0]}]}},
+        {"intended_usage": "unified_assets", "unified_assets_block": {"assets": [
+            {"research_report": {"name": "Report", "source_content": "Full first [1], second [2].", "final": True},
+             "download_info": {"token": SECRET}}]}}])
+    return payload
+
+
+def test_modern_report_and_main_citations_have_distinct_mappings(modern_payload):
+    value = b.validate_final(b.snapshot(modern_payload), "pplx_alpha")
+    assert value["citations"] == [{"id": 1, "url": "https://example.org/second", "title": "Second"}]
+    assert [x["url"] for x in value["reports"][0]["citations"]] == ["https://example.org/first", "https://example.org/second"]
+    assert value["reports"][0]["markdown"] == "Full first [1], second [2]."
+    assert SECRET not in json.dumps(value)
+
+
+def test_uncited_stream_sources_can_arrive_before_numbered_rows(modern_payload):
+    modern_payload["blocks"] = modern_payload["blocks"][:2]
+    modern_payload["status"] = "PENDING"
+    value = b.snapshot(modern_payload)
+    assert len(value["sources"]) == 2 and not value["citations"]
+    with pytest.raises(b.BridgeError, match="incomplete_answer_or_sources"):
+        b.validate_final(value, "pplx_alpha")
+
+
+def test_numeric_markdown_link_label_is_not_a_citation(modern_payload):
+    modern_payload["blocks"][3]["unified_assets_block"]["assets"][0]["research_report"]["source_content"] += " [2018 announcement](https://example.org/news)"
+    b.validate_final(b.snapshot(modern_payload), "pplx_alpha")
+
+
+def test_explicit_row_citation_is_separate_from_source_identity(modern_payload):
+    modern_payload["blocks"][2]["sources_mode_block"]["rows"][0]["web_result"]["id"] = 2
+    assert b.validate_final(b.snapshot(modern_payload), "pplx_alpha")["citations"][0]["id"] == 1
+
+
+@pytest.mark.parametrize("end", [True, False])
+def test_modern_stream_uses_one_get_after_end_only(monkeypatch, modern_payload, end):
+    partial = {**modern_payload, "blocks": modern_payload["blocks"][:2]}
+    calls = network(monkeypatch, partial, raw=wire(partial, end=end), thread=modern_payload)
+    if end:
+        result = b.research("Public", emit)
+        assert result["reports"][0]["markdown"] == "Full first [1], second [2]."
+        assert result["observed_search_mode"] == "RESEARCH"
+    else:
+        with pytest.raises(b.BridgeError, match="missing_end_of_stream"):
+            b.research("Public", emit)
+    reads = [r for r in calls if "/rest/thread/" in r.full_url]
+    assert len(reads) == int(end)
+    if reads:
+        assert "supported_block_use_cases=unified_assets" in reads[0].full_url
+    assert len([r for r in calls if r.data]) == 1
+
+
+def test_health_checks_subscription_without_post(root, monkeypatch, payload, capsys):
+    calls = network(monkeypatch, payload)
+    assert b.main(["--state-dir", str(root), "health"]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "ready" and output["subscription_quota_remaining"] is None
+    assert len(calls) == 2 and not any(r.data for r in calls)
+
+
+def test_markdown_export_keeps_separate_citation_lists(modern_payload):
+    job = {"status": "completed", "requested_model": "pplx_alpha",
+           "result": b.snapshot(modern_payload)}
+    exported = b.export_markdown(job)
+    assert '[1] https://example.org/second' in exported
+    assert '[1] https://example.org/first\n[2] https://example.org/second' in exported
+    assert SECRET not in exported
+    assert "artifact:" not in exported and "Full report (included below)" in exported
+    job["status"] = "incomplete"
+    with pytest.raises(b.BridgeError, match="export_requires_completed_job"):
+        b.export_markdown(job)
+
+
+def test_jobs_pagination_omits_query(root, capsys):
+    ids = sorted(str(uuid.uuid4()) for _ in range(3))
+    for job_id in ids:
+        b.save(root, {"job_id": job_id, "status": "failed", "submitted": False, "query": SECRET})
+    assert b.main(["--state-dir", str(root), "jobs", "--limit", "2"]) == 0
+    first = json.loads(capsys.readouterr().out)
+    assert [j["job_id"] for j in first["jobs"]] == ids[:2] and first["next_after"] == ids[1]
+    assert SECRET not in json.dumps(first)
+    assert b.main(["--state-dir", str(root), "jobs", "--after", ids[1]]) == 0
+    last = json.loads(capsys.readouterr().out)
+    assert [j["job_id"] for j in last["jobs"]] == ids[2:] and last["next_after"] is None
+
+
+@pytest.fixture
+def search_config():
+    return {"config_schema": "v2", "default_models": {"research": "pplx_alpha", "search": "best"},
+            "models": {"pplx_alpha": {"mode": "research"}, "best": {"mode": "search"},
+                       "fast": {"mode": "search"}, "thinking": {"mode": "search"},
+                       "max_only": {"mode": "search"}, "agent": {"mode": "browser_agent"},
+                       "internal": {"mode": "search"}},
+            "search_config": [{"subscription_tier": "pro", "non_reasoning_model": "fast", "reasoning_model": "thinking"},
+                              {"subscription_tier": "max", "reasoning_model": "max_only"},
+                              {"subscription_tier": "pro", "non_reasoning_model": "agent"},
+                              {"subscription_tier": "pro", "audience": "internal", "reasoning_model": "internal"}]}
+
+
+def test_models_filter_tier_mode_and_audience_without_submission(monkeypatch, payload, search_config):
+    calls = network(monkeypatch, payload, config=search_config)
+    catalog = b.model_catalog(b.WebClient({}))
+    assert catalog["models"] == {"research": ["pplx_alpha"], "search": ["best", "fast", "thinking"]}
+    assert len(calls) == 2 and not any(r.data for r in calls)
+
+
+@pytest.mark.parametrize("selected", [None, "thinking", "max_only", "agent", "internal", "missing"])
+def test_search_model_is_checked_before_post(monkeypatch, payload, search_config, selected):
+    payload.update(model_preference=selected or "best", search_mode="SEARCH")
+    calls = network(monkeypatch, payload, config=search_config)
+    if selected in {None, "thinking"}:
+        value = b.research("Public", emit, mode="search", model=selected)
+        assert value["observed_search_mode"] == "SEARCH"
+        posted = [json.loads(r.data) for r in calls if r.data]
+        assert len(posted) == 1 and posted[0]["params"]["model_preference"] == (selected or "best")
+    else:
+        with pytest.raises(b.BridgeError, match="search_model_unavailable"):
+            b.research("Public", emit, mode="search", model=selected)
+        assert not any(r.data for r in calls)
+
+
+def test_follow_up_verifies_parent_then_reads_new_entry_on_same_thread(monkeypatch, modern_payload, search_config):
+    parent = {"backend_uuid": modern_payload["backend_uuid"], "thread_id": modern_payload["backend_uuid"],
+              "query": "Public", "model": "pplx_alpha", "mode": "research"}
+    child = {"backend_uuid": str(uuid.uuid4()), "thread_url_slug": parent["thread_id"],
+             "query_str": "Follow up", "model_preference": "fast", "search_mode": "SEARCH", "status": "COMPLETED",
+             "answer": "A plain answer without web claims", "web_results": []}
+    calls = network(monkeypatch, child, thread=[modern_payload, child], config=search_config)
+    value = b.research("Follow up", emit, mode="search", model="fast", parent=parent)
+    assert value["thread_url"] == b.ORIGIN + "/search/" + parent["thread_id"]
+    assert value["backend_uuid"] == child["backend_uuid"] and not value["citations"]
+    posts = [r for r in calls if r.data]
+    assert len(posts) == 1 and json.loads(posts[0].data)["params"]["last_backend_uuid"] == parent["backend_uuid"]
+    reads = [i for i,r in enumerate(calls) if "/rest/thread/" in r.full_url]
+    assert len(reads) == 2 and reads[0] < calls.index(posts[0]) < reads[1]
+    assert all("/rest/thread/" + parent["thread_id"] + "?" in calls[i].full_url for i in reads)
+
+
+def test_follow_up_parent_mismatch_never_submits(monkeypatch, modern_payload, search_config):
+    calls = network(monkeypatch, modern_payload, thread=modern_payload, config=search_config)
+    parent = {"backend_uuid": modern_payload["backend_uuid"], "thread_id": modern_payload["backend_uuid"],
+              "query": "Wrong query", "model": "pplx_alpha", "mode": "research"}
+    with pytest.raises(b.BridgeError, match="recovery_thread_or_query_mismatch"):
+        b.research("Follow up", emit, parent=parent)
+    assert not any(r.data for r in calls)
+
+
+def test_search_unmapped_marker_and_wrong_mode_are_not_success(payload):
+    value = b.snapshot(payload)
+    value["citations"] = []
+    with pytest.raises(b.BridgeError, match="citation_mapping_unverified"):
+        b.validate_final(value, "pplx_alpha", "search")
+    value["answer"] = "No citations"
+    value["observed_search_mode"] = "RESEARCH"
+    with pytest.raises(b.BridgeError, match="research_mode_mismatch"):
+        b.validate_final(value, "pplx_alpha", "search")
+
+
+def test_submit_binds_mode_model_and_parent_and_hides_parent_query(root, modern_payload):
+    parent_id, job_id = str(uuid.uuid4()), str(uuid.uuid4())
+    b.save(root, {"job_id": parent_id, "status": "completed", "submitted": True, "query": SECRET,
+                  "requested_model": "pplx_alpha", "result": b.snapshot(modern_payload)})
+    holders, launch = hold_launch()
+    try:
+        result = b.submit(root, job_id, "Follow up", "a" * 64, 60, launch,
+                          mode="search", model="thinking", parent_id=parent_id)
+        assert result["parent_job_id"] == parent_id and SECRET not in json.dumps(result)
+        b.submit(root, job_id, "Follow up", "a" * 64, 60, launch, mode="search", model="thinking", parent_id=parent_id)
+        assert len(holders) == 1
+        with pytest.raises(b.BridgeError, match="request_id_conflict"):
+            b.submit(root, job_id, "Follow up", "a" * 64, 60, launch, mode="search", model="fast", parent_id=parent_id)
+        with pytest.raises(b.BridgeError, match="request_id_conflict"):
+            b.submit(root, job_id, "Follow up", "a" * 64, 60, launch, mode="research", model="thinking", parent_id=parent_id)
+    finally:
+        for fd in holders: os.close(fd)
+
+
+def test_worker_forwards_persisted_search_options(root, monkeypatch, payload, search_config):
+    payload.update(model_preference="thinking", search_mode="SEARCH")
+    calls = network(monkeypatch, payload, config=search_config)
+    holders, launch = hold_launch()
+    job_id = str(uuid.uuid4())
+    b.submit(root, job_id, "Public", "a" * 64, 60, launch, mode="search", model="thinking")
+    before = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+    try:
+        b.work(root, job_id, holders[0])
+    finally:
+        os.close(holders[0])
+        for sig, handler in before.items(): signal.signal(sig, handler)
+    job = b.read_job(root, job_id)
+    assert job["status"] == "completed" and job["requested_model"] == "thinking"
+    assert job["result"]["observed_search_mode"] == "SEARCH"
+    assert len([r for r in calls if r.data]) == 1
+
+
+def test_legacy_request_fingerprint_remains_replay_safe(root):
+    job_id = str(uuid.uuid4())
+    old = {"job_id": job_id, "status": "failed", "submitted": False,
+           "input_sha256": b.sha(b.encoded(["Public", "a" * 64, 60]))}
+    b.save(root, old)
+    launch = Mock()
+    assert b.submit(root, job_id, "Public", "a" * 64, 60, launch)["status"] == "failed"
+    launch.assert_not_called()
+
+
+def test_legacy_completed_result_still_exports(payload):
+    value = b.snapshot(payload)
+    for key in ("sources", "reports", "observed_search_mode"):
+        del value[key]
+    result = b.export_markdown({"status": "completed", "requested_model": "pplx_alpha", "result": value})
+    assert 'Public answer [1]' in result and 'https://example.org/doc' in result
+
+
+@pytest.mark.parametrize("change,error", [("unfinished", "incomplete_research_report"),
+    ("out_of_range", "citation_mapping_unverified"), ("missing_report", "missing_research_report"),
+    ("missing_number", "selected_source_missing_citation"), ("search", "research_mode_mismatch")])
+def test_modern_report_refuses_unverified_completion(modern_payload, change, error):
+    report = modern_payload["blocks"][3]["unified_assets_block"]["assets"][0]["research_report"]
+    if change == "unfinished": report["final"] = False
+    if change == "out_of_range": report["source_content"] = "Missing [3]"
+    if change == "missing_report": modern_payload["blocks"].pop()
+    if change == "missing_number": del modern_payload["blocks"][2]["sources_mode_block"]["rows"][0]["citation"]
+    if change == "search": modern_payload["search_mode"] = "SEARCH"
+    with pytest.raises(b.BridgeError, match=error):
+        b.validate_final(b.snapshot(modern_payload), "pplx_alpha")
+
+
+@pytest.mark.parametrize("mismatch", [None, "query", "backend", "mode", "pending"])
+def test_recovery_only_reads_exact_saved_thread(root, monkeypatch, modern_payload, mismatch):
+    holders, launch = hold_launch()
+    job_id = str(uuid.uuid4())
+    b.submit(root, job_id, "Public", "a" * 64, 60, launch)
+    for fd in holders: os.close(fd)
+    job = b.read_job(root, job_id)
+    job.update(status="incomplete", submitted=True, requested_model="pplx_alpha",
+               error="explicit_citation_ids_required", partial={"backend_uuid": modern_payload["backend_uuid"]})
+    b.save(root, job)
+    original = (root / (job_id + ".json")).read_bytes()
+    if mismatch == "query": modern_payload["query_str"] = "Other query"
+    if mismatch == "backend": modern_payload["backend_uuid"] = str(uuid.uuid4())
+    if mismatch == "mode": modern_payload["search_mode"] = "SEARCH"
+    if mismatch == "pending": modern_payload["status"] = "PENDING"
+    client = Mock()
+    client.get_json.return_value = {"entries": [modern_payload]}
+    client.safe.side_effect = lambda value: value
+    monkeypatch.setattr(b, "cookies_from_keychain", lambda: {})
+    monkeypatch.setattr(b, "WebClient", lambda _cookies: client)
+    if mismatch:
+        with pytest.raises(b.BridgeError): b.recover(root, job_id)
+        assert (root / (job_id + ".json")).read_bytes() == original
+    else:
+        assert b.recover(root, job_id)["status"] == "completed"
+        saved = b.read_job(root, job_id)
+        assert saved["recovery"]["prior_error"] == "explicit_citation_ids_required"
+        assert saved["result"]["reports"][0]["final"]
+        assert b.recover(root, job_id)["status"] == "completed"
+    client.get_json.assert_called_once()
+    assert client.get_json.call_args.args[0].startswith("/rest/thread/" + job["partial"]["backend_uuid"] + "?")
+    client.request.assert_not_called()
 
 
 def hold_launch():

@@ -33,6 +33,12 @@ KEYCHAIN_SERVICE = "rhize:perplexity-cookies"
 MAX_BYTES = 16 * 1024 * 1024
 MAX_EVENT = 512 * 1024
 ACTIVE = {"queued", "preflight", "submitting", "running"}
+THREAD_BLOCKS = ["answer_modes", "media_items", "inline_entity_cards", "place_widgets", "finance_widgets",
+                 "news_widgets", "shopping_widgets", "search_result_widgets", "inline_images", "inline_assets",
+                 "placeholder_cards", "diff_blocks", "entity_group_v2", "refinement_filters", "canvas_mode",
+                 "maps_preview", "answer_tabs", "preserve_latex", "in_context_suggestions", "pending_followups",
+                 "inline_claims", "unified_assets", "workflow_steps", "workflow_widgets", "navigation_results",
+                 "background_agents"]
 SCRIPT = Path(__file__).resolve()
 
 
@@ -145,7 +151,8 @@ def inspect_job(root, job_id):
 
 
 def summary(job):
-    return {k: v for k, v in job.items() if k not in {"query", "partial", "result"}} | {
+    return {k: v for k, v in job.items() if k not in {"query", "partial", "result", "parent"}} | {
+        "parent_job_id": (job.get("parent") or {}).get("job_id"),
         "partial_available": bool(job.get("partial")),
         "remote_may_be_running": job["submitted"] and job["status"] != "completed",
     }
@@ -159,13 +166,21 @@ def spawn(root, job_id, fd):
                             stderr=subprocess.DEVNULL, start_new_session=True)
 
 
-def submit(root, job_id, query_text, permission_digest, timeout, launch=spawn):
+def submit(root, job_id, query_text, permission_digest, timeout, launch=spawn, *, mode="research", model=None, parent_id=None):
     identity(job_id)
     if not isinstance(query_text, str) or not query_text.strip() or len(query_text.encode()) > 10000:
         raise BridgeError("query_requires_1_to_10000_bytes")
     if not re.fullmatch(r"[a-f0-9]{64}", permission_digest) or not 1 <= timeout <= 1800:
         raise BridgeError("invalid_permission_digest_or_deadline")
-    fingerprint = sha(encoded([query_text, permission_digest, timeout]))
+    if mode not in {"research", "search"} or (model is not None and
+            (not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", model))):
+        raise BridgeError("invalid_mode_or_model")
+    if parent_id is not None:
+        identity(parent_id)
+    inputs = [query_text, permission_digest, timeout]
+    if (mode, model, parent_id) != ("research", None, None):
+        inputs += [mode, model, parent_id]
+    fingerprint = sha(encoded(inputs))
     with locked(root):
         path = root / (job_id + ".json")
         if path.exists() or path.is_symlink():
@@ -177,6 +192,16 @@ def submit(root, job_id, query_text, permission_digest, timeout, launch=spawn):
             inspect_job(root, path.stem)
             if worker_live(root, path.stem):
                 raise BridgeError("worker_busy")
+        parent = None
+        if parent_id:
+            previous = inspect_job(root, parent_id)
+            if previous["status"] != "completed" or not previous.get("result", {}).get("thread_url"):
+                raise BridgeError("follow_up_requires_completed_parent_with_thread")
+            result = validate_final(previous["result"], previous["requested_model"], previous.get("mode", "research"))
+            parent = {"job_id": parent_id, "backend_uuid": identity(result["backend_uuid"]),
+                      "thread_id": identity(urllib.parse.urlsplit(result["thread_url"]).path.removeprefix("/search/")),
+                      "query": previous["query"], "model": previous["requested_model"],
+                      "mode": previous.get("mode", "research")}
         fd = private_open(root / (job_id + ".lock"), os.O_RDWR | os.O_CREAT)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -184,6 +209,7 @@ def submit(root, job_id, query_text, permission_digest, timeout, launch=spawn):
                    "input_sha256": fingerprint, "permission_sha256": permission_digest,
                    "source_sha256": sha(SCRIPT.read_bytes()), "timeout_seconds": timeout,
                    "created_at": time.time(), "submitted": False, "cancel_requested": False,
+                   "mode": mode, "selected_model": model, "parent": parent,
                    "verification": {"actual_research_mode": None, "subscription_quota_used": None,
                                     "web_answer_and_citations_match": None}}
             save(root, job)
@@ -306,6 +332,25 @@ def events(response):
                 data.append(value)
 
 
+def source_record(source, number=None):
+    if not isinstance(source, dict):
+        raise BridgeError("invalid_source")
+    if number is None:
+        number = source.get("citation_id", source.get("id"))
+    if number is not None and (isinstance(number, bool) or not re.fullmatch(r"[1-9][0-9]{0,3}", str(number))):
+        raise BridgeError("explicit_citation_ids_required")
+    url = source.get("url")
+    title = source.get("title", source.get("name", ""))
+    if not isinstance(url, str) or len(url) > 4096 or any(ord(c) < 33 for c in url):
+        raise BridgeError("invalid_citation_url")
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+        raise BridgeError("invalid_citation_url")
+    if not isinstance(title, str) or len(title) > 2000:
+        raise BridgeError("invalid_citation_title")
+    return {"id": int(number) if number is not None else None, "url": url, "title": title}
+
+
 def snapshot(payload):
     """Adapt the upstream FINAL/block shapes without discarding citation metadata."""
     if not isinstance(payload, dict) or payload.get("error"):
@@ -319,34 +364,41 @@ def snapshot(payload):
         if isinstance(step, dict) and step.get("step_type") == "FINAL":
             content = json.loads(step["content"]["answer"])
             answer = content.get("answer")
+    rows, reports = None, []
     for block in blocks:
         if block.get("intended_usage") == "ask_text" and not answer:
             answer = block.get("markdown_block", {}).get("answer")
         if block.get("intended_usage") == "web_results":
             sources = block.get("web_result_block", {}).get("web_results", [])
+        if block.get("intended_usage") == "sources_answer_mode":
+            rows = block.get("sources_mode_block", {}).get("rows", [])
+        if block.get("intended_usage") == "unified_assets":
+            for asset in block.get("unified_assets_block", {}).get("assets", []):
+                report = asset.get("research_report")
+                if report is not None:
+                    if not isinstance(report.get("source_content"), str) or not isinstance(report.get("name"), str):
+                        raise BridgeError("invalid_research_report")
+                    reports.append({"name": report["name"], "markdown": report["source_content"],
+                                    "final": report.get("final") is True})
     if not isinstance(answer, (str, type(None))) or not isinstance(sources, list):
         raise BridgeError("unsupported_answer_shape")
-    citations = []
-    for source in sources:
-        if not isinstance(source, dict):
-            raise BridgeError("explicit_citation_ids_required")
-        number = source.get("citation_id", source.get("id"))
-        url = source.get("url")
-        title = source.get("title", source.get("name", ""))
-        if isinstance(number, bool) or not re.fullmatch(r"[1-9][0-9]{0,3}", str(number)):
-            raise BridgeError("explicit_citation_ids_required")
-        if not isinstance(url, str) or len(url) > 4096 or any(ord(c) < 33 for c in url):
-            raise BridgeError("invalid_citation_url")
-        parsed = urllib.parse.urlsplit(url)
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
-            raise BridgeError("invalid_citation_url")
-        if not isinstance(title, str) or len(title) > 2000:
-            raise BridgeError("invalid_citation_title")
-        citations.append({"id": int(number), "url": url, "title": title})
+    source_list = [source_record(source) for source in sources]
+    citations = [source for source in source_list if source["id"] is not None]
+    if rows is not None:
+        citations = []
+        for row in rows:
+            if row.get("citation") is not None:
+                citations.append(source_record(row["web_result"], row["citation"]))
+            elif row.get("status") == "SELECTED":
+                raise BridgeError("selected_source_missing_citation")
+    for report in reports:
+        # v2.18 report markers address the ordered web_results list, verified against the web UI.
+        report["citations"] = [{**source, "id": n} for n, source in enumerate(source_list, 1)]
+        report["citation_basis"] = "ordered_web_results_v2_18"
     backend = payload.get("backend_uuid")
     if backend is not None:
         identity(backend)
-    observed = payload.get("model_preference")
+    observed = payload.get("model_preference", payload.get("user_selected_model"))
     if observed is not None and (not isinstance(observed, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", observed)):
         raise BridgeError("invalid_observed_model")
     thread_url = payload.get("thread_url")
@@ -356,46 +408,142 @@ def snapshot(payload):
         parsed = urllib.parse.urlsplit(thread_url)
         if parsed.scheme != "https" or parsed.netloc not in {"www.perplexity.ai", "perplexity.ai"} or not parsed.path.startswith("/search/"):
             raise BridgeError("invalid_thread_url")
-    return {"answer": answer or "", "citations": citations, "backend_uuid": backend,
-            "thread_url": thread_url, "observed_model": observed, "server_status": payload.get("status")}
+    mode = payload.get("search_mode")
+    if mode is not None and mode not in {"RESEARCH", "SEARCH"}:
+        raise BridgeError("unknown_search_mode")
+    return {"answer": answer or "", "citations": citations, "sources": source_list, "reports": reports,
+            "backend_uuid": backend, "thread_url": thread_url, "observed_model": observed,
+            "observed_search_mode": mode, "server_status": payload.get("status")}
 
 
-def validate_final(value, requested_model):
-    if value["server_status"] != "COMPLETED" or not value["answer"].strip() or not value["citations"]:
-        raise BridgeError("incomplete_answer_or_sources")
-    ids = [item["id"] for item in value["citations"]]
-    labels = re.findall(r"\[(\d[^\]\n]*)\]", value["answer"])
+def validate_citations(markdown, citations):
+    ids = [item["id"] for item in citations]
+    labels = re.findall(r"\[(\d[^\]\n]*)\](?!\()", markdown)
     if any(not label.isascii() or not label.isdecimal() for label in labels):
         raise BridgeError("unsupported_citation_marker")
     markers = {int(n) for n in labels}
     if len(ids) != len(set(ids)) or not markers or not markers.issubset(ids):
         raise BridgeError("citation_mapping_unverified")
+
+
+def validate_final(value, requested_model, mode="research"):
+    if value["server_status"] != "COMPLETED" or not value["answer"].strip() or (mode == "research" and not value["citations"]):
+        raise BridgeError("incomplete_answer_or_sources")
+    if value["citations"] or re.search(r"\[\d[^\]\n]*\](?!\()", value["answer"]):
+        validate_citations(value["answer"], value["citations"])
+    for report in value.get("reports", []):
+        if not report["final"] or not report["markdown"].strip():
+            raise BridgeError("incomplete_research_report")
+        validate_citations(report["markdown"], report["citations"])
+    if "artifact:" in value["answer"] and not value.get("reports"):
+        raise BridgeError("missing_research_report")
     if value["observed_model"] not in {None, requested_model}:
         raise BridgeError("research_model_mismatch")
+    if value.get("observed_search_mode") not in {None, mode.upper()}:
+        raise BridgeError("research_mode_mismatch")
     return value
 
 
-def research(query_text, emit):
+def read_thread(client, backend, query_text, requested_model, mode="research", thread_id=None):
+    identity(backend)
+    thread_id = identity(thread_id or backend)
+    # shortcut: first/latest 20 entries only; add pagination if older-parent recovery is needed.
+    params = {"with_schematized_response": "true", "version": "2.18", "source": "default",
+              "limit": "20", "offset": "0", "from_first": "false", "with_first_entry": "true",
+              "supported_block_use_cases": THREAD_BLOCKS}
+    response = client.get_json("/rest/thread/" + thread_id + "?" + urllib.parse.urlencode(params, doseq=True))
+    entries = [entry for entry in response.get("entries", []) if entry.get("backend_uuid") == backend]
+    if len(entries) != 1 or entries[0].get("query_str") != query_text:
+        raise BridgeError("recovery_thread_or_query_mismatch")
+    entry = entries[0]
+    slug = entry.get("thread_url_slug")
+    if slug != thread_id or entry.get("search_mode") != mode.upper():
+        raise BridgeError("recovery_thread_or_mode_unverified")
+    return client.safe(validate_final(snapshot({**entry, "thread_url": ORIGIN + "/search/" + slug}), requested_model, mode))
+
+
+def recover(root, job_id):
+    """Read the persisted remote thread once; never resubmit the query."""
+    with locked(root):
+        job = inspect_job(root, job_id)
+        if worker_live(root, job_id):
+            raise BridgeError("worker_busy")
+        if job["status"] == "completed":
+            return summary(job)
+        backend = (job.get("partial") or {}).get("backend_uuid")
+        if not job["submitted"] or not backend:
+            raise BridgeError("recovery_requires_recorded_submission_and_backend")
+        identity(backend)
+        original = sha(encoded(job))
     client = WebClient(cookies_from_keychain())
+    value = read_thread(client, backend, job["query"], job["requested_model"], job.get("mode", "research"),
+                        (job.get("parent") or {}).get("thread_id"))
+    with locked(root):
+        if sha(encoded(read_job(root, job_id))) != original or worker_live(root, job_id):
+            raise BridgeError("recovery_state_changed")
+        job["recovery"] = {"prior_status": job["status"], "prior_error": job.get("error"),
+                           "at": time.time(), "source_sha256": sha(SCRIPT.read_bytes()), "method": "GET"}
+        job.update(status="completed", result=value)
+        job.pop("partial", None)
+        job.pop("error", None)
+        save(root, job)
+    return summary(job)
+
+
+def model_catalog(client):
     session = client.get_json("/api/auth/session")
     user = session.get("user", {})
     tier = user.get("subscription_tier")
     if user.get("subscription_status") not in {"active", "trialing"} or tier not in {"pro", "max"}:
         raise BridgeError("active_subscription_not_verified")
     config = client.get_json("/rest/models/config/v2?version=2.18&source=default")
-    model = config.get("default_models", {}).get("research")
-    if not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", model):
+    if config.get("config_schema") != "v2":
+        raise BridgeError("unsupported_model_config")
+    if config.get("organization_model_policy") is not None:
         raise BridgeError("research_workflow_unavailable")
-    if config.get("organization_model_policy") is not None or config.get("models", {}).get(model, {}).get("mode") != "research":
-        raise BridgeError("research_workflow_unavailable")
-    emit("preflight", client.safe({"subscription_tier": tier, "requested_model": model}))
+    available = {"research": set(), "search": set()}
+    defaults = {}
+    metadata = config.get("models", {})
+    for mode in available:
+        model = config.get("default_models", {}).get(mode)
+        if isinstance(model, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,100}", model) and metadata.get(model, {}).get("mode") == mode:
+            defaults[mode] = model
+            available[mode].add(model)
+    rank = {"free": 0, "pro": 1, "max": 2}
+    for row in config.get("search_config", []):
+        if rank.get(row.get("subscription_tier"), 99) > rank[tier] or row.get("audience") is not None:
+            continue
+        for field in ("non_reasoning_model", "reasoning_model"):
+            model = row.get(field)
+            if isinstance(model, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,100}", model) and metadata.get(model, {}).get("mode") == "search":
+                available["search"].add(model)
+    return client.safe({"subscription_tier": tier, "defaults": defaults,
+                        "models": {mode: sorted(ids) for mode, ids in available.items()},
+                        "subscription_quota_remaining": None})
+
+
+def preflight(client, mode="research", selected_model=None):
+    catalog = model_catalog(client)
+    model = selected_model or catalog["defaults"].get(mode)
+    if model not in catalog["models"][mode]:
+        raise BridgeError("research_workflow_unavailable" if mode == "research" else "search_model_unavailable")
+    return {"subscription_tier": catalog["subscription_tier"], "requested_model": model}
+
+
+def research(query_text, emit, *, mode="research", model=None, parent=None):
+    client = WebClient(cookies_from_keychain())
+    checked = preflight(client, mode, model)
+    model = checked["requested_model"]
+    if parent:
+        read_thread(client, parent["backend_uuid"], parent["query"], parent["model"], parent["mode"], parent["thread_id"])
+    emit("preflight", checked)
     permit = threading.Event()
     emit("intent", permit)
     if not permit.wait(15):
         raise BridgeError("submission_not_acknowledged_locally")
     params = {"attachments": [], "frontend_context_uuid": str(uuid.uuid4()),
               "frontend_uuid": str(uuid.uuid4()), "is_incognito": False, "language": "en-US",
-              "last_backend_uuid": None, "mode": "copilot", "model_preference": model,
+              "last_backend_uuid": parent["backend_uuid"] if parent else None, "mode": "copilot", "model_preference": model,
               "source": "default", "sources": ["web"], "version": "2.18"}
     latest = None
     with client.request("/rest/sse/perplexity_ask", {"query_str": query_text, "params": params}) as response:
@@ -403,7 +551,9 @@ def research(query_text, emit):
             if event == "end_of_stream":
                 if latest is None:
                     raise BridgeError("empty_stream")
-                return validate_final(latest, model)
+                if latest["backend_uuid"] and (parent or not latest["thread_url"] or not latest["citations"] or ("artifact:" in latest["answer"] and not latest["reports"])):
+                    return read_thread(client, latest["backend_uuid"], query_text, model, mode, parent["thread_id"] if parent else None)
+                return validate_final(latest, model, mode)
             if event != "message":
                 raise BridgeError("unsupported_or_error_sse_event")
             latest = client.safe(snapshot(json.loads(data)))
@@ -411,7 +561,7 @@ def research(query_text, emit):
     raise BridgeError("missing_end_of_stream")
 
 
-def work(root, job_id, fd, perform=research):
+def work(root, job_id, fd, perform=None):
     held, expected = os.fstat(fd), os.stat(root / (job_id + ".lock"), follow_symlinks=False)
     if (held.st_dev, held.st_ino) != (expected.st_dev, expected.st_ino):
         raise BridgeError("invalid_worker_lock")
@@ -426,7 +576,9 @@ def work(root, job_id, fd, perform=research):
 
     def target():
         try:
-            messages.put(("done", perform(job["query"], lambda kind, value: messages.put((kind, value)))))
+            execute = perform or (lambda query, emit: research(query, emit, mode=job.get("mode", "research"),
+                                  model=job.get("selected_model"), parent=job.get("parent")))
+            messages.put(("done", execute(job["query"], lambda kind, value: messages.put((kind, value)))))
         except Exception as exc:
             messages.put(("error", str(exc) if isinstance(exc, BridgeError) else "transport_or_protocol_error"))
 
@@ -470,6 +622,19 @@ def work(root, job_id, fd, perform=research):
                 return
 
 
+def export_markdown(job):
+    if job["status"] != "completed":
+        raise BridgeError("export_requires_completed_job")
+    result = validate_final(job["result"], job["requested_model"], job.get("mode", "research"))
+    sections = ["# " + job.get("mode", "research").capitalize() + " result", "Thread: " + (result["thread_url"] or "unavailable"),
+                "Subscription quota used: unknown."]
+    for answer in [{"markdown": result["answer"], "citations": result["citations"]}, *result.get("reports", [])]:
+        markdown = re.sub(r"\[([^\]]+)\]\(artifact:[^)]+\)", r"\1 (included below)", answer["markdown"])
+        sections.extend([markdown, "### Sources for this section",
+                         "\n".join(f'[{s["id"]}] {s["url"]}' for s in answer["citations"])])
+    return "\n\n".join(sections) + "\n"
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-dir", type=Path, default=Path.home() / ".rhize" / "perplexity-research")
@@ -478,7 +643,15 @@ def main(argv=None):
     add.add_argument("--request-id", required=True)
     add.add_argument("--permission-reference", type=Path, required=True)
     add.add_argument("--timeout", type=int, default=600)
-    for command in ("status", "result", "cancel", "_worker"):
+    add.add_argument("--mode", choices=("research", "search"), default="research")
+    add.add_argument("--model")
+    add.add_argument("--parent-job-id")
+    commands.add_parser("models", help="Read current plan-filtered Search and Research model IDs; no submission")
+    commands.add_parser("health", help="Check Keychain, subscription and Research configuration with GETs only")
+    jobs = commands.add_parser("jobs", help="List local job summaries, ordered by UUID")
+    jobs.add_argument("--after", default="")
+    jobs.add_argument("--limit", type=int, default=20)
+    for command in ("status", "result", "cancel", "recover", "export", "_worker"):
         sub = commands.add_parser(command)
         sub.add_argument("job_id")
         if command == "_worker":
@@ -496,15 +669,44 @@ def main(argv=None):
                 # Terminate blocked HTTP and any Keychain child after persisting terminal state.
                 os.killpg(os.getpid(), signal.SIGKILL)
             return 0
-        if args.command == "submit":
+        if args.command in {"recover", "health", "models"}:
+            def recovery_timeout(_signum, _frame):
+                raise BridgeError("read_deadline_exceeded")
+            previous = signal.signal(signal.SIGALRM, recovery_timeout)
+            signal.alarm(30)
+            try:
+                if args.command == "recover":
+                    output = recover(root, args.job_id)
+                elif args.command == "models":
+                    output = model_catalog(WebClient(cookies_from_keychain()))
+                else:
+                    output = {"status": "ready", **preflight(WebClient(cookies_from_keychain())),
+                              "subscription_quota_remaining": None}
+            finally:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, previous)
+        elif args.command == "jobs":
+            if not 1 <= args.limit <= 100:
+                raise BridgeError("limit_requires_1_to_100")
+            if args.after:
+                identity(args.after)
+            with locked(root):
+                paths = sorted(p for p in root.glob("*.json") if p.stem > args.after)
+                output = {"jobs": [summary(inspect_job(root, p.stem)) for p in paths[:args.limit]],
+                          "next_after": paths[args.limit - 1].stem if len(paths) > args.limit else None}
+        elif args.command == "submit":
             with os.fdopen(private_open(args.permission_reference, os.O_RDONLY), "rb") as stream:
                 permission = stream.read(65537)
             if not permission.strip() or len(permission) > 65536:
                 raise BridgeError("permission_reference_requires_1_to_65536_bytes")
-            output = submit(root, args.request_id, sys.stdin.read(10001), sha(permission), args.timeout)
+            output = submit(root, args.request_id, sys.stdin.read(10001), sha(permission), args.timeout,
+                            mode=args.mode, model=args.model, parent_id=args.parent_job_id)
         else:
             with locked(root):
                 job = inspect_job(root, args.job_id)
+                if args.command == "export":
+                    print(export_markdown(job), end="")
+                    return 0
                 if args.command == "cancel" and job["status"] in ACTIVE:
                     job["cancel_requested"] = True
                     save(root, job)

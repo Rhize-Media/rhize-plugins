@@ -2,6 +2,22 @@
 
 ## Verified facts
 
+- 2026-10-16: The Perplexity CLI live proof submitted exactly one Research query via stdlib HTTPS.
+  The original parser refused reviewed sources without citation IDs; GET-only recovery now handles
+  explicit main-answer citation rows and separate full-report assets. Same-thread UI comparison
+  matched all 7,908 Markdown characters and 37 source URLs in order; backend mode RESEARCH and
+  UI Deep research agree. Approved scoped cookies are in Keychain; no password was used. Quota
+  use stays unknown. The CLI now adds recovery, paginated jobs, health/models, Markdown export,
+  Search/model selection and completed-parent follow-ups with identity checks before POST. A thin
+  nine-tool stdio MCP adapter calls the actual CLI; live saved-result/export parity passed without
+  another submission. Default Research ID fingerprints remain replay-safe. Focused checks pass
+  86 tests; repository contract passes 534 Dev Flow tests, seven impact-map contracts and static
+  map/setup/config checks. Cold self-review, not an independent review. Live Search/follow-up
+  submission, a fresh uninterrupted final-parser stream and installed host activation remain
+  untested. Lesson: reviewed sources, summary citations and report citations are distinct mappings;
+  do not reject an early source list or substitute a second query for same-thread recovery/parity.
+  See `docs/research/perplexity-local-bridge.md`; all public source is preserved locally only.
+
 - 2026-10-16: The experimental `scripts/perplexity_research.py` CLI adds durable submit/status/
   result/cancel, one-worker admission, no-replay request IDs, Keychain-only credentials, bounded
   HTTPS/SSE, strict completion/citation validation and process-group cleanup. All 43 synthetic

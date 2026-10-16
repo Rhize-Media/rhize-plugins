@@ -2,11 +2,14 @@
 
 Reviewed 2026-10-16, using the Codex client date (America/New_York).
 
-Follow-up: a [minimal local CLI](perplexity-local-bridge.md) now implements the safeguards and
-passes synthetic tests. The user chose local-only preservation; no live proof or full-feature
-expansion occurred. The review below describes the original upstream, not the hardened CLI.
+Follow-up: the [local CLI and MCP adapter](perplexity-local-bridge.md) now have one successful
+CLI Research submission with GET recovery, full-report parity and all 37 ordered source URLs
+matching the same web thread. Quota consumption remains unverified. The user explicitly
+authorized the live attempt and scoped Keychain transfer. The review below is the historical
+pre-implementation assessment; its statements about no account access and held validation
+apply to that earlier phase, not the subsequent live proof.
 
-## Decision
+## Original decision
 
 **Do not install the upstream MCP unchanged. A subscription Research bridge is technically
 plausible but unproven; live validation is held pending an established permission basis for
