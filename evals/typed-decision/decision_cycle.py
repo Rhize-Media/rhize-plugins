@@ -540,7 +540,7 @@ def _shown(root, decision, decision_id) -> bool:
 def _choice_rows(root, decision, instrument_sha, revision, policy=None, with_shown=False):
     """(policy hash, rows) for a generic decision: every record on one binding - `policy` (the registry state's, once
     advise is earned) or else the most recent record's - the entry's advise instrument and the running Laya
-    revision. `label` is None while a record is unlabelled or ambiguous; `shown` (only read when `with_shown`)
+    revision. `label` is None while a record is unlabelled or ambiguous (`ambiguous` tells them apart); `shown` (only read when `with_shown`)
     says the recommendation was displayed."""
     recs = choice_labels.read_choice_records(root, decision)
     if not recs:
@@ -554,7 +554,8 @@ def _choice_rows(root, decision, instrument_sha, revision, policy=None, with_sho
         label = labels.get(rec['decisionId'])
         usable = label is not None and not label['ambiguous'] and label['label'] in rec['candidates']
         rows.append({'id': rec['decisionId'], 'group': rec.get('groupSha256') or rec['decisionId'],
-                     'label': label['label'] if usable else None, 'critical_if_wrong': rec['criticalIfWrong'],
+                     'label': label['label'] if usable else None, 'ambiguous': label is not None and not usable,
+                     'critical_if_wrong': rec['criticalIfWrong'],
                      'choice': rec['laya']['choice'], 'status': rec['laya']['status'], 'mode': rec['mode'],
                      'arm': rec['arm'], 'ts': rec['ts'],
                      'shown': with_shown and rec['criticalIfWrong'] and _shown(root, decision, rec['decisionId'])})
@@ -564,17 +565,18 @@ def _choice_rows(root, decision, instrument_sha, revision, policy=None, with_sho
 def _skill_rows(root, instrument_sha, revision):
     recs, _ = cohorts.load_records(root)
     labels, _ = cohorts.load_labels(root)
-    by_key = {}
+    by_key, unclear = {}, set()
     for label in labels:
-        if label['basis'] != 'harness' and not label['ambiguous']:
-            by_key.setdefault(label['occurrenceKey'], label)
+        if label['basis'] != 'harness':
+            (unclear.add(label['occurrenceKey']) if label['ambiguous'] else by_key.setdefault(label['occurrenceKey'], label))
     rows = []
     for rec in cohorts.gate_records(recs):
         if rec['instrumentSha256'] != instrument_sha or rec['layaRevision'] != revision:
             continue
         label = by_key.get(rec['occurrenceKey'])
         rows.append({'id': rec['occurrenceKey'], 'group': rec['sessionHash'],
-                     'label': label['bestSkill'] if label else None, 'critical_if_wrong': False,
+                     'label': label['bestSkill'] if label else None,
+                     'ambiguous': label is None and rec['occurrenceKey'] in unclear, 'critical_if_wrong': False,
                      'choice': rec['laya']['choice'], 'status': rec['laya']['status'], 'mode': rec['mode'],
                      'arm': rec['arm'], 'ts': rec['ts'], 'shown': False})
     return skill_advise_policy_sha256(instrument_sha), sorted(rows, key=lambda r: (r['ts'], r['id']))

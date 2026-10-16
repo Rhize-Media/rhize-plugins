@@ -2,10 +2,11 @@
 
 One file per decision: <root>/<decision>/advise-cohorts.jsonl. The statistical unit is the group (session):
 a group can appear in at most one cohort of a decision, whatever the attempt. Two ways in:
-  - `open`: a live, prospective cohort. Opened BEFORE any eligible record exists; its cases are the earliest
-    record per group created after `openedAt`. Its single `consumed` event carries the cases and groups used.
-    A binding change `abandoned`s it (the attempt, and its alpha, stay spent).
-  - `reserve`: a replay cohort (workflow-fit corpus): case ids and groups frozen before Laya is called.
+  - `open`: a live, prospective cohort, opened BEFORE any eligible record exists with its frozen baseline. After
+    it, one immutable `enrolled` event names the cases: the earliest record per unused promotion group created
+    after `openedAt`, chosen without looking at a label or a Laya answer. Its single `consumed` verdict evaluates
+    exactly that set. A binding change `abandoned`s it (the attempt, and its alpha, stay spent).
+  - `reserve`: a replay cohort (workflow-fit corpus): case ids, groups and baseline frozen before Laya is called.
 Every cohort ends in exactly one `consumed` verdict or an `abandoned`. Attempts are counted per decision
 across every policy and Laya revision (open and reserve both spend one). Appends run under an exclusive
 lock; dirs are 0700, the file is 0600, symlinks are refused.
@@ -29,9 +30,10 @@ LOCK_TIMEOUT_SECONDS = 10.0
 
 _DECISION = re.compile(r'[a-z][a-z0-9-]{1,40}\Z')
 _COMMON = {'event', 'cohortId', 'decision', 'policySha256', 'instrumentSha256', 'layaRevision', 'attempt', 'alpha', 'ts'}
-_FIELDS = {'open': _COMMON | {'openedAt', 'rule'}, 'reserve': _COMMON | {'caseIds', 'groups'},
-           'consumed': _COMMON | {'verdict', 'receiptSha256'}, 'abandoned': _COMMON | {'reason'}}
-_OPTIONAL = {'open': set(), 'reserve': {'baseline'}, 'consumed': {'caseIds', 'groups'}, 'abandoned': set()}
+_FIELDS = {'open': _COMMON | {'openedAt', 'rule', 'baseline'}, 'reserve': _COMMON | {'caseIds', 'groups'},
+           'enrolled': _COMMON | {'caseIds', 'groups'}, 'consumed': _COMMON | {'verdict', 'receiptSha256'},
+           'abandoned': _COMMON | {'reason'}}
+_OPTIONAL = {'open': set(), 'reserve': {'baseline'}, 'enrolled': set(), 'consumed': set(), 'abandoned': set()}
 BINDING_KEYS = ('cohortId', 'policySha256', 'instrumentSha256', 'layaRevision')
 OPEN_RULE = 'earliest-record-per-promotion-group-after-open'
 _REASON = re.compile(r'[a-z_]{1,40}\Z')
@@ -50,7 +52,7 @@ def _ledger_path(root, decision) -> Path:
 
 def _check(event, decision) -> None:
     if not isinstance(event, dict) or event.get('event') not in _FIELDS:
-        raise ValueError('event must be open, reserve, consumed or abandoned')
+        raise ValueError('event must be open, reserve, enrolled, consumed or abandoned')
     kind = event['event']
     keys = set(event)
     if not _FIELDS[kind] <= keys <= _FIELDS[kind] | _OPTIONAL[kind]:
@@ -75,10 +77,12 @@ def _check(event, decision) -> None:
         locked_io.utc(event['openedAt'])
         if event['rule'] != OPEN_RULE:
             raise ValueError('unknown cohort selection rule')
+        if not isinstance(event['baseline'], str) or not event['baseline']:
+            raise ValueError('an open cohort freezes a nonempty baseline')
     elif kind == 'abandoned':
         if not isinstance(event['reason'], str) or not _REASON.match(event['reason']):
             raise ValueError('invalid abandon reason')
-    elif kind == 'reserve':
+    elif kind in ('reserve', 'enrolled'):
         _sorted_unique(event['caseIds'], 'caseIds')
         _hex_list(event['groups'], 'groups')
         _one_per_group(event)
@@ -89,12 +93,6 @@ def _check(event, decision) -> None:
             raise ValueError("verdict must be 'pass' or 'hold'")
         if not isinstance(event['receiptSha256'], str) or not HEX64.match(event['receiptSha256']):
             raise ValueError('receiptSha256 must be 64 hex characters')
-        if ('caseIds' in event) != ('groups' in event):
-            raise ValueError('consumed carries caseIds and groups together')
-        if 'caseIds' in event:
-            _sorted_unique(event['caseIds'], 'caseIds')
-            _hex_list(event['groups'], 'groups')
-            _one_per_group(event)
 
 
 def _sorted_unique(ids, name) -> None:
@@ -144,6 +142,12 @@ def _ended(events) -> set:
     return {e['cohortId'] for e in events if e['event'] in ('consumed', 'abandoned')}
 
 
+def _pending(events, kind):
+    ended = _ended(events)
+    live = [e for e in events if e['event'] == kind and e['cohortId'] not in ended]
+    return live[-1] if live else None
+
+
 def next_attempt(root, decision) -> int:
     """1 + the cohorts ever opened or reserved for this decision (any policy, any Laya revision, ended or not)."""
     return 1 + len(_cohorts(read(root, decision)))
@@ -151,24 +155,35 @@ def next_attempt(root, decision) -> int:
 
 def open_cohort(root, decision):
     """The active (opened, not yet consumed or abandoned) live cohort of `decision`, or None."""
-    events = read(root, decision)
-    ended = _ended(events)
-    live = [e for e in events if e['event'] == 'open' and e['cohortId'] not in ended]
-    return live[-1] if live else None
+    return _pending(read(root, decision), 'open')
+
+
+def pending_reserve(root, decision):
+    """A reserved replay cohort with no verdict yet (a crashed or unavailable attempt to resume), or None."""
+    return _pending(read(root, decision), 'reserve')
+
+
+def enrollment(root, decision, cohort_id):
+    """The immutable `enrolled` event of a live cohort, or None while it is still collecting."""
+    return next((e for e in read(root, decision) if e['event'] == 'enrolled' and e['cohortId'] == cohort_id), None)
 
 
 def used_groups(root, decision) -> set:
-    """Group hashes (see group_hash) in any reserve or consumed event: they can never be in another cohort."""
+    """Group hashes (see group_hash) in any reserve or enrolled event: they can never be in another cohort."""
     return _used_groups(read(root, decision))
 
 
 def _used_groups(events) -> set:
-    return {g for e in events if e['event'] in ('reserve', 'consumed') for g in e.get('groups', ())}
+    return {g for e in events if e['event'] in ('reserve', 'enrolled') for g in e['groups']}
 
 
 def consumed_case_ids(root, decision) -> set:
-    """Case ids in any reserved or consumed cohort: they can never be used again."""
-    return {i for e in read(root, decision) if e['event'] in ('reserve', 'consumed') for i in e.get('caseIds', ())}
+    """Case ids in any reserved or enrolled cohort: they can never be used again."""
+    return {i for e in read(root, decision) if e['event'] in ('reserve', 'enrolled') for i in e['caseIds']}
+
+
+def consumed_cohorts(root, decision) -> set:
+    return {e['cohortId'] for e in read(root, decision) if e['event'] == 'consumed'}
 
 
 def append(root, decision, event) -> dict:
@@ -176,44 +191,45 @@ def append(root, decision, event) -> dict:
 
     open: new cohortId, attempt == next_attempt, no other cohort open.
     reserve: new cohortId, attempt == next_attempt, groups and caseIds disjoint from every earlier cohort.
-    consumed: needs a prior open or reserve of the same cohortId (same decision, policy, instrument, revision,
-    attempt, alpha), at most one end per cohort; an open cohort's consumed names its caseIds and groups, which
-    must be disjoint from every earlier cohort.
-    abandoned: needs a prior open of the same cohort (same fields) that has not ended.
+    enrolled: needs a prior open of the same cohort (same decision, policy, instrument, revision, attempt, alpha)
+    that is still active and not yet enrolled; groups and caseIds disjoint from every earlier cohort.
+    consumed: needs a prior reserve, or an open that was enrolled; same fields; at most one end per cohort.
+    abandoned: needs a prior open or reserve of the same cohort that has not ended.
     """
     _check(event, decision)
     directory = locked_io.private_dir(_ledger_path(root, decision).parent, anchor=Path(root))
     with locked_io.file_lock(directory / LOCK_FILE, LOCK_TIMEOUT_SECONDS):
         events = read(root, decision)
         cohorts, ended = _cohorts(events), _ended(events)
-        if event['event'] in ('open', 'reserve'):
+        kind = event['event']
+        if kind in ('open', 'reserve'):
             if event['cohortId'] in cohorts:
                 raise ValueError('cohort already reserved')
             if event['attempt'] != 1 + len(cohorts):
                 raise ValueError('attempt must be the next attempt for this decision')
-            if event['event'] == 'open':
+            if kind == 'open':
                 if any(e['event'] == 'open' and e['cohortId'] not in ended for e in events):
                     raise ValueError('an advise cohort is already open')
             else:
                 _disjoint(events, event)
         else:
             prior = cohorts.get(event['cohortId'])
-            if prior is None or (event['event'] == 'abandoned' and prior['event'] != 'open'):
+            if prior is None or (kind == 'enrolled' and prior['event'] != 'open'):
                 raise ValueError('%s needs a prior %s of the same cohort' % (
-                    event['event'], 'open' if event['event'] == 'abandoned' else 'reserve'))
+                    kind, 'reserve' if kind == 'consumed' else 'open'))
             if event['cohortId'] in ended:
                 raise ValueError('cohort already %s' % ('consumed' if any(
                     e['event'] == 'consumed' and e['cohortId'] == event['cohortId'] for e in events) else 'abandoned'))
             for name in ('policySha256', 'instrumentSha256', 'layaRevision', 'attempt', 'alpha'):
                 if prior[name] != event[name]:
-                    raise ValueError(f'{event["event"]} {name} differs from its {prior["event"]}')
-            if event['event'] == 'consumed':
-                if prior['event'] == 'open':
-                    if 'caseIds' not in event:
-                        raise ValueError('an open cohort is consumed with its caseIds and groups')
-                    _disjoint(events, event)
-                elif 'caseIds' in event:
-                    raise ValueError('a reserved cohort is consumed without caseIds')
+                    raise ValueError(f'{kind} {name} differs from its {prior["event"]}')
+            enrolled = any(e['event'] == 'enrolled' and e['cohortId'] == event['cohortId'] for e in events)
+            if kind == 'enrolled':
+                if enrolled:
+                    raise ValueError('cohort already enrolled')
+                _disjoint(events, event)
+            elif kind == 'consumed' and prior['event'] == 'open' and not enrolled:
+                raise ValueError('an open cohort is consumed only after it is enrolled')
         locked_io.append_line(directory / LEDGER_FILE, event)
     return event
 
@@ -221,7 +237,7 @@ def append(root, decision, event) -> dict:
 def _disjoint(events, event) -> None:
     if set(event['groups']) & _used_groups(events):
         raise ValueError('groups already used by an earlier cohort')
-    if set(event['caseIds']) & {i for e in events if e['event'] in ('reserve', 'consumed') for i in e.get('caseIds', ())}:
+    if set(event['caseIds']) & {i for e in events if e['event'] in ('reserve', 'enrolled') for i in e['caseIds']}:
         raise ValueError('case ids already reserved by an earlier cohort')
 
 

@@ -28,7 +28,8 @@ def reserve(cohort='1' * 32, attempt=1, ids=('c1', 'c2'), policy=POLICY, rev=REV
 def opened(cohort='1' * 32, attempt=1, policy=POLICY, rev=REV, **extra):
     return {'event': 'open', 'cohortId': cohort, 'decision': D, 'policySha256': policy,
             'instrumentSha256': INSTRUMENT, 'layaRevision': rev, 'attempt': attempt, 'alpha': 0.1,
-            'openedAt': '2026-10-16T00:00:00Z', 'rule': ledger.OPEN_RULE, 'ts': '2026-10-16T00:00:00Z', **extra}
+            'openedAt': '2026-10-16T00:00:00Z', 'rule': ledger.OPEN_RULE, 'baseline': 'general',
+            'ts': '2026-10-16T00:00:00Z', **extra}
 
 
 def abandoned(cohort='1' * 32, attempt=1, policy=POLICY, rev=REV):
@@ -43,9 +44,11 @@ def consumed(cohort='1' * 32, attempt=1, verdict='pass', policy=POLICY, rev=REV,
             'verdict': verdict, 'receiptSha256': 'c' * 64, 'ts': '2026-10-16T00:01:00Z', **extra}
 
 
-def live_end(names=('g1', 'g2'), **kwargs):
-    """consumed fields for an open cohort: one case per group."""
-    return {'caseIds': sorted('case-' + n for n in names), 'groups': sorted(ledger.group_hash(n) for n in names), **kwargs}
+def enrolled(cohort='1' * 32, attempt=1, names=('g1', 'g2'), policy=POLICY, rev=REV):
+    return {'event': 'enrolled', 'cohortId': cohort, 'decision': D, 'policySha256': policy,
+            'instrumentSha256': INSTRUMENT, 'layaRevision': rev, 'attempt': attempt, 'alpha': 0.1,
+            'caseIds': sorted('case-' + n for n in names), 'groups': sorted(ledger.group_hash(n) for n in names),
+            'ts': '2026-10-16T00:00:40Z'}
 
 
 def binding(cohort='1' * 32, **changes):
@@ -193,30 +196,56 @@ def test_a_cohort_holds_one_case_per_group(tmp_path):
         ledger.append(tmp_path, D, reserve(ids=('c1', 'c2'), groups=[G['g1']]))
     ledger.append(tmp_path, D, opened())
     with pytest.raises(ValueError, match='one case per group'):
-        ledger.append(tmp_path, D, consumed(caseIds=['a', 'b'], groups=[G['g1']]))
+        ledger.append(tmp_path, D, {**enrolled(), 'caseIds': ['a', 'b'], 'groups': [G['g1']]})
 
 
-def test_open_then_consumed_carries_its_cases_and_spends_groups_and_an_attempt(tmp_path):
+def test_open_then_enrolled_then_consumed_spends_groups_and_an_attempt(tmp_path):
     ledger.append(tmp_path, D, opened())
-    assert ledger.open_cohort(tmp_path, D)['cohortId'] == '1' * 32 and ledger.next_attempt(tmp_path, D) == 2
-    assert ledger.used_groups(tmp_path, D) == set()                      # nothing is selected yet
-    with pytest.raises(ValueError, match='caseIds and groups'):
-        ledger.append(tmp_path, D, consumed())                           # an open cohort names what it used
-    ledger.append(tmp_path, D, consumed(**live_end()))
-    assert ledger.open_cohort(tmp_path, D) is None
+    assert ledger.open_cohort(tmp_path, D)['baseline'] == 'general' and ledger.next_attempt(tmp_path, D) == 2
+    assert ledger.used_groups(tmp_path, D) == set() and ledger.enrollment(tmp_path, D, '1' * 32) is None
+    with pytest.raises(ValueError, match='only after it is enrolled'):
+        ledger.append(tmp_path, D, consumed())
+    ledger.append(tmp_path, D, enrolled())
     assert ledger.used_groups(tmp_path, D) == {ledger.group_hash('g1'), ledger.group_hash('g2')}
     assert ledger.consumed_case_ids(tmp_path, D) == {'case-g1', 'case-g2'}
+    assert ledger.enrollment(tmp_path, D, '1' * 32)['caseIds'] == ['case-g1', 'case-g2']
+    with pytest.raises(ValueError, match='already enrolled'):
+        ledger.append(tmp_path, D, enrolled(names=('g3',)))                       # immutable: no replacement
+    assert ledger.consumed_cohorts(tmp_path, D) == set()
+    ledger.append(tmp_path, D, consumed())
+    assert ledger.open_cohort(tmp_path, D) is None and ledger.consumed_cohorts(tmp_path, D) == {'1' * 32}
     assert ledger.verify_pass(tmp_path, D, binding()) is None            # the registry accepts an open-born pass
     ledger.append(tmp_path, D, opened(cohort='2' * 32, attempt=2))
     with pytest.raises(ValueError, match='groups already used'):
-        ledger.append(tmp_path, D, consumed(cohort='2' * 32, attempt=2, **live_end(('g2', 'g3'))))
-    ledger.append(tmp_path, D, consumed(cohort='2' * 32, attempt=2, **live_end(('g3', 'g4'))))
+        ledger.append(tmp_path, D, enrolled(cohort='2' * 32, attempt=2, names=('g2', 'g3')))
+    ledger.append(tmp_path, D, enrolled(cohort='2' * 32, attempt=2, names=('g3', 'g4')))
 
 
-def test_a_reserved_cohort_is_consumed_without_caseids(tmp_path):
+def test_enrolled_needs_an_active_open_cohort_with_the_same_binding(tmp_path):
+    with pytest.raises(ValueError, match='prior open'):
+        ledger.append(tmp_path, D, enrolled())
+    ledger.append(tmp_path, D, reserve(cohort='3' * 32, ids=('c1',), groups=[G['g1']]))
+    with pytest.raises(ValueError, match='prior open'):
+        ledger.append(tmp_path, D, enrolled(cohort='3' * 32, names=('g9',)))
+    ledger.append(tmp_path, D, opened(cohort='2' * 32, attempt=2))
+    with pytest.raises(ValueError, match='policySha256 differs'):
+        ledger.append(tmp_path, D, enrolled(cohort='2' * 32, attempt=2, policy='d' * 64))
+    ledger.append(tmp_path, D, abandoned(cohort='2' * 32, attempt=2))
+    with pytest.raises(ValueError, match='already abandoned'):
+        ledger.append(tmp_path, D, enrolled(cohort='2' * 32, attempt=2))
+
+
+def test_open_freezes_a_baseline(tmp_path):
+    missing = opened(); del missing['baseline']
+    for bad in (missing, {**opened(), 'baseline': ''}):
+        with pytest.raises(ValueError):
+            ledger.append(tmp_path, D, bad)
+
+
+def test_a_reserved_cohort_cannot_carry_enrollment_fields_when_consumed(tmp_path):
     ledger.append(tmp_path, D, reserve())
-    with pytest.raises(ValueError, match='without caseIds'):
-        ledger.append(tmp_path, D, consumed(**live_end(('g3',))))
+    with pytest.raises(ValueError, match='wrong fields'):
+        ledger.append(tmp_path, D, {**consumed(), 'caseIds': ['x'], 'groups': [G['g1']]})
 
 
 def test_only_one_cohort_is_open_at_a_time_and_abandoning_keeps_the_attempt_spent(tmp_path):
@@ -226,25 +255,28 @@ def test_only_one_cohort_is_open_at_a_time_and_abandoning_keeps_the_attempt_spen
     ledger.append(tmp_path, D, abandoned())
     assert ledger.open_cohort(tmp_path, D) is None and ledger.next_attempt(tmp_path, D) == 2
     with pytest.raises(ValueError, match='already abandoned'):
-        ledger.append(tmp_path, D, consumed(**live_end()))
+        ledger.append(tmp_path, D, consumed())
     with pytest.raises(ValueError, match='already abandoned'):
         ledger.append(tmp_path, D, abandoned())
     with pytest.raises(ValueError, match='no consumed'):
         ledger.verify_pass(tmp_path, D, binding())
     ledger.append(tmp_path, D, opened(cohort='2' * 32, attempt=2, policy='e' * 64))
-    ledger.append(tmp_path, D, consumed(cohort='2' * 32, attempt=2, policy='e' * 64, **live_end()))
+    ledger.append(tmp_path, D, enrolled(cohort='2' * 32, attempt=2, policy='e' * 64))
+    ledger.append(tmp_path, D, consumed(cohort='2' * 32, attempt=2, policy='e' * 64))
 
 
-def test_abandon_needs_a_matching_open_cohort(tmp_path):
+def test_abandon_needs_a_matching_unended_cohort_and_may_drop_a_pending_reserve(tmp_path):
     with pytest.raises(ValueError, match='prior open'):
         ledger.append(tmp_path, D, abandoned())
     ledger.append(tmp_path, D, reserve())
-    with pytest.raises(ValueError, match='prior open'):
-        ledger.append(tmp_path, D, abandoned())
+    assert ledger.pending_reserve(tmp_path, D)['cohortId'] == '1' * 32
+    ledger.append(tmp_path, D, abandoned())
+    assert ledger.pending_reserve(tmp_path, D) is None and ledger.used_groups(tmp_path, D) == {G['g1'], G['g2']}
     ledger.append(tmp_path, D, opened(cohort='2' * 32, attempt=2))
     with pytest.raises(ValueError, match='policySha256 differs'):
         ledger.append(tmp_path, D, abandoned(cohort='2' * 32, attempt=2, policy='d' * 64))
-    ledger.append(tmp_path, D, consumed(cohort='2' * 32, attempt=2, **live_end(('g3', 'g4'))))
+    ledger.append(tmp_path, D, enrolled(cohort='2' * 32, attempt=2, names=('g3', 'g4')))
+    ledger.append(tmp_path, D, consumed(cohort='2' * 32, attempt=2))
     with pytest.raises(ValueError, match='already consumed'):
         ledger.append(tmp_path, D, abandoned(cohort='2' * 32, attempt=2))
 

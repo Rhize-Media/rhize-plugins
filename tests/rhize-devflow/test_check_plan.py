@@ -255,11 +255,15 @@ def test_git_environment_is_ignored(repo, env, tmp_path, monkeypatch):
     assert cp._env()["GIT_OPTIONAL_LOCKS"] == "0"
 
 
-@pytest.mark.parametrize("flag", ["--assume-unchanged", "--skip-worktree"])
-def test_hidden_index_flags_refuse_the_plan(repo, env, flag):
+@pytest.mark.parametrize("flags", [("--assume-unchanged",), ("--skip-worktree",),
+                                   ("--assume-unchanged", "--skip-worktree")])
+def test_hidden_index_flags_refuse_the_plan(repo, env, flags):
     (repo / "docs/a.md").write_text("changed")
     assert plan(repo, env)["eligible"]
-    git(repo, "update-index", flag, "package.json")
+    for flag in flags:
+        git(repo, "update-index", flag, "package.json")
+    tag = git(repo, "ls-files", "-v", "package.json").split()[0]
+    assert tag == {1: {"--assume-unchanged": "h", "--skip-worktree": "S"}[flags[0]], 2: "s"}[len(flags)]
     (repo / "package.json").write_text('{"scripts":{"x":"y"}}')
     assert git(repo, "diff", "--name-only", "HEAD").strip() == "docs/a.md"  # the edit really is invisible to diff
     result = plan(repo, env)

@@ -171,22 +171,57 @@ def _score(cases, predict_one):
     return scored
 
 
-def _settle(root, decision, base, cases, *, baseline, prior, critical, cfg, predict_one, now, dry_run, ended=None):
-    """Predict, evaluate, store the receipt and append the single `consumed` event (`ended` = extra consumed fields)."""
-    ids = [c['id'] for c in cases]
-    result = evaluate(_score(cases, predict_one), baseline=baseline, alpha=base['alpha'], prior=prior,
-                      min_cohort=cfg['minCohort'], min_coverage=cfg['minCoverage'], critical=critical,
-                      min_critical=cfg.get('minCriticalCases') or CRITICAL_MIN_CASES)
+def _receipt_path(root, decision, cohort_id):
+    return Path(root) / decision / 'advise-receipts' / (cohort_id + '.json')
+
+
+def _recover(root, decision, cohort_id):
+    """The stored receipt of a cohort whose evaluation already finished, or None. A receipt for another cohort or
+    decision is an error, never a recovery."""
+    try:
+        receipt = locked_io.read_json_file(_receipt_path(root, decision, cohort_id))
+    except FileNotFoundError:
+        return None
+    if (not isinstance(receipt, dict) or receipt.get('cohortId') != cohort_id or receipt.get('decision') != decision
+            or receipt.get('verdict') not in ('pass', 'hold')):
+        raise ValueError('advise receipt does not match its cohort')
+    return receipt
+
+
+def _consume(root, decision, receipt, now):
+    """Append the `consumed` event for a finished receipt, once (a retry after a crash finds it already there)."""
+    if receipt['cohortId'] not in advise_ledger.consumed_cohorts(root, decision):
+        advise_ledger.append(root, decision, {
+            'event': 'consumed', **{k: receipt[k] for k in ('cohortId', 'decision', 'policySha256', 'instrumentSha256',
+                                                              'layaRevision', 'attempt', 'alpha')},
+            'verdict': receipt['verdict'], 'receiptSha256': sha256(receipt), 'ts': _iso(now)})
+    return _adopt(receipt)
+
+
+def _adopt(receipt):
+    return {'status': 'evaluated', **receipt, 'receiptSha256': sha256(receipt)}
+
+
+def _finish(root, decision, base, ids, result, *, baseline, critical, cfg, now, dry_run):
+    """Publish the receipt exclusively per cohort, then append `consumed`. Crash safe: whoever finds the receipt
+    already published (a retry) adopts it unchanged and only appends the missing `consumed`."""
     receipt = {'schema': RECEIPT_SCHEMA, **base, 'baseline': baseline, 'critical': critical, 'gate': cfg,
                'caseIdsSha256': sha256(ids), **result, 'dryRun': dry_run}
-    receipt_sha = sha256(receipt)
-    if not dry_run:
-        directory = locked_io.private_dir(Path(root) / decision / 'advise-receipts', anchor=Path(root))
+    if dry_run:
+        return {'status': 'dry_run', **receipt, 'receiptSha256': sha256(receipt)}
+    directory = locked_io.private_dir(Path(root) / decision / 'advise-receipts', anchor=Path(root))
+    try:
         locked_io.write_private_exclusive(directory / (base['cohortId'] + '.json'),
                                           (json.dumps(receipt, sort_keys=True, indent=2) + '\n').encode())
-        advise_ledger.append(root, decision, {**base, 'event': 'consumed', 'verdict': result['verdict'],
-                                              'receiptSha256': receipt_sha, 'ts': _iso(now), **(ended or {})})
-    return {'status': 'dry_run' if dry_run else 'evaluated', **receipt, 'receiptSha256': receipt_sha}
+    except FileExistsError:
+        receipt = _recover(root, decision, base['cohortId'])
+    return _consume(root, decision, receipt, now)
+
+
+def _evaluate(cases, predict_one, *, baseline, alpha, prior, cfg, critical):
+    return evaluate(_score(cases, predict_one), baseline=baseline, alpha=alpha, prior=prior,
+                    min_cohort=cfg['minCohort'], min_coverage=cfg['minCoverage'], critical=critical,
+                    min_critical=cfg.get('minCriticalCases') or CRITICAL_MIN_CASES)
 
 
 def _one_per_group(cases, used_groups, used_ids=frozenset()):
@@ -200,6 +235,18 @@ def _one_per_group(cases, used_groups, used_ids=frozenset()):
     return sorted(best.values(), key=lambda c: c['id'])
 
 
+def _base(decision, policy_sha, instrument_sha, laya_revision, attempt, cfg, cohort):
+    return {'cohortId': cohort, 'decision': decision, 'policySha256': policy_sha, 'instrumentSha256': instrument_sha,
+            'layaRevision': laya_revision, 'attempt': attempt, 'alpha': alpha_for_attempt(cfg['alphaBase'], attempt)}
+
+
+def _abandon(root, decision, cohort, reason, now):
+    advise_ledger.append(root, decision, {
+        'event': 'abandoned', **{k: cohort[k] for k in ('cohortId', 'decision', 'policySha256', 'instrumentSha256',
+                                                         'layaRevision', 'attempt', 'alpha')},
+        'reason': reason, 'ts': _iso(now)})
+
+
 def run_attempt(root, decision, candidate_cases, *, policy_sha, instrument_sha, laya_revision, gate_cfg, prior,
                 baseline, critical=False, now=None, dry_run=False, predict_one, probe):
     """One replay attempt (workflow-fit corpus), ledger-bound. `candidate_cases` carry id, group, label,
@@ -209,10 +256,33 @@ def run_attempt(root, decision, candidate_cases, *, policy_sha, instrument_sha, 
     Picks one promotion-split case per group, on groups no earlier cohort used; holds without touching the ledger
     below minCohort or when `probe()` (mandatory; must return True, see `probe_ok`) says Laya is down, so an outage
     never consumes a cohort or spends alpha. Otherwise appends `reserve` (case ids, group hashes, frozen baseline)
-    BEFORE predicting, evaluates at alpha_for_attempt(alphaBase, next_attempt), stores the receipt and appends the
-    single `consumed` event. dry_run evaluates without any ledger or receipt write.
+    BEFORE predicting, evaluates at alpha_for_attempt(alphaBase, next_attempt), publishes the receipt exclusively and
+    appends the single `consumed` event. A reserved cohort left without a verdict (a crash, or a probe failure
+    right before evaluation) is resumed - its stored receipt adopted unchanged if it exists - not replaced.
+    dry_run evaluates without any ledger or receipt write.
     """
     cfg = {**DEFAULT_GATE, **(gate_cfg or {})}
+    pending = advise_ledger.pending_reserve(root, decision)
+    if pending is not None:
+        finished = _recover(root, decision, pending['cohortId'])
+        if finished is not None:
+            return _adopt(finished) if dry_run else _consume(root, decision, finished, now)
+        wanted = set(pending['caseIds'])
+        resumed = sorted((c for c in candidate_cases if c['id'] in wanted), key=lambda c: c['id'])
+        same = (pending['policySha256'], pending['instrumentSha256'], pending['layaRevision']) == (
+            policy_sha, instrument_sha, laya_revision)
+        if same and len(resumed) == len(wanted):
+            if not probe_ok(probe):
+                return {'status': 'held', 'reason': 'laya_unavailable'}
+            base = {k: pending[k] for k in ('cohortId', 'decision', 'policySha256', 'instrumentSha256', 'layaRevision',
+                                            'attempt', 'alpha')}
+            frozen = pending.get('baseline', baseline)
+            result = _evaluate(resumed, predict_one, baseline=frozen, alpha=base['alpha'], prior=prior, cfg=cfg,
+                               critical=critical)
+            return _finish(root, decision, base, [c['id'] for c in resumed], result, baseline=frozen,
+                           critical=critical, cfg=cfg, now=now, dry_run=dry_run)
+        if not dry_run:       # another binding, or its cases are gone: the attempt stays spent, a fresh cohort follows
+            _abandon(root, decision, pending, 'binding_changed' if not same else 'cases_missing', now)
     selected = _one_per_group(candidate_cases, advise_ledger.used_groups(root, decision),
                               advise_ledger.consumed_case_ids(root, decision))
     if len(selected) < cfg['minCohort']:
@@ -229,38 +299,56 @@ def run_attempt(root, decision, candidate_cases, *, policy_sha, instrument_sha, 
         advise_ledger.append(root, decision, {**base, 'event': 'reserve', 'caseIds': ids, 'baseline': baseline,
                                               'groups': sorted(advise_ledger.group_hash(c['group']) for c in selected),
                                               'ts': _iso(now)})
-    return _settle(root, decision, base, selected, baseline=baseline, prior=prior, critical=critical, cfg=cfg,
-                   predict_one=predict_one, now=now, dry_run=dry_run)
+    result = _evaluate(selected, predict_one, baseline=baseline, alpha=base['alpha'], prior=prior, cfg=cfg,
+                       critical=critical)
+    return _finish(root, decision, base, ids, result, baseline=baseline, critical=critical, cfg=cfg, now=now,
+                   dry_run=dry_run)
 
 
-def _base(decision, policy_sha, instrument_sha, laya_revision, attempt, cfg, cohort):
-    return {'cohortId': cohort, 'decision': decision, 'policySha256': policy_sha, 'instrumentSha256': instrument_sha,
-            'layaRevision': laya_revision, 'attempt': attempt, 'alpha': alpha_for_attempt(cfg['alphaBase'], attempt)}
+AMBIGUOUS_MAX = 0.2       # more ambiguous labels than this share of an enrolled cohort consume it as a hold
 
 
-def collect_cohort(rows, opened_at, used_groups):
-    """The live cohort's cases: the earliest record (by ts, then id) of each promotion-split group created after
-    `opened_at` on a group no earlier cohort used; only groups whose earliest record is labelled (label not None)
-    count. Selection never looks at an outcome, a recommendation or Laya's answer. rows carry id, group, ts, label
-    (None when unlabelled or ambiguous) and critical_if_wrong."""
+def _enroll_target(minimum):
+    return -(-int(minimum) * 10 // 8) if minimum else 0     # ceil(minimum / 0.8)
+
+
+def enrollment_cases(rows, opened_at, used_groups, minimum, minimum_critical):
+    """Label-independent enrollment: the earliest record (by ts, then id) of each promotion-split group created after
+    `opened_at` on groups no earlier cohort used, taken in that order until there are enough of them and enough
+    critical_if_wrong ones. Looks only at id, group, ts and the pre-decision critical flag - never a label, an
+    outcome, a recommendation or Laya's answer. Returns (chosen rows, all candidate rows); chosen is [] while short.
+    `minimum` counts cases that survive up to 20% ambiguous labels, so the target is ceil(minimum / 0.8)."""
     opened = locked_io.utc(opened_at)
     first = {}
     for row in sorted(rows, key=lambda r: (locked_io.utc(r['ts']), r['id'])):
         if (split_of(row['group']) == 'promotion' and advise_ledger.group_hash(row['group']) not in used_groups
                 and locked_io.utc(row['ts']) > opened):
             first.setdefault(row['group'], row)
-    return sorted((r for r in first.values() if r['label'] is not None), key=lambda r: r['id'])
+    ordered = list(first.values())
+    want, want_critical, chosen, critical = _enroll_target(minimum), _enroll_target(minimum_critical), [], 0
+    for row in ordered:
+        chosen.append(row)
+        critical += bool(row['critical_if_wrong'])
+        if len(chosen) >= want and critical >= want_critical:
+            return chosen, ordered
+    return [], ordered
 
 
 def run_live(root, decision, rows, *, policy_sha, instrument_sha, laya_revision, gate_cfg, prior, baseline,
              critical=False, now=None, dry_run=False, predict_one, probe):
     """One prospective-cohort step for a live decision. `rows` are every record of the decision on the current
-    binding (see collect_cohort). In order:
-      - no open cohort: probe (mandatory, `probe_ok`), then append `open` and hold as 'cohort_opened'. Nothing
-        recorded before this moment is ever a case;
-      - an open cohort on another binding is `abandoned` (its attempt and alpha stay spent) and a fresh one opens;
-      - an open cohort with fewer than minCohort labelled groups (and, when critical, minCriticalCases critical
-        cases) holds as 'cohort_collecting'; otherwise it is evaluated once and `consumed`.
+    binding: id, group, ts, critical_if_wrong, label (None while unlabelled or ambiguous) and ambiguous (True when
+    the final label is ambiguous). `baseline` is the tuning majority NOW; it is frozen into the cohort only when
+    one opens. In order:
+      - an open cohort on another binding is `abandoned` (its attempt and alpha stay spent);
+      - no open cohort: needs a baseline and a passing probe (mandatory, `probe_ok`), then appends `open` (with the
+        frozen baseline) and holds as 'cohort_opened'. Nothing recorded before that moment is ever a case;
+      - an open cohort not yet enrolled enrolls (see enrollment_cases) as soon as enough groups exist, appending the
+        immutable `enrolled` event, else holds as 'cohort_collecting';
+      - an enrolled cohort whose receipt is already published is finished from that receipt (crash recovery);
+      - otherwise it waits ('cohort_labelling') until every enrolled case has a final label, then probes Laya
+        immediately before evaluating and settles once with the open-frozen baseline: ambiguous labels are
+        excluded and more than 20% of them consume the cohort as a hold ('ambiguous_share').
     dry_run writes nothing."""
     cfg = {**DEFAULT_GATE, **(gate_cfg or {})}
     active = advise_ledger.open_cohort(root, decision)
@@ -270,12 +358,11 @@ def run_live(root, decision, rows, *, policy_sha, instrument_sha, laya_revision,
             return {'status': 'held', 'reason': 'laya_unavailable'}
         if dry_run:
             return {'status': 'held', 'reason': 'would_abandon_stale_cohort', 'cohortId': active['cohortId']}
-        advise_ledger.append(root, decision, {
-            'event': 'abandoned', **{k: active[k] for k in ('cohortId', 'decision', 'policySha256', 'instrumentSha256',
-                                                              'layaRevision', 'attempt', 'alpha')},
-            'reason': 'binding_changed', 'ts': _iso(now)})
+        _abandon(root, decision, active, 'binding_changed', now)
         active = None
     if active is None:
+        if not baseline:
+            return {'status': 'held', 'reason': 'no_baseline'}
         if not probe_ok(probe):
             return {'status': 'held', 'reason': 'laya_unavailable'}
         if dry_run:
@@ -285,23 +372,54 @@ def run_live(root, decision, rows, *, policy_sha, instrument_sha, laya_revision,
         base = _base(decision, policy_sha, instrument_sha, laya_revision, attempt, cfg,
                      sha256({'decision': decision, 'policy': policy_sha, 'instrument': instrument_sha,
                              'attempt': attempt, 'openedAt': opened_at})[:32])
-        advise_ledger.append(root, decision, {**base, 'event': 'open', 'openedAt': opened_at,
+        advise_ledger.append(root, decision, {**base, 'event': 'open', 'openedAt': opened_at, 'baseline': baseline,
                                               'rule': advise_ledger.OPEN_RULE, 'ts': opened_at})
         return {'status': 'held', 'reason': 'cohort_opened', 'cohortId': base['cohortId'], 'attempt': attempt,
-                'alpha': base['alpha'], 'openedAt': opened_at}
-    cases = collect_cohort(rows, active['openedAt'], advise_ledger.used_groups(root, decision))
-    need_critical = (cfg.get('minCriticalCases') or CRITICAL_MIN_CASES) if critical else 0
-    if len(cases) < cfg['minCohort'] or sum(bool(c['critical_if_wrong']) for c in cases) < need_critical:
-        return {'status': 'held', 'reason': 'cohort_collecting', 'cohortId': active['cohortId'],
-                'available': len(cases), 'required': cfg['minCohort'],
-                'criticalAvailable': sum(bool(c['critical_if_wrong']) for c in cases), 'criticalRequired': need_critical}
+                'alpha': base['alpha'], 'openedAt': opened_at, 'baseline': baseline}
     base = {k: active[k] for k in ('cohortId', 'decision', 'policySha256', 'instrumentSha256', 'layaRevision',
                                    'attempt', 'alpha')}
-    trimmed = [{k: c[k] for k in ('id', 'group', 'label', 'critical_if_wrong')} for c in cases]
-    ended = {'caseIds': [c['id'] for c in trimmed],
-             'groups': sorted(advise_ledger.group_hash(c['group']) for c in trimmed)}
-    return _settle(root, decision, base, trimmed, baseline=baseline, prior=prior, critical=critical, cfg=cfg,
-                   predict_one=predict_one, now=now, dry_run=dry_run, ended=ended)
+    enrolled = advise_ledger.enrollment(root, decision, active['cohortId'])
+    if enrolled is None:
+        need_critical = (cfg.get('minCriticalCases') or CRITICAL_MIN_CASES) if critical else 0
+        chosen, ordered = enrollment_cases(rows, active['openedAt'], advise_ledger.used_groups(root, decision),
+                                           cfg['minCohort'], need_critical)
+        if not chosen:
+            return {'status': 'held', 'reason': 'cohort_collecting', 'cohortId': active['cohortId'],
+                    'available': len(ordered), 'required': _enroll_target(cfg['minCohort']),
+                    'criticalAvailable': sum(bool(r['critical_if_wrong']) for r in ordered),
+                    'criticalRequired': _enroll_target(need_critical)}
+        if dry_run:
+            return {'status': 'held', 'reason': 'would_enroll_cohort', 'cohortId': active['cohortId'],
+                    'enrolled': len(chosen)}
+        enrolled = advise_ledger.append(root, decision, {
+            **base, 'event': 'enrolled', 'caseIds': sorted(r['id'] for r in chosen),
+            'groups': sorted(advise_ledger.group_hash(r['group']) for r in chosen), 'ts': _iso(now)})
+    finished = _recover(root, decision, active['cohortId'])
+    if finished is not None:
+        return _adopt(finished) if dry_run else _consume(root, decision, finished, now)
+    by_id = {r['id']: r for r in rows}
+    final = [by_id.get(i) for i in enrolled['caseIds']]
+    pending = sum(r is None or (r['label'] is None and not r.get('ambiguous')) for r in final)
+    if pending:
+        return {'status': 'held', 'reason': 'cohort_labelling', 'cohortId': active['cohortId'],
+                'enrolled': len(final), 'pending': pending}
+    if not probe_ok(probe):          # Laya is queried (or relied on) only while it is verifiably the one we gated
+        return {'status': 'held', 'reason': 'laya_unavailable'}
+    frozen = active['baseline']
+    ids = list(enrolled['caseIds'])
+    ambiguous = sum(r['label'] is None for r in final)
+    if ambiguous / len(final) > AMBIGUOUS_MAX:
+        result = {'verdict': 'hold', 'reasons': ['ambiguous_share'],
+                  'stats': {'n': len(final) - ambiguous, 'enrolled': len(final), 'ambiguous': ambiguous}}
+    else:
+        usable = [{k: r[k] for k in ('id', 'group', 'label', 'critical_if_wrong')} for r in final
+                  if r['label'] is not None]
+        result = _evaluate(usable, predict_one, baseline=frozen, alpha=base['alpha'], prior=prior, cfg=cfg,
+                           critical=critical)
+        result['stats']['enrolled'] = len(final)
+        result['stats']['ambiguous'] = ambiguous
+    return _finish(root, decision, base, ids, result, baseline=frozen, critical=critical, cfg=cfg, now=now,
+                   dry_run=dry_run)
 
 
 # ---------------------------------------------------------------- shared cycle plumbing (registry writes)

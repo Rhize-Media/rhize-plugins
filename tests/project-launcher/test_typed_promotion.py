@@ -4,6 +4,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -460,8 +461,13 @@ def test_groups_cannot_be_reused_by_a_later_attempt_even_under_new_case_ids(tmp_
 
 # ---- live prospective cohorts
 
-def rows(count, *, start=0, ts='2026-10-16T12:00:00Z', label=None, unlabelled=False, **extra):
-    """`count` promotion-split rows, one per group; labels follow pool()'s 80/10/10 mix unless `label` is given."""
+OPENED = '2026-10-16T00:00:00Z'
+
+
+def rows(count, *, start=0, ts='2026-10-16T01:00:00Z', label=None, unlabelled=False, ambiguous=False, **extra):
+    """`count` promotion-split rows, one per group, one second apart from `ts`; labels follow pool()'s 80/10/10 mix
+    unless `label` is given; `unlabelled` leaves them pending, `ambiguous` makes the final label ambiguous."""
+    base = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')
     out, index = [], start
     while len(out) < count:
         group = f'live-{index}'
@@ -470,67 +476,139 @@ def rows(count, *, start=0, ts='2026-10-16T12:00:00Z', label=None, unlabelled=Fa
             continue
         position = len(out) % 10
         mix = 'general' if position < 8 else 'content' if position == 8 else 'none'
-        out.append({'id': f'r-{group}', 'group': group, 'ts': ts, 'label': None if unlabelled else label or mix, 'critical_if_wrong': False, **extra})
+        out.append({'id': f'r-{group}', 'group': group, 'ts': (base + timedelta(seconds=len(out))).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'label': None if unlabelled or ambiguous else label or mix, 'ambiguous': ambiguous,
+                    'critical_if_wrong': False, **extra})
     return out
 
 
-def step(root, data, *, now='2026-10-16T00:00:00Z', probe=lambda: True, predict_one=None, **kwargs):
+def step(root, data, *, now=OPENED, probe=lambda: True, predict_one=None, baseline='general', **kwargs):
     answers = {r['id']: r['label'] for r in data}
     return tp.run_live(root, D, data, policy_sha=kwargs.pop('policy', POLICY), instrument_sha=INSTRUMENT,
-                       laya_revision=kwargs.pop('revision', 'rev-1'), gate_cfg=kwargs.pop('gate_cfg', None), prior=PRIOR,
-                       baseline='general', now=now, predict_one=predict_one or (lambda case: answers[case['id']]),
+                       laya_revision=kwargs.pop('revision', 'rev-1'), gate_cfg=kwargs.pop('gate_cfg', None),
+                       prior=kwargs.pop('prior', PRIOR), baseline=baseline, now=now, predict_one=predict_one or (lambda case: answers[case['id']]),
                        probe=probe, **kwargs)
 
 
-def test_the_first_live_step_opens_a_cohort_and_nothing_recorded_before_it_counts(tmp_path):
+def kinds(root):
+    return [e['event'] for e in advise_ledger.read(root, D)]
+
+
+def test_the_first_live_step_opens_a_cohort_with_a_frozen_baseline_and_needs_one(tmp_path):
+    assert step(tmp_path, [], baseline=None) == {'status': 'held', 'reason': 'no_baseline'} and not (tmp_path / D).exists()
     before = rows(60, ts='2026-10-15T00:00:00Z')                    # the policy's records, all earlier than the open
     opened = step(tmp_path, before)
     assert opened['status'] == 'held' and opened['reason'] == 'cohort_opened' and opened['attempt'] == 1
     event = advise_ledger.read(tmp_path, D)[0]
-    assert event['event'] == 'open' and event['openedAt'] == '2026-10-16T00:00:00Z' and event['rule'] == advise_ledger.OPEN_RULE
-    again = step(tmp_path, before, now='2026-10-17T00:00:00Z')      # a perfect-looking history is still not eligible
+    assert event['event'] == 'open' and event['openedAt'] == OPENED and event['rule'] == advise_ledger.OPEN_RULE
+    assert event['baseline'] == 'general'
+    again = step(tmp_path, before, now='2026-10-17T00:00:00Z', baseline='content')   # a perfect history is not eligible
     assert again['reason'] == 'cohort_collecting' and again['available'] == 0
-    assert [e['event'] for e in advise_ledger.read(tmp_path, D)] == ['open']
+    assert kinds(tmp_path) == ['open']
 
 
 def test_a_policy_chosen_after_outcomes_cannot_reuse_earlier_recorded_cases(tmp_path):
     history = rows(60, ts='2026-10-10T00:00:00Z')                   # recorded and labelled; Laya matched every label
-    step(tmp_path, history, now='2026-10-16T00:00:00Z')             # the new policy only opens now
-    collecting = step(tmp_path, history, now='2026-10-17T00:00:00Z', policy='c' * 64)   # even rebinding finds no case
-    assert collecting['reason'] == 'cohort_opened'                  # binding changed: the old cohort is abandoned
-    kinds = [e['event'] for e in advise_ledger.read(tmp_path, D)]
-    assert kinds == ['open', 'abandoned', 'open']
+    step(tmp_path, history)
+    rebound = step(tmp_path, history, now='2026-10-17T00:00:00Z', policy='c' * 64)   # binding changed: abandon, reopen
+    assert rebound['reason'] == 'cohort_opened'
+    assert kinds(tmp_path) == ['open', 'abandoned', 'open']
 
 
-def test_live_evaluates_once_on_the_earliest_labelled_record_per_group_after_the_open(tmp_path):
+def test_enrollment_is_label_independent_ordered_by_time_and_immutable(tmp_path):
     step(tmp_path, [])
-    data = rows(40, ts='2026-10-16T01:00:00Z')
-    first = data[8]
-    late = [{**first, 'id': first['id'] + '-b', 'ts': '2026-10-16T05:00:00Z', 'label': 'none'} for _ in range(1)]
-    outcome_blind = [{**data[0], 'id': 'a-earlier', 'ts': '2026-10-16T00:30:00Z', 'label': 'general'}]
-    result = step(tmp_path, data + late + outcome_blind)
-    assert result['status'] == 'evaluated' and result['verdict'] == 'pass'
+    data = rows(50, unlabelled=True)                                 # not one label exists yet
+    waiting = step(tmp_path, data)
+    assert waiting['reason'] == 'cohort_labelling' and waiting['enrolled'] == 38 and waiting['pending'] == 38
+    event = advise_ledger.enrollment(tmp_path, D, advise_ledger.open_cohort(tmp_path, D)['cohortId'])
+    assert event['caseIds'] == sorted(r['id'] for r in data[:38])    # the 38 earliest groups: ceil(30 / 0.8)
+    earlier = rows(5, start=700, ts='2026-10-16T00:30:00Z')          # earlier-timestamped records arriving later
+    assert step(tmp_path, data + earlier)['reason'] == 'cohort_labelling'
+    assert advise_ledger.enrollment(tmp_path, D, event['cohortId']) == event and kinds(tmp_path) == ['open', 'enrolled']
+    labelled = [{**r, 'label': 'general' if i < 30 else 'content'} for i, r in enumerate(data)]   # labels, any value
+    assert step(tmp_path, labelled + earlier)['status'] == 'evaluated'
+    consumed = advise_ledger.read(tmp_path, D)[-1]
+    assert consumed['event'] == 'consumed' and advise_ledger.enrollment(tmp_path, D, event['cohortId']) == event
+
+
+def test_enrollment_waits_for_enough_groups_without_reading_labels(tmp_path):
+    step(tmp_path, [])
+    short = rows(37, label=None, unlabelled=True)
+    held = step(tmp_path, short)
+    assert held['reason'] == 'cohort_collecting' and held['available'] == 37 and held['required'] == 38
+    assert kinds(tmp_path) == ['open']
+    tuning = {'id': 't1', 'group': next(g for g in (f'tg-{i}' for i in range(99)) if tp.split_of(g) == 'tuning'),
+              'ts': '2026-10-16T02:00:00Z', 'label': 'general', 'ambiguous': False, 'critical_if_wrong': False}
+    assert step(tmp_path, short + [tuning])['reason'] == 'cohort_collecting'
+    assert step(tmp_path, short + rows(1, start=900, ts='2026-10-16T03:00:00Z', unlabelled=True))['reason'] == 'cohort_labelling'
+
+
+def test_live_evaluates_once_with_the_baseline_frozen_at_open(tmp_path):
+    step(tmp_path, [])
+    data = rows(45)
+    result = step(tmp_path, data, baseline='content')                # today's tuning majority differs; the open one wins
+    assert result['status'] == 'evaluated' and result['baseline'] == 'general' and result['verdict'] == 'pass'
     end = advise_ledger.read(tmp_path, D)[-1]
-    assert end['event'] == 'consumed' and len(end['caseIds']) == len(end['groups']) == 40
-    assert 'a-earlier' in end['caseIds'] and data[0]['id'] not in end['caseIds']      # earliest per group wins
-    assert first['id'] in end['caseIds'] and late[0]['id'] not in end['caseIds']
+    assert end['event'] == 'consumed' and kinds(tmp_path) == ['open', 'enrolled', 'consumed']
     advise_ledger.verify_pass(tmp_path, D, {'cohortId': result['cohortId'], 'policySha256': POLICY,
                                             'instrumentSha256': INSTRUMENT, 'layaRevision': 'rev-1'})
     assert tp.cohort_baseline(tmp_path, D, result['cohortId']) == 'general'
-    after = step(tmp_path, data)                                    # a fresh cohort must not reuse the groups
+    after = step(tmp_path, data)                                    # the enrolled groups are spent
     assert after['reason'] == 'cohort_opened' and after['attempt'] == 2 and after['alpha'] == 0.05
-    assert step(tmp_path, data)['available'] == 0
+    leftover = step(tmp_path, data)                                 # only the 7 groups the first cohort never enrolled
+    assert leftover['reason'] == 'cohort_collecting' and leftover['available'] == 45 - 38
 
 
-def test_live_selection_ignores_unlabelled_and_ambiguous_earliest_records_and_non_promotion_groups(tmp_path):
+def test_ambiguous_labels_are_excluded_and_too_many_consume_a_hold(tmp_path):
     step(tmp_path, [])
-    data = rows(29, ts='2026-10-16T01:00:00Z')
-    held = step(tmp_path, data + rows(5, start=500, ts='2026-10-16T02:00:00Z', unlabelled=True))   # unlabelled/ambiguous
-    assert held['reason'] == 'cohort_collecting' and held['available'] == 29 and held['required'] == 30
-    tuning = {'id': 't1', 'group': next(g for g in (f'tg-{i}' for i in range(99)) if tp.split_of(g) == 'tuning'),
-              'ts': '2026-10-16T02:00:00Z', 'label': 'general', 'critical_if_wrong': False}
-    assert step(tmp_path, data + [tuning])['available'] == 29
-    assert step(tmp_path, data + rows(1, start=900, ts='2026-10-16T03:00:00Z'))['status'] == 'evaluated'
+    data = rows(45)
+    for row in data[:7]:                                             # 7 of 38 enrolled = 18%: excluded, still evaluates
+        row.update(label=None, ambiguous=True)
+    ok = step(tmp_path, data)
+    assert ok['verdict'] == 'pass' and ok['stats']['ambiguous'] == 7 and ok['stats']['n'] == 31
+    step(tmp_path, [])                                              # a new attempt
+    more = rows(45, start=3000)
+    for row in more[:8]:                                             # 8 of 38 = 21%
+        row.update(label=None, ambiguous=True)
+    held = step(tmp_path, more, now='2026-10-18T00:00:00Z')
+    assert held['verdict'] == 'hold' and held['reasons'] == ['ambiguous_share']
+    assert advise_ledger.read(tmp_path, D)[-1]['event'] == 'consumed'
+
+
+def test_probe_runs_immediately_before_the_final_evaluation_and_nothing_is_consumed_when_it_fails(tmp_path):
+    step(tmp_path, [])
+    data = rows(45)
+    calls = []
+    held = step(tmp_path, data, probe=lambda: calls.append(1) or False)
+    assert held == {'status': 'held', 'reason': 'laya_unavailable'} and calls == [1]
+    assert kinds(tmp_path) == ['open', 'enrolled'] and not (tmp_path / D / 'advise-receipts').exists()
+    assert step(tmp_path, data)['status'] == 'evaluated' and kinds(tmp_path)[-1] == 'consumed'
+
+
+def test_a_crash_between_the_receipt_and_consumed_is_recovered_without_re_evaluating(tmp_path, monkeypatch):
+    step(tmp_path, [])
+    data = rows(45)
+    real = advise_ledger.append
+
+    def crash(root, decision, event):
+        if event['event'] == 'consumed':
+            raise OSError('killed after the receipt was published')
+        return real(root, decision, event)
+    monkeypatch.setattr(advise_ledger, 'append', crash)
+    with pytest.raises(OSError):
+        step(tmp_path, data)
+    monkeypatch.undo()
+    assert kinds(tmp_path) == ['open', 'enrolled']
+    [path] = list((tmp_path / D / 'advise-receipts').iterdir())
+    stored = path.read_bytes()
+    # the world moves on: more labels, a different tuning majority, and a Laya that would now answer everything wrong
+    more = data + rows(30, start=5000, ts='2026-10-16T09:00:00Z')
+    recovered = step(tmp_path, more, baseline='content', predict_one=lambda case: 'none', prior={'none': 100})
+    assert recovered['status'] == 'evaluated' and recovered['verdict'] == 'pass' and recovered['baseline'] == 'general'
+    assert recovered['receiptSha256'] == tp.sha256(json.loads(stored)) and path.read_bytes() == stored
+    assert kinds(tmp_path) == ['open', 'enrolled', 'consumed']
+    again = step(tmp_path, more)                                    # idempotent: no second consumed, a new cohort opens
+    assert kinds(tmp_path).count('consumed') == 1 and again['reason'] == 'cohort_opened'
 
 
 def test_live_open_needs_a_mandatory_probe_and_an_outage_never_opens(tmp_path):
@@ -544,28 +622,28 @@ def test_live_dry_run_writes_nothing(tmp_path):
     assert step(tmp_path, [], dry_run=True)['reason'] == 'would_open_cohort' and not (tmp_path / D).exists()
     step(tmp_path, [])
     before = (tmp_path / D / 'advise-cohorts.jsonl').read_bytes()
-    result = step(tmp_path, rows(40, ts='2026-10-16T01:00:00Z'), dry_run=True)
-    assert result['status'] == 'dry_run' and (tmp_path / D / 'advise-cohorts.jsonl').read_bytes() == before
-    assert not (tmp_path / D / 'advise-receipts').exists()
+    assert step(tmp_path, rows(45), dry_run=True)['reason'] == 'would_enroll_cohort'
+    assert (tmp_path / D / 'advise-cohorts.jsonl').read_bytes() == before and not (tmp_path / D / 'advise-receipts').exists()
 
 
-def test_live_critical_cohort_waits_for_ten_critical_cases_and_holds_on_a_miss(tmp_path):
+def test_live_critical_cohort_enrolls_enough_critical_cases_and_holds_on_a_miss(tmp_path):
     step(tmp_path, [], critical=True)
-    data = rows(40, ts='2026-10-16T01:00:00Z')
-    for row in data[:9]:
+    data = rows(60)
+    for row in data[:12]:
         row['critical_if_wrong'] = True
     waiting = step(tmp_path, data, critical=True, gate_cfg={'minCriticalCases': 10})
-    assert waiting['reason'] == 'cohort_collecting' and waiting['criticalAvailable'] == 9 and waiting['criticalRequired'] == 10
-    data[9]['critical_if_wrong'] = True
+    assert waiting['reason'] == 'cohort_collecting' is not None and waiting['criticalAvailable'] == 12
+    assert waiting['criticalRequired'] == 13
+    data[12]['critical_if_wrong'] = True
+    answers = {r['id']: r['label'] for r in data}
     miss = step(tmp_path, data, critical=True, gate_cfg={'minCriticalCases': 10},
-                predict_one=lambda case: None if case['id'] == data[0]['id'] else {r['id']: r['label'] for r in data}[case['id']])
+                predict_one=lambda case: None if case['id'] == data[0]['id'] else answers[case['id']])
     assert miss['verdict'] == 'hold' and 'critical_miss' in miss['reasons']
 
 
 def test_live_cohort_with_a_missing_tuning_class_holds(tmp_path):
     step(tmp_path, [])
-    data = rows(40, ts='2026-10-16T01:00:00Z', label='general')    # all one class; 'none' and 'content' are in the prior
-    result = step(tmp_path, data)
+    result = step(tmp_path, rows(45, label='general'))               # all one class; 'none' and 'content' are in the prior
     assert result['verdict'] == 'hold' and 'class_coverage:content' in result['reasons']
 
 
@@ -573,7 +651,56 @@ def test_live_binding_change_abandons_but_the_attempt_stays_spent(tmp_path):
     step(tmp_path, [])
     moved = step(tmp_path, [], revision='rev-2', now='2026-10-17T00:00:00Z')
     assert moved['reason'] == 'cohort_opened' and moved['attempt'] == 2 and moved['alpha'] == 0.05
-    assert [e['event'] for e in advise_ledger.read(tmp_path, D)] == ['open', 'abandoned', 'open']
+    assert kinds(tmp_path) == ['open', 'abandoned', 'open']
     assert advise_ledger.open_cohort(tmp_path, D)['layaRevision'] == 'rev-2'
     assert step(tmp_path, [], revision='rev-3', probe=lambda: False)['reason'] == 'laya_unavailable'
     assert len(advise_ledger.read(tmp_path, D)) == 3
+
+
+# ---- replay: probe before evaluation and crash recovery
+
+def test_replay_crash_between_receipt_and_consumed_is_recovered_identically(tmp_path, monkeypatch):
+    cases = pool(40)
+    real = advise_ledger.append
+
+    def crash(root, decision, event):
+        if event['event'] == 'consumed':
+            raise OSError('killed')
+        return real(root, decision, event)
+    monkeypatch.setattr(advise_ledger, 'append', crash)
+    with pytest.raises(OSError):
+        attempt(tmp_path, cases)
+    monkeypatch.undo()
+    assert kinds(tmp_path) == ['reserve']
+    [path] = list((tmp_path / D / 'advise-receipts').iterdir())
+    stored = path.read_bytes()
+    seen = []
+    retry = attempt(tmp_path, cases + pool(10, start=90_000), lambda case: seen.append(case) or 'content')
+    assert retry['verdict'] == 'pass' and seen == [] and path.read_bytes() == stored      # adopted, never re-evaluated
+    assert retry['receiptSha256'] == tp.sha256(json.loads(stored)) and kinds(tmp_path) == ['reserve', 'consumed']
+    assert tp.sha256(json.loads(stored)) == retry['receiptSha256']
+
+
+def reserved_by_hand(root, cases, cohort='9' * 32, attempt=1):
+    advise_ledger.append(root, D, {
+        'event': 'reserve', 'cohortId': cohort, 'decision': D, 'policySha256': POLICY, 'instrumentSha256': INSTRUMENT,
+        'layaRevision': 'rev-1', 'attempt': attempt, 'alpha': 0.1 / 2 ** (attempt - 1), 'baseline': 'general',
+        'ts': '2026-10-16T00:00:00Z', 'caseIds': sorted(c['id'] for c in cases),
+        'groups': sorted(advise_ledger.group_hash(c['group']) for c in cases)})
+
+
+def test_replay_resumes_a_reserved_cohort_after_a_probe_failure_instead_of_reserving_another(tmp_path):
+    cases = pool(40)
+    reserved_by_hand(tmp_path, cases)
+    held = attempt(tmp_path, cases, probe=lambda: False)             # the probe right before evaluation fails
+    assert held == {'status': 'held', 'reason': 'laya_unavailable'} and kinds(tmp_path) == ['reserve']
+    done = attempt(tmp_path, cases)
+    assert done['status'] == 'evaluated' and done['cohortId'] == '9' * 32 and done['attempt'] == 1
+    assert kinds(tmp_path) == ['reserve', 'consumed']
+
+
+def test_replay_abandons_a_pending_reserve_whose_cases_vanished_and_starts_fresh(tmp_path):
+    reserved_by_hand(tmp_path, pool(35, start=70_000), cohort='8' * 32)
+    fresh = attempt(tmp_path, pool(40))
+    assert fresh['status'] == 'evaluated' and fresh['attempt'] == 2
+    assert kinds(tmp_path) == ['reserve', 'abandoned', 'reserve', 'consumed']

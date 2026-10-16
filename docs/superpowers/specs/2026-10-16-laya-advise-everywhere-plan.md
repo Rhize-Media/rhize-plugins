@@ -58,14 +58,21 @@ cosign estimand and gate.
        share (zero-count classes included) has ≥ 3 cohort cases with recall ≥ 0.5.
     5. **Cohorts and retries.** A promotion cohort (≥ 30 cases from distinct groups) is consumed by exactly
        one attempt. *Live decisions are prospective:* with a tuning baseline and a passing availability probe,
-       the cycle appends an `open` event (policy, instrument, Laya revision, `openedAt`, rule
-       `earliest-record-per-promotion-group-after-open`) to the cohort ledger before any eligible record
-       exists and holds as `cohort_opened`. The cases are the earliest record of each promotion-split group
-       created after `openedAt` on that binding (outcome-independent; groups of earlier cohorts skipped),
-       evaluated once when ≥ `minCohort` such groups are labelled (and, for critical, ≥ `minCriticalCases`
-       critical cases), then `consumed` with the case ids and group hashes. A binding change `abandon`s the
-       open cohort without refunding its attempt. *Replay* (`workflow-fit` corpus) keeps reserve-before-replay,
-       one case per group. Attempt k uses α_k = 0.10·2^−(k−1) (open and reserve both count); the budget is
+       the cycle appends an `open` event (policy, instrument, Laya revision, `openedAt`, the **baseline frozen
+       then**, rule `earliest-record-per-promotion-group-after-open`) to the cohort ledger before any eligible
+       record exists and holds as `cohort_opened`. It then **enrolls label-independently**: the earliest record
+       of each promotion-split group created after `openedAt` on that binding (earlier cohorts' groups
+       skipped), in record-time order, until there are ⌈`minCohort`/0.8⌉ of them (headroom for ≤ 20% ambiguous
+       labels) and, for critical, ⌈`minCriticalCases`/0.8⌉ `critical_if_wrong` cases (a pre-decision flag), and
+       appends one immutable `enrolled` event (case ids, group hashes); there is no replacement. It evaluates
+       only when every enrolled case has a final label: ambiguous labels are excluded and > 20% of them consume
+       the cohort as a hold (`ambiguous_share`). The probe runs again immediately before the evaluation (failure
+       holds, nothing consumed), which uses the enrolled set and the open-frozen baseline. The receipt is
+       published exclusively per cohort and `consumed` follows; a retry after a crash in between adopts the
+       stored receipt and appends the missing `consumed`, never re-evaluating. A binding change `abandon`s the
+       cohort without refunding its attempt. *Replay* (`workflow-fit` corpus) keeps reserve-before-replay,
+       one case per group, the same exclusive receipt, and resumes (rather than replaces) a reserved cohort
+       that never got a verdict. Attempt k uses α_k = 0.10·2^−(k−1) (open and reserve both count); the budget is
        per decision (a new policy or Laya revision does not reset it). The probe is mandatory: it must return
        exactly `True`; a raise or any other value is "unavailable" and holds with no ledger write.
     6. **Critical.** A critical decision also needs ≥ 10 `critical_if_wrong` cases in the cohort and zero
@@ -206,6 +213,7 @@ modified.
 | A policy picked after seeing outcomes can reuse earlier-recorded cases | Prospective cohort: `open` event first, cases are the earliest record per promotion group created after `openedAt` on that binding (§3.5) |
 | Class coverage skipped tuning classes missing from the cohort | Required classes = tuning prior share ≥ 10%, zero-count included (§3.4) |
 | Unanswered critical cases were not critical misses (10 unanswered + 90 correct passed) | Critical miss = `critical_if_wrong` case not right, abstain/unavailable included, in the gate and in demotion (§3.6, §3.7) |
-| Outage handling ambiguous | Probe mandatory before `open`/`reserve`; must return `True`, else held with no ledger write; pilot demotion probes first (§3.5, §3.7) |
+| Outage handling ambiguous | Probe mandatory before `open`/`reserve` and again immediately before the final evaluation; must return `True`, else held with no ledger write; pilot demotion probes first (§3.5, §3.7) |
+| Enrollment looked at labels; baseline could move; a crash could re-evaluate | Label-independent `enrolled` event after `open` (baseline frozen at open); evaluate only when all enrolled labels are final (ambiguous excluded, > 20% = `ambiguous_share` hold); exclusive receipt per cohort, retries adopt it and append the missing `consumed` (§3.5) |
 | Demotion only looked at the window | Critical-tier demotion scans every shown critical case since the last demotion (§3.7) |
 | Binding flapped on stray records | An earned advise uses the registry state's `policySha256`; skill-fit binds the `advise-v1` contract hash on both the Python and Node readers (§3.8) |

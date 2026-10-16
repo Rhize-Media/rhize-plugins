@@ -1355,7 +1355,7 @@ def open_cohort(root, decision=ROUTING, tuning=60, **fill_kwargs):
     return opened
 
 
-def earn(root, decision=ROUTING, *, critical=False, wrong=(), count=120, start=1000, **fill_kwargs):
+def earn(root, decision=ROUTING, *, critical=False, wrong=(), count=200, start=1000, **fill_kwargs):
     open_cohort(root, decision, critical=critical, **fill_kwargs)
     at(POST)
     fill(root, decision, count=count, start=start, critical=critical, wrong=wrong, **fill_kwargs)
@@ -1364,6 +1364,10 @@ def earn(root, decision=ROUTING, *, critical=False, wrong=(), count=120, start=1
 
 def events_of(root, decision=ROUTING):
     return advise_ledger.read(root, decision)
+
+
+def enrolled_of(root, decision=ROUTING):
+    return next(e for e in events_of(root, decision) if e['event'] == 'enrolled')
 
 
 def state_of(root, decision):
@@ -1409,13 +1413,15 @@ def test_a_passing_gate_promotes_to_advise_and_the_runtime_reader_honours_it(roo
     opened = open_cohort(root)
     assert opened['attempt'] == 1 and opened['openedAt'] == NOW and state_of(root, ROUTING) is None
     at(POST)
-    fill(root, ROUTING, count=120, start=1000)
+    fill(root, ROUTING, count=200, start=1000)
     result = advise_pass(root)
     assert result['verdict'] == 'pass' and result['registry']['status'] == 'mutated' and result['earnedMode'] == 'advise'
     entry = state_of(root, ROUTING)
     events = events_of(root)
-    assert [e['event'] for e in events] == ['open', 'consumed'] and events[1]['verdict'] == 'pass'
-    assert len(events[1]['caseIds']) == len(events[1]['groups']) == result['stats']['n'] >= 30
+    assert [e['event'] for e in events] == ['open', 'enrolled', 'consumed'] and events[2]['verdict'] == 'pass'
+    assert events[0]['baseline'] == result['baseline']                       # frozen when the cohort opened
+    assert len(events[1]['caseIds']) == len(events[1]['groups']) == result['stats']['enrolled'] == 38
+    assert result['stats']['n'] >= 30
     policy = typed_advice.policy_sha256(ROUTING, 'Which option fits this request?', CHOICE_POLICY)
     assert entry['mode'] == 'advise' and entry['cohortId'] == events[0]['cohortId']
     assert (entry['policySha256'], entry['instrumentSha256'], entry['layaRevision']) == (
@@ -1443,15 +1449,14 @@ def test_a_policy_chosen_after_outcomes_cannot_reuse_earlier_recorded_cases(root
     fill(root, ROUTING, count=5, start=900, policy='second|policy')              # the new policy, newest record
     assert advise_pass(root)['reason'] == 'cohort_opened'                        # binds second|policy at NOW
     at(POST)
-    fill(root, ROUTING, count=120, start=1000, policy='second|policy')
+    fill(root, ROUTING, count=200, start=1000, policy='second|policy')
     result = advise_pass(root)
-    consumed = events_of(root)[-1]
+    consumed = enrolled_of(root)
     assert result['status'] == 'evaluated'
     records = {r['decisionId']: r for r in CYCLE.choice_labels.read_choice_records(root, ROUTING)}
     second = typed_advice.policy_sha256(ROUTING, 'Which option fits this request?', 'second|policy')
     assert {records[i]['policySha256'] for i in consumed['caseIds']} == {second}
-    assert all(records[i]['ts'] > NOW[:-1].replace('T12', 'T12') and records[i]['ts'] > '2026-10-12T12:00:00Z'
-               for i in consumed['caseIds'])
+    assert all(records[i]['ts'] > '2026-10-12T12:00:00Z' for i in consumed['caseIds'])
 
 
 def test_critical_decisions_need_ten_critical_cases_and_zero_critical_misses(root):
@@ -1461,17 +1466,18 @@ def test_critical_decisions_need_ten_critical_cases_and_zero_critical_misses(roo
 
 
 def test_a_critical_miss_in_the_cohort_holds(root):
-    result = earn(root, CRITICAL_DECISION, critical=True, wrong=set(range(1000, 1120, 2)))
+    result = earn(root, CRITICAL_DECISION, critical=True, wrong=set(range(1000, 1200, 2)))
     assert result['verdict'] == 'hold' and 'critical_miss' in result['reasons'] and state_of(root, CRITICAL_DECISION) is None
-    assert events_of(root, CRITICAL_DECISION)[1]['verdict'] == 'hold'
+    assert events_of(root, CRITICAL_DECISION)[-1]['verdict'] == 'hold'
 
 
 def test_an_unanswered_critical_case_among_correct_ones_is_a_critical_miss(root):
     open_cohort(root, CRITICAL_DECISION, critical=True)
-    at(POST)
-    fill(root, CRITICAL_DECISION, count=120, start=1000, critical=True)
-    skipped = promotion_index(1200)                                  # one promotion-group record Laya never answered
+    at('2026-10-12T13:00:00Z')                                       # the earliest post-open record: always enrolled
+    skipped = promotion_index(1200)                                  # a promotion-group record Laya never answered
     fill(root, CRITICAL_DECISION, count=1, start=skipped, critical=True, status='unavailable')
+    at(POST)
+    fill(root, CRITICAL_DECISION, count=200, start=1000, critical=True)
     result = advise_pass(root, CRITICAL_DECISION)
     assert result['verdict'] == 'hold' and result['reasons'] == ['critical_miss'], result['reasons']
     assert result['stats']['criticalMisses'] == 1 and result['stats']['coverage'] > 0.9
@@ -1480,10 +1486,10 @@ def test_an_unanswered_critical_case_among_correct_ones_is_a_critical_miss(root)
 def test_without_enough_critical_cases_a_critical_decision_keeps_collecting(root):
     open_cohort(root, CRITICAL_DECISION)
     at(POST)
-    fill(root, CRITICAL_DECISION, count=120, start=1000, critical=False)
+    fill(root, CRITICAL_DECISION, count=200, start=1000, critical=False)
     result = advise_pass(root, CRITICAL_DECISION)
     assert result['status'] == 'held' and result['reason'] == 'cohort_collecting'
-    assert result['criticalAvailable'] == 0 and result['criticalRequired'] == 10
+    assert result['criticalAvailable'] == 0 and result['criticalRequired'] == 13   # ceil(10 / 0.8): ambiguity headroom
     assert [e['event'] for e in events_of(root, CRITICAL_DECISION)] == ['open']      # not consumed: nothing was evaluated
 
 
@@ -1499,20 +1505,22 @@ def test_a_cohort_missing_a_tuning_class_holds_even_when_every_case_is_right(roo
 
 def test_one_group_with_many_cases_counts_once_and_the_earliest_record_is_the_case(root):
     open_cohort(root)
-    at(POST)
-    fill(root, ROUTING, count=120, start=1000)
     shared = next(f'shared-{n}' for n in range(500) if typed_promotion_split(hashlib.sha256(f'shared-{n}'.encode()).hexdigest()) == 'promotion')
+    at('2026-10-12T13:00:00Z')
     first = write_choice(root, ROUTING, 5000, laya='alpha', group=shared)       # the earliest record of the group, right
     write_choice_label(root, ROUTING, first['decisionId'], 'alpha')
+    at(POST)
+    fill(root, ROUTING, count=200, start=1000)
     at(LATER)
     for i in range(5001, 5041):                                                   # forty later, wrong, favourable-to-baseline
         later = write_choice(root, ROUTING, i, laya='gamma', group=shared)
         write_choice_label(root, ROUTING, later['decisionId'], 'alpha')
     result = advise_pass(root, now='2026-10-12T23:00:00Z')
-    consumed = events_of(root)[-1]
-    assert result['status'] == 'evaluated' and first['decisionId'] in consumed['caseIds']
-    assert len(consumed['caseIds']) == len(consumed['groups']) == result['stats']['n']
-    assert sum(g == CYCLE.advise_ledger.group_hash(hashlib.sha256(shared.encode()).hexdigest()) for g in consumed['groups']) == 1
+    enrolled = enrolled_of(root)
+    assert result['status'] == 'evaluated' and first['decisionId'] in enrolled['caseIds']
+    assert len(enrolled['caseIds']) == len(enrolled['groups']) == result['stats']['enrolled']
+    shared_hash = CYCLE.advise_ledger.group_hash(hashlib.sha256(shared.encode()).hexdigest())
+    assert enrolled['groups'].count(shared_hash) == 1
 
 
 def test_no_baseline_data_is_a_hold_that_touches_nothing(root):
@@ -1527,16 +1535,15 @@ def test_no_baseline_data_is_a_hold_that_touches_nothing(root):
     assert held['status'] == 'held' and held['reason'] == 'no_tuning_cases' and events_of(root) == []
 
 
-def test_a_dry_run_opens_and_evaluates_nothing(root):
+def test_a_dry_run_opens_and_enrolls_nothing(root):
     at(PRE)
     fill(root, ROUTING, count=60)
     assert advise_pass(root, dry_run=True)['reason'] == 'would_open_cohort' and events_of(root) == []
-    open_cohort_events = advise_pass(root)
-    assert open_cohort_events['reason'] == 'cohort_opened'
+    assert advise_pass(root)['reason'] == 'cohort_opened'
     at(POST)
-    fill(root, ROUTING, count=120, start=1000)
+    fill(root, ROUTING, count=200, start=1000)
     dry = advise_pass(root, dry_run=True)
-    assert dry['status'] == 'dry_run' and dry['verdict'] == 'pass' and dry['registry']['status'] == 'would_mutate'
+    assert dry['status'] == 'held' and dry['reason'] == 'would_enroll_cohort'
     assert [e['event'] for e in events_of(root)] == ['open'] and state_of(root, ROUTING) is None
 
 
@@ -1551,6 +1558,20 @@ def test_a_laya_outage_never_opens_a_cohort(root, probe):
     assert result['status'] == 'held' and result['reason'] == 'laya_unavailable'
     assert events_of(root) == [] and state_of(root, ROUTING) is None
     assert advise_pass(root)['reason'] == 'cohort_opened'            # the outage spent no attempt
+
+
+def test_a_laya_outage_right_before_evaluation_consumes_nothing_and_the_retry_uses_the_same_cases(root):
+    open_cohort(root)
+    at(POST)
+    fill(root, ROUTING, count=200, start=1000)
+
+    def down():
+        raise OSError('connection refused')
+    held = advise_pass(root, probe=down)
+    assert held == {'status': 'held', 'reason': 'laya_unavailable', 'earnedMode': 'shadow'}
+    assert [e['event'] for e in events_of(root)] == ['open', 'enrolled'] and state_of(root, ROUTING) is None
+    members = enrolled_of(root)['caseIds']
+    assert advise_pass(root)['earnedMode'] == 'advise' and enrolled_of(root)['caseIds'] == members
 
 
 def test_pins_off_and_cosign_suppress_the_advise_pass(root):
@@ -1595,22 +1616,46 @@ def test_only_the_current_homogeneous_binding_feeds_the_cohort(root):
     for decision_id in stale_rev:
         backdate(root, ROUTING, decision_id, '2026-10-12T14:00:00Z', layaRevision='older-checkpoint')
     at(POST)
-    fill(root, ROUTING, count=120, start=1000)                       # the most recent record: its policy is the binding
+    fill(root, ROUTING, count=200, start=1000)                       # the most recent record: its policy is the binding
     result = advise_pass(root)
-    consumed = events_of(root)[-1]
-    assert result['verdict'] == 'pass' and not set(consumed['caseIds']) & set(old + foreign + stale_rev)
-    assert result['stats']['n'] == len(consumed['caseIds']) and result['stats']['accuracy'] == 1.0
+    enrolled = enrolled_of(root)
+    assert result['verdict'] == 'pass' and not set(enrolled['caseIds']) & set(old + foreign + stale_rev)
+    assert result['stats']['enrolled'] == len(enrolled['caseIds']) and result['stats']['accuracy'] == 1.0
 
 
-def test_ambiguous_labels_are_excluded(root):
+def test_ambiguous_labels_are_excluded_and_too_many_consume_a_hold(root):
     open_cohort(root)
     at(POST)
-    unclear = fill(root, ROUTING, count=90, start=2000, wrong=set(range(2000, 2090)), ambiguous=set(range(2000, 2090)))
-    fill(root, ROUTING, count=120, start=1000)
-    at(LATER)
+    fill(root, ROUTING, count=200, start=1000, ambiguous=set(range(1000, 1200, 25)))   # a few: ~4% of the cohort
     result = advise_pass(root)
-    consumed = events_of(root)[-1]
-    assert result['verdict'] == 'pass' and result['stats']['accuracy'] == 1.0 and not set(consumed['caseIds']) & set(unclear)
+    assert result['verdict'] == 'pass' and result['stats']['accuracy'] == 1.0
+    enrolled = enrolled_of(root)
+    assert result['stats']['enrolled'] == len(enrolled['caseIds']) and 0 < result['stats']['ambiguous'] <= 7
+    assert result['stats']['n'] == result['stats']['enrolled'] - result['stats']['ambiguous']
+
+
+def test_a_mostly_ambiguous_cohort_is_consumed_as_a_hold(root):
+    open_cohort(root)
+    at(POST)
+    fill(root, ROUTING, count=200, start=1000, ambiguous=set(range(1000, 1200, 2)))    # half the records
+    result = advise_pass(root)
+    assert result['verdict'] == 'hold' and result['reasons'] == ['ambiguous_share']
+    assert events_of(root)[-1]['event'] == 'consumed' and state_of(root, ROUTING) is None
+
+
+def test_labels_still_pending_hold_the_enrolled_cohort_open(root):
+    open_cohort(root)
+    at(POST)
+    fill(root, ROUTING, count=200, start=1000, unlabelled=True)
+    waiting = advise_pass(root)
+    assert waiting['reason'] == 'cohort_labelling' and waiting['enrolled'] == 38 and waiting['pending'] == 38
+    assert [e['event'] for e in events_of(root)] == ['open', 'enrolled']
+    members = set(enrolled_of(root)['caseIds'])
+    for record in CYCLE.choice_labels.read_choice_records(root, ROUTING):
+        if record['decisionId'] in members:
+            write_choice_label(root, ROUTING, record['decisionId'], record['laya']['choice'])
+    done = advise_pass(root)
+    assert done['verdict'] == 'pass' and events_of(root)[-1]['event'] == 'consumed'
 
 
 def test_a_changed_binding_abandons_the_open_cohort_and_the_attempt_stays_spent(root):
