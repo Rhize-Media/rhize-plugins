@@ -9,7 +9,7 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### rhize-core
 
-Version 1.0.8. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
+Version 1.0.9. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
 
 [README](../rhize-core/README.md) · [GUIDE](../rhize-core/GUIDE.md) · [0 skills](../generated/SKILL-CATALOG.md#rhize-core)
 
@@ -45,7 +45,7 @@ Version 0.48.0. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.32.0. Rhize Media's internal operations toolkit — stress-tests business decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
+Version 0.33.0. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [5 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
@@ -72,9 +72,23 @@ Version 0.9.0. Lets Claude find and reuse previously verified scripts and automa
 Version 0.4.0. Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.
 
 [README](../rhize-outreach/README.md) · [GUIDE](../rhize-outreach/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#rhize-outreach)
+
+### perplexity-research
+
+Version 0.2.0. Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS.
+
+[README](../perplexity-research/README.md) · [GUIDE](../perplexity-research/GUIDE.md) · [1 skill](../generated/SKILL-CATALOG.md#perplexity-research)
 <!-- SKILL-MAP:END -->
 
 ## Cross-plugin references
+
+- [`release/perplexity-marketplace-2.111.0.md`](release/perplexity-marketplace-2.111.0.md) —
+  coordinated publication, independent Fable review, native MCP evidence and remaining limits.
+
+- [`../perplexity-research/docs/perplexity-local-bridge.md`](../perplexity-research/docs/perplexity-local-bridge.md) — marketplace
+  package and local Codex installation, native session refresh, verified live Research MCP workflow,
+  direct-chat follow-up/cancellation results, the verified Search citation fix, bounded large-report
+  recovery, exports and installation limits.
 
 - [`release/astra-instruction-optimization.md`](release/astra-instruction-optimization.md) — implemented diagnostics, evaluation fixes and the staged shared-description pilot.
 
@@ -97,6 +111,9 @@ Version 0.4.0. Find local businesses with concrete website and search opportunit
   hub's stability promise in [`../rhize-core/docs/contract.md`](../rhize-core/docs/contract.md).
 
 ## Design records
+
+- [`../perplexity-research/docs/perplexity-pro-feasibility.md`](../perplexity-research/docs/perplexity-pro-feasibility.md) — pinned
+  subscription Research client review, reproduced completion/citation gaps and live-proof prerequisites.
 
 Dated proposals and specs, preserved as written at the time they were approved — not living
 documentation, so they are not restructured or kept in sync with later changes:

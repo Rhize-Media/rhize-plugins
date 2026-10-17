@@ -4,6 +4,9 @@
 
 ### Added
 
+- _2026-10-17_ version bump — 1.0.8 → 1.0.9 (patch); marketplace 2.110.1 → 2.111.0.
+- Register Perplexity Research setup, private artifacts and free offline evaluation coverage.
+
 - 2026-10-17: Include business-premortem in the mirrored evaluation inventory and update exact coverage to 67 skills; preserve domains, baseline policy and validation logic.
 - _2026-10-17_ version bump — 1.0.7 → 1.0.8 (patch); marketplace 2.110.0 → 2.110.1.
 - 2026-10-15: Synchronize the credential-access skill in the mirrored evaluation inventory; retain domains, capture modes, baseline policy and existing runtime behavior.

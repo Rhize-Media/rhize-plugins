@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Perplexity Research local configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "pythonExecutable": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^(~/|/)[^\\u0000-\\u001f]*$"
+    },
+    "stateDir": {
+      "type": "string",
+      "pattern": "^(~/|/)[^\\u0000-\\u001f]*$"
+    },
+    "authorizationReference": {
+      "type": "string",
+      "pattern": "^(~/|/)[^\\u0000-\\u001f]*$"
+    },
+    "keychainService": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    }
+  }
+}

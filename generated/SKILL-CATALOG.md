@@ -83,8 +83,8 @@ _No skills._
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `business-premortem` | Stress-test a business decision before committing resources. | evidence, project-planning, review |
 | `cross-model-handoff` | Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Cla… | automation, review, testing, workflow-patterns |
+| `decision-premortem` | Stress-test a concrete decision or plan before committing. | evidence, project-planning, review |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the… | automation, obsidian, workflow-patterns |
 | `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, evidence, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
@@ -125,4 +125,10 @@ _No skills._
 | `rhize-outreach-doctor` | Diagnose local Rhize Outreach setup, runtime pin, private data directories, Codex CLI sign-in, and operator UI health without changing stat… | automation, observability |
 | `rhize-outreach-run` | Start the local Rhize Outreach operator and resume the selected-business agent graph. | automation, workflow-patterns |
 | `rhize-outreach-setup` | Set up or resume the local Rhize Outreach selected-business workflow. | automation, postgresql, workflow-patterns |
+
+## perplexity-research
+
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `perplexity-research` | Use Perplexity subscription Search or Research for user-requested cited answers and reports. | automation, evidence, search |
 <!-- SKILL-MAP:END -->

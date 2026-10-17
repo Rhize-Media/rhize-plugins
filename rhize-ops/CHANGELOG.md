@@ -11,6 +11,11 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Rename `business-premortem` to `decision-premortem`, broadening concrete decision scope while
+  retaining the five-step method and historical evaluation evidence. The old invocation is replaced.
+- Synchronize Perplexity Research evaluation registration and 68-skill coverage in the Core fallback.
+
+- _2026-10-17_ version bump — 0.32.0 → 0.33.0 (minor); marketplace 2.110.1 → 2.111.0.
 - 2026-10-17: Add business-premortem: evidence-grounded hypothetical autopsy, verdict, cost-aware rebuild, adversarial revision and measurable owner/action tripwires. Includes synthetic behavioral cases and shared evaluation coverage; no business execution or automatic second-model calls.
 - _2026-10-17_ version bump — 0.31.0 → 0.32.0 (minor); marketplace 2.109.0 → 2.110.0.
 - _2026-10-16_ Laya advise everywhere. `typed_routing.py --mode advise` asks the shared `typed_advice.py` for one pick among the already-authorized model or worker options (decision `model-routing`) and gains an `outcome` subcommand; a user pin returns `mode: pinned` with no Laya call. The line is advisory and shown only after the baseline gate earns `advise` (shadow until then, and never in the 10% holdback); the user pin, host authorization and task graph still decide.

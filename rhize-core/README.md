@@ -283,8 +283,12 @@ The shared evaluation inventory includes `rhize-devflow:credential-access`. Cove
 do not retrieve credentials, activate native hooks, or establish baseline benefit. Existing
 domains, capture modes and user-confirmed baseline decisions are unchanged.
 
-## Business decision evaluation coverage
+## Decision evaluation coverage
 
-The shared inventory includes `rhize-ops:business-premortem`. Static routing and instruction
-checks cover the new skill; synthetic behavioral examples are separate from native discovery
+The shared inventory includes `rhize-ops:decision-premortem`. Static routing and instruction
+checks cover the renamed skill; synthetic behavioral examples are separate from native discovery
 or decision-quality evidence. Existing evaluation domains and baseline policy are unchanged.
+
+Perplexity Research is registered in the setup/evaluation catalog. Its free offline suite
+checks packaging and durable lifecycle behavior; it never submits a live query or refreshes
+credentials. See [Perplexity setup](../perplexity-research/README.md).

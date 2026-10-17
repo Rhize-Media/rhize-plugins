@@ -1,4 +1,0 @@
-interface:
-  display_name: "Business Pre-mortem"
-  short_description: "Stress-test business decisions with actionable tripwires."
-  default_prompt: "Use $business-premortem to stress-test this business decision, revise the plan and define measurable stop conditions."

@@ -1,8 +1,8 @@
 # Rhize Plugins
 
-Marketplace of 11 plugins: rhize-core, seo-aeo-geo, obsidian-second-brain, project-launcher,
+Marketplace of 12 plugins: rhize-core, seo-aeo-geo, obsidian-second-brain, project-launcher,
 rhize-devflow, rhize-ops, rhize-context-manager, rhize-tasks, rhize-cowork, procedural-memory,
-rhize-outreach. Registry:
+rhize-outreach, perplexity-research. Registry:
 `.claude-plugin/marketplace.json`. Start at `START-HERE.md`. Repo is CodeGraph-indexed
 (`.codegraph/`) — see global CLAUDE.md for usage.
 
@@ -17,7 +17,7 @@ Plugins are islands: shared code (e.g. `scripts/mcp-secret-launcher.sh`) is dupl
 byte-identical across plugins rather than imported cross-plugin, and drift-tested by
 `tests/config-lint/test_shared_shims.py`. See `docs/mcp-secret-launcher.md`.
 
-Full skill inventory (covers all 11 plugins, not a hand list): `generated/SKILL-CATALOG.md`.
+Full skill inventory (covers all 12 plugins, not a hand list): `generated/SKILL-CATALOG.md`.
 Rebuild with `python3 scripts/build_skill_map.py`; ask it questions with
 `python3 scripts/query_skill_map.py <query> <arg>` (see `docs/skill-map/query-layer.md` for the
 query catalog).

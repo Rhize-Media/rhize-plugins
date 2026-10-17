@@ -2,6 +2,144 @@
 
 ## Verified facts
 
+- 2026-10-17: Perplexity response-size fix installed and same Research report recovered through
+  actual chat MCP without submitting another query. Job 4f40bde9-478e-40cd-9377-96df324d6d87
+  is completed via GET; original identity/source hash and stream_too_large error preserved.
+  Result: RESEARCH/pplx_alpha, 24,834 report characters, 243 report citations, 3,274 summary
+  characters and 21 summary citations. MCP result/export and CLI formatter parity pass;
+  repeat recovery unchanged and no new job IDs. New CLI SHA begins 8e28ac6797f8.
+  Thread JSON and SSE event caps are 4 MiB; cumulative SSE 64 MiB; session/model JSON remains
+  512 KiB and state 16 MiB. Oversize state is refused before replacement; event overflow is
+  sse_event_too_large, total remains stream_too_large. Strict identity/citation/secret/deadline
+  checks remain, with no automatic retries/recovery. All 121 focused tests passed; four selected
+  regressions failed before fix. Cold self-review checked callers, byte boundaries, invalid
+  mappings and preservation. Final local 0.1.0 snapshot and docs installed, all ten hashes match,
+  plugin enabled and health ready; rollback retained. An unrelated required-suite test first
+  failed (test_source_bound_drift_and_unrelated_repository_rejected); isolated rerun passed and
+  the original saved fixture verified unchanged. Initial reason unavailable; no tests disabled.
+  Full required rerun passed: 534 Dev Flow tests, seven impact-map contracts and static/config/
+  setup checks. No unrelated source/test changes. Larger SSE budgets are synthetic-tested,
+  not a new live POST; factual/browser/quota checks
+  remain unverified. Workflow context and source-bound pilot observation unavailable.
+
+- 2026-10-17: Investigated oversized Research job 4f40bde9-478e-40cd-9377-96df324d6d87.
+  Installed MCP recovery reproduces response_too_large after stream_too_large. GET uses the
+  512 KiB SSE event limit for the entire thread response; measured response is 1,892,470 bytes.
+  A diagnostic GET bounded at the existing 16 MiB state ceiling passed unchanged query/thread/
+  model/mode/citation validation in memory: server COMPLETED, 24,834 report characters,
+  243 report sources, 21 summary citations, normalized result 104,306 bytes. Raw HTTP body
+  and credentials were not persisted; no query POST, job-state mutation or installed-code
+  change. Original SSE event-vs-total trigger cannot be distinguished from its stored error.
+  Root issue: transport metadata size is conflated with answer size; thread GET needs its own
+  bounded budget, with large-event/total-stream handling tested separately. Installed job
+  remains incomplete pending that fix; report is available on the same remote thread.
+  Existing stream/recovery-focused tests pass (11); they do not cover this live payload size.
+  Workflow context unavailable; bounded recall found no suitable existing procedure.
+
+- 2026-10-17: Perplexity Search citation completion fixed at the shared thread GET. Broad
+  Research capabilities returned explicit source rows but omitted ask_text; Search now requests
+  answer_modes/unified_assets, retaining the existing strict citation checks and full Research
+  capabilities. Original failed job 6e386acb-8386-45dc-a470-e67dd1c494ae recovered by GET only.
+  One fresh direct-chat MCP Search 2eb52984-0655-481d-a484-b7b1ed39a9e7 completed as
+  SEARCH/pplx_pro with 572 answer characters, two numbered citations and 24 reviewed sources;
+  result/export/replay passed without manual recovery. The initial worker_busy refusal created
+  no job; the same ID was reused after the unrelated worker exited. Runtime SHA begins
+  99fe7213570f; recovery and fresh-job metadata match the installed CLI. Local plugin 0.1.0
+  and final docs rebuilt/reinstalled with rollback snapshots; all ten installed hashes match,
+  enabled status and MCP health verified. Regression reproduced before fix; 109 focused tests,
+  534 Dev Flow tests, seven impact-map contracts and static/config/setup checks pass. Cold
+  self-review covered shared callers, strict negative checks, evidence, docs and protected
+  boundaries; no auth/adapter/manifest/dependency changes. Lesson: request capabilities can
+  omit the answer independently of citation rows; do not infer numbering from reviewed sources.
+  Browser parity, factual correctness and quota were not verified; one returned citation uses
+  a rolling Python /3/ URL. Follow-up/cancellation not rerun. Workflow context capture and a
+  source-bound pilot outcome observation remained unavailable; no acceptance was fabricated.
+
+- 2026-10-17: Perplexity tools are active directly in this restarted chat. Live health/models
+  passed. Three new IDs exercised standalone Search, a Search follow-up to the completed
+  Research parent, and cancellation after Research entered running. Follow-up passed with
+  matching parent thread, distinct backend UUID, 637-character answer, export and replay.
+  Cancellation reached cancelled_local, refused export and stayed cancelled on replay;
+  remote stop/refund remains unknown. Standalone Search failed incomplete_answer_or_sources:
+  server COMPLETED/SEARCH/pplx_pro returned numeric markers but no explicit citation mapping;
+  GET recovery failed identically. Do not guess source positions or call the full suite green.
+  Source runtime unchanged; three durable IDs and direct MCP evidence are preserved privately.
+  Documentation records actual outcomes. A second host reload cleared stale hook paths to
+  removed Dev Flow 2.28.0 and Context Manager 0.47.3 caches. The documentation snapshot was
+  rebuilt and installed with the previous snapshot retained; all ten installed hashes match,
+  the three runtime files are unchanged, the plugin remains enabled and MCP health is ready.
+  Cold self-review matched the docs against saved MCP outcomes, parent/child thread IDs,
+  exports and replay; git diff --check passed. Runtime tests were not rerun for these Markdown
+  changes. Workflow context capture returned request_context_unavailable and consultation
+  recording was refused; the actual bounded lookup found no matching end-to-end procedure.
+  After reload, the measured repository check passed: 534 Dev Flow tests, seven impact-map
+  contracts and static/config/setup checks. No source-bound pilot observation was available
+  for outcome recording. A stale zero-byte Git index lock was removed only after confirming
+  its age, unchanged identity, no open owner and no active Git process; unrelated work is preserved.
+
+- 2026-10-16: Perplexity local plugin 0.1.0 is installed and enabled as
+  perplexity-research@perplexity-local. Native Codex 0.162.1 discovery found all 11 tools;
+  its tools/list progress metadata exposed a rejection fixed with an exact regression.
+  The snapshot builder uses the supported .agents/plugins marketplace path, copies only
+  runtime/docs/license and pins the interpreter plus private authorization-file path.
+  Installed browser-to-Keychain refresh, health/models and one fresh MCP Research submission
+  passed. Job 7290aedb-2445-482f-8565-0476cdfc7341 completed without manual recovery; observed
+  RESEARCH/pplx_alpha, 8,410 report characters, 16 sources and six summary citations.
+  MCP result/export equal the installed CLI; replay returns the same completed job.
+  Native app-server calls used an ephemeral context without a model turn. The current chat's
+  tool catalog was not hot reloaded. Quota, fresh browser parity, Search/follow-up POSTs and
+  live cancellation remain unverified. All 107 focused checks pass; final installed hashes and
+  native discovery/result/export were rechecked after documentation refresh. Required release
+  checks pass: 534 Dev Flow tests, seven impact-map contracts and static/config/setup checks. Cold self-review;
+  see the guide for installation and update/uninstall semantics. Lesson: synthetic stdio tests need real host discovery metadata.
+
+- 2026-10-16: Perplexity native session setup/refresh now uses auth-start/auth-status and two
+  no-argument MCP tools, plus a shipped host-side browser adapter. Only scoped secure session
+  cookies are selected; five-minute RSA/AES-GCM handoff keeps the private key in memory and
+  ciphertext in owner-only OS temporary storage, writes the fixed Keychain item via stdin,
+  verifies readback and cleans up. Core querying remains stdlib; setup requires cryptography.
+  Synthetic transfer passed in the actual Codex browser host. A live native refresh then passed
+  Keychain storage/readback and GET-only health (Pro / pplx_alpha / ready), with no new query.
+  The browser sandbox refused home-directory writes with EPERM; a private temporary handoff
+  fixed that without broader permissions. All 100 focused tests pass. Cold self-review; installed host activation remains
+  untested. The final repository check had one unchanged Dev Flow process-cleanup failure
+  (533 passed); the failing test and its full 43-test module passed on recheck without edits.
+  Preserve that failed run; do not call the full final suite green. Lesson: test the shipped
+  adapter in its host, including writable-path boundaries.
+
+- 2026-10-16: The Perplexity CLI live proof submitted exactly one Research query via stdlib HTTPS.
+  The original parser refused reviewed sources without citation IDs; GET-only recovery now handles
+  explicit main-answer citation rows and separate full-report assets. Same-thread UI comparison
+  matched all 7,908 Markdown characters and 37 source URLs in order; backend mode RESEARCH and
+  UI Deep research agree. Approved scoped cookies are in Keychain; no password was used. Quota
+  use stays unknown. The CLI now adds recovery, paginated jobs, health/models, Markdown export,
+  Search/model selection and completed-parent follow-ups with identity checks before POST. A thin
+  nine-tool stdio MCP adapter calls the actual CLI; live saved-result/export parity passed without
+  another submission. Default Research ID fingerprints remain replay-safe. Focused checks pass
+  86 tests; repository contract passes 534 Dev Flow tests, seven impact-map contracts and static
+  map/setup/config checks. Cold self-review, not an independent review. Live Search/follow-up
+  submission, a fresh uninterrupted final-parser stream and installed host activation remain
+  untested. Lesson: reviewed sources, summary citations and report citations are distinct mappings;
+  do not reject an early source list or substitute a second query for same-thread recovery/parity.
+  See `docs/research/perplexity-local-bridge.md`; all public source is preserved locally only.
+
+- 2026-10-16: The experimental `scripts/perplexity_research.py` CLI adds durable submit/status/
+  result/cancel, one-worker admission, no-replay request IDs, Keychain-only credentials, bounded
+  HTTPS/SSE, strict completion/citation validation and process-group cleanup. All 43 synthetic
+  checks pass, including detached workers and HTTP-to-durable-result flow. No Perplexity account,
+  credential, quota or web-parity proof was exercised. The user explicitly chose to finish and
+  preserve the local bridge without live access; full features remain conditional on a permitted
+  live Research proof. `completed` means protocol validation; actual mode, quota and UI parity
+  stay null. See `docs/research/perplexity-local-bridge.md` for commands and limitations.
+
+- 2026-10-16: Perplexity Pro feasibility review pinned upstream `anxkhn/perplexity-mcp`
+  `356f7d0e7c8d146dce0105bf09a409046ccb923c`. Five offline checks reproduced partial-answer
+  acceptance, missing explicit Research timeout/non-measuring infinity quota, unchecked terminal
+  status, silent non-SSE responses and MCP citation/status loss. No account access or live query
+  occurred. Findings and the conditional minimal integration are in
+  `docs/research/perplexity-pro-feasibility.md`; live proof awaits an established permission basis
+  for automated subscription access, then account/mode/quota/citation verification. Cookie presence,
+  requested model IDs and generic successful searches must never be treated as that evidence.
 - 2026-10-17: Added Ops `business-premortem` from the user's five numbered screenshot
   concepts, preserving autopsy → verdict → rebuild → adversary → tripwires. Fable 5.1
   consultation and two synthetic forward passes informed the skill. Useful arithmetic
@@ -435,3 +573,69 @@ Lesson: keep concurrent Laya work isolated by branch and check planned decision 
 - Process lesson: an earlier advise worktree under `/private/tmp` was purged by macOS and its uncommitted S3 work was lost; recovery came from the committed S1/S2 branch. Long-lived worktrees now live under `~/dev-local/RHIZE/.worktrees/` and carry a `wip:` commit after every handback (global CLAUDE.md and Codex AGENTS.md carry the no-`/tmp` rule).
 - Released 2026-10-17: PR #56 merged to main as `b158c26` (after merging main's refactor-gate fix `ecbca24`). Final versions: Context Manager 0.48.0, Dev Flow 2.29.0, Ops 0.31.0, Project Launcher 1.15.0, Core 1.0.7, marketplace 2.109.0. PR #55 is closed (its commits are on main). Final review round (Dev Flow merge gate, security review, Codex) found S4 and gate-statistics gaps; all fixed before merge (spec §12) and Codex's re-review reported none blocking. Final full suite 4278 passed, 7 skipped, one unrelated load-timing flake (`test_skylos_evidence.py`) that passes alone; CI found one host-dependent test (`typed_selection` bound `call_laya` at import), fixed in `67496fc`.
 - Activated 2026-10-17: Claude and Codex hosts run the merged code (installed `typed_advice.py` hashes match main; marketplace clone at `b158c26`). The live registry validates under the new contract: skill fit keeps its earned `cosign`, every new decision reads `shadow`. The daily autolabel job now runs at 07:30 and 19:30 and its skill-fit loop also runs `choice_labels.py run` before the cycle and `pilot_cycle.py` (workflow fit) after it, with a 1200 s budget; the workflow labeler is repinned to a `b158c26` runtime. Dry runs of the labeler and cycle pass. Not yet observed: a natural advise record, label or cohort (none exist yet), and fresh native sessions on the new cache.
+
+## Decision pre-mortem rename — coordinated release slice
+
+- Renamed the canonical Ops skill to `decision-premortem`; updated UI, current docs,
+  both evaluation inventories and matching descriptions. Old invocation is replaced;
+  historical business evaluation paths/results remain intact. Scope now includes
+  concrete business, project, team-process and personal decisions. Financial checks
+  are conditional; the same five-step sequence, evidence standards, residual-risk
+  treatment, numeric audit, commitment gates and actionable tripwires remain. Body: 1007 words.
+- Native Fable5.1 job `048ec079-e386-45ea-b30e-4f0783b7998a` found no blocking text
+  defects and applied the skill to a synthetic study plan. Partial validation and
+  unsupported output assumptions are preserved in `evals/business-premortem/fable-decision-scope-pass.md`.
+  Added analysis-date/time-to-test and explicit time-feasibility clarification after review.
+- Focused checks: 41 passed, 2 existing optional skips; skill validator and17 static
+  routing cases/15 quality anchors pass. Business arithmetic/date self-checks pass.
+  These do not establish native discovery, calibrated prediction or real-world benefit.
+- Coordinated release ownership belongs to the Perplexity marketplace session. This
+  source slice intentionally leaves version/changelog helpers, generated inventory,
+  vault exact-ref reviews, combined release checks, push/merge and host updates to
+  that coordinator; no independent release or installation is claimed here.
+
+Lesson: broadening a decision method requires checking nonfinancial constraints and
+pre-commitment test feasibility, while preserving all financial safeguards where relevant.
+
+## Perplexity marketplace publication and general-use configuration — 2026-10-17
+
+- Candidate marketplace 2.111.0 publishes Perplexity Research 0.2.0 as a self-contained
+  Claude/Codex plugin with eleven MCP tools; Core 1.0.9 and Ops 0.33.0 synchronize
+  68 skills across 12 plugins and include the coordinated decision-premortem rename.
+- Canonical CLI, MCP, browser adapter and technical docs now live under the plugin.
+  The development snapshot builder retains an explicit distribution allowlist.
+  Shared Core/Ops evaluation catalogs and scripts remain byte-identical.
+- Runtime paths, selected Python and Keychain service are configured in private JSON,
+  with neutral shipped defaults and a documented schema. Malformed/oversized/shared/linked
+  configuration and unsafe service names fail closed. Detached workers retain the service.
+  Existing users explicitly configure their previous paths/service; no automatic migration,
+  credential refresh, query submission or deletion occurs during installation.
+- Both skill bodies use organization-neutral instructions. Publisher/catalog ownership and
+  optional setup-hub integration remain identified. Decision pre-mortem needs only task inputs;
+  no organization-specific configuration is required. Historical behavioral evals remain partial.
+- New regression coverage includes portable copied-plugin startup, invalid runtime/dependency,
+  private JSON validation and worker propagation. Required final check and installed MCP results
+  are recorded in the release evidence update below when available.
+
+Lesson: portable plugin packaging must preserve private state explicitly through configuration,
+while validating that same configuration at CLI, MCP and detached-worker boundaries.
+
+## Perplexity release review and local verification — 2026-10-17
+
+- Native Fable5.1 reviewed runtime, packaging and the accepted fixes in three completed
+  jobs. No remaining source blockers; review IDs/dispositions are recorded in
+  `docs/release/perplexity-marketplace-2.111.0.md`. Fable did not run tests itself.
+- Clean full repository suite at source `0896253`: 4,429 passed, 7 existing skips,
+  21 subtests passed (794.11 seconds). Explicit installed Node PATH resolved earlier
+  fixture trust failures without changing source, trust controls or tests.
+- Committed release gate passed: 780 Dev Flow tests, map/setup freshness, config lint
+  and version-bump coverage for all three changed plugins. Seven impact-map contracts
+  passed in the earlier run; strict manifests and generated docs also passed.
+- A native Codex candidate installation loaded the unchanged portable manifest and all
+  eleven MCP tools. Live health/models GETs, the same recovered report and export passed;
+  all twenty installed files matched source and all eight saved job hashes were unchanged.
+  No query or credential refresh occurred. Published installation and hosted CI remain
+  separate gates before retirement of the retained local development plugin.
+
+Lesson: fixture HOME changes can make a version-manager shim resolve or reject a different
+runtime; pin an already-installed executable in the test PATH, then rerun the unchanged suite.

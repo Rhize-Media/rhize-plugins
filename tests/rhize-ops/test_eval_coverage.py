@@ -78,7 +78,9 @@ def test_all_ops_skills_have_deterministic_trigger_and_quality_coverage() -> Non
     assert result["skills"] == 5
     assert result["routing"]["precision"] == result["routing"]["recall"] == 1.0
     assert result["routing_coverage"]["passed"] == result["routing_coverage"]["total"] == 5
-    assert all(item["positive"] == {"passed": 1, "total": 1} for item in result["routing_coverage"]["results"])
+    for item in result["routing_coverage"]["results"]:
+        expected = 3 if item["skill"] == "decision-premortem" else 1
+        assert item["positive"] == {"passed": expected, "total": expected}
     assert all(item["negative"] == {"passed": 2, "total": 2} for item in result["routing_coverage"]["results"])
     assert result["quality_contracts"]["passed"] == result["quality_contracts"]["total"] == 15
 

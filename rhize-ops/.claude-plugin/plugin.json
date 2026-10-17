@@ -1,7 +1,7 @@
 {
   "name": "rhize-ops",
-  "version": "0.32.0",
-  "description": "Rhize Media's internal operations toolkit — stress-tests business decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
+  "version": "0.33.0",
+  "description": "Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
   "author": {
     "name": "Rhize Media"
   },
