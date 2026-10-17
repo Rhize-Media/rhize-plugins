@@ -20,7 +20,7 @@ macOS Keychain, Python 3.10+ and `cryptography` are required. Native session tra
 needs a Node-capable browser host with authorized, scoped CDP access to the signed-in tab.
 No browser access is needed for querying once the session has been stored.
 
-Create a private Python environment, or select an existing interpreter that meets the requirements:
+Ensure the `python3` used below is version 3.10 or newer, then create a private environment (or select an existing qualifying interpreter):
 
 ```sh
 umask 077
@@ -78,7 +78,7 @@ Keep only one Perplexity plugin active. When migrating from `perplexity-research
 finish/cancel active local workers, install the marketplace version, verify its source and MCP startup,
 then remove the local-only plugin with `codex plugin remove perplexity-research@perplexity-local`.
 Restart the host to remove the old tool registration. Do not create a duplicate standalone MCP entry.
-Before switching, set `stateDir`, `authorizationReference` and `keychainService` in your private JSON to the existing locations and service name. This preserves jobs, request IDs and session without moving or deleting them. There is no automatic discovery or migration of legacy organization-specific paths. Verify existing reports before removing the old registration.
+Before switching, set `stateDir`, `authorizationReference` and `keychainService` in your private JSON to the existing locations and service name. This preserves jobs, request IDs and session without moving or deleting them. There is no automatic discovery or migration of legacy organization-specific paths. Find previous settings in the old plugin manifest (`--state-dir` / `--permission-reference` arguments) and its CLI defaults/documentation when arguments were omitted. Inspect configuration names and paths only; do not read session values. Verify existing reports and the new MCP initialize version before removing the old registration.
 
 For updates, upgrade the marketplace and run `codex plugin add perplexity-research@rhize-plugins`
 again. Verify the installed version and health; retain prior source for rollback. Uninstalling

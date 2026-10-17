@@ -83,6 +83,10 @@ def test_marketplace_launcher_is_portable_and_uses_existing_state(tmp_path):
     state = home / 'existing reports'
     state.mkdir(parents=True, mode=0o700)
     write_config(home, {'pythonExecutable': str(Path(sys.executable).absolute()), 'stateDir': str(state), 'keychainService': 'existing:session'})
+    job_id = '00000000-0000-4000-8000-000000000001'
+    record = state / (job_id + '.json')
+    record.write_text(json.dumps({'job_id': job_id, 'status': 'failed', 'submitted': False}))
+    record.chmod(0o600)
     env = {**os.environ, 'HOME': str(home)}
     wire = '\n'.join(json.dumps(x) for x in [
         {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
@@ -99,7 +103,9 @@ def test_marketplace_launcher_is_portable_and_uses_existing_state(tmp_path):
     assert len(replies[1]['result']['tools']) == 11
     assert not replies[2]['result']['isError']
     assert not (state / 'mcp-authorization.txt').exists()
-    assert not list(state.glob('*.json'))
+    jobs = json.loads(replies[2]['result']['content'][0]['text'])['jobs']
+    assert [job['job_id'] for job in jobs] == [job_id]
+    assert sorted(p.name for p in state.glob('*.json')) == [record.name]
 
 
 @pytest.mark.parametrize('selection', [None, 'relative-python\n', '/missing/python\n'])
@@ -191,3 +197,28 @@ def test_config_rejects_unsafe_files(tmp_path, monkeypatch, kind):
     load = runpy.run_path(str(ROOT / 'perplexity-research/scripts/perplexity_config.py'))['load_config']
     with pytest.raises((ValueError, OSError)):
         load()
+
+
+def test_snapshot_keeps_selected_interpreter_symlink(tmp_path, monkeypatch):
+    import sys
+    runtime = tmp_path / 'venv-python'
+    runtime.symlink_to(sys.executable)
+    monkeypatch.setattr(package.sys, 'executable', str(runtime))
+    reference = tmp_path / 'reference'
+    reference.write_text('authorization')
+    reference.chmod(0o600)
+    package.build(tmp_path / 'snapshot', reference)
+    manifest = json.loads((tmp_path / 'snapshot/plugins/perplexity-research/.codex-plugin/plugin.json').read_text())
+    assert manifest['mcpServers']['perplexity_research']['command'] == str(runtime)
+
+
+def test_launcher_home_resolution_error_is_controlled(monkeypatch, capsys):
+    import runpy
+    module = runpy.run_path(str(ROOT / 'perplexity-research/scripts/perplexity_config.py'))
+    def unavailable():
+        raise RuntimeError('HOME unavailable fixture')
+    monkeypatch.setattr(Path, 'home', unavailable)
+    assert module['launch']() == 78
+    captured = capsys.readouterr()
+    assert not captured.out and 'Perplexity setup invalid' in captured.err
+    assert 'HOME unavailable fixture' not in captured.err

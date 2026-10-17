@@ -13,7 +13,7 @@
     {
       "name": "Python 3.10+ with cryptography",
       "kind": "runtime",
-      "purpose": "Runs the isolated CLI/MCP and encrypted session transfer.",
+      "purpose": "Python3 on the host PATH bootstraps standard-library configuration loading; the selected Python3.10+ runtime with cryptography runs isolated CLI/MCP and encrypted session transfer.",
       "required": true,
       "degradedBehavior": "The affected workflow is unavailable; no alternate credential or query transport is used."
     },
@@ -71,7 +71,7 @@
       "path": "<home>/.local/share/perplexity-research/",
       "kind": "directory",
       "purpose": "Default private durable job directory; stateDir in config.json can preserve an existing directory. Encrypted handoffs use bounded OS temporary storage.",
-      "viewer": "ls -ld \"$HOME/.config/perplexity-research\"",
+      "viewer": "ls -ld \"$HOME/.local/share/perplexity-research\"",
       "lifetime": "persistent",
       "confidentiality": "personal",
       "source": "derived",

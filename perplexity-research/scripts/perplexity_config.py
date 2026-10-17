@@ -60,7 +60,7 @@ def launch():
         if check.returncode:
             raise ValueError('Python 3.10+ with cryptography is required')
         os.execv(runtime, [runtime, '-I', str(ROOT / 'scripts/perplexity_research_mcp.py')])
-    except (OSError, ValueError, subprocess.TimeoutExpired):
+    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
         # Do not echo configuration values or parser excerpts into host logs.
         print('Perplexity setup invalid: check private config.json and Python 3.10+ with cryptography; see README.', file=sys.stderr)
         return 78

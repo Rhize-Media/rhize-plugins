@@ -22,7 +22,7 @@ def build(destination, permission_reference):
     if (not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o600
             or info.st_uid != os.getuid() or info.st_nlink != 1):
         raise ValueError("authorization reference must be an owned, unshared mode-600 regular file")
-    python = str(Path(sys.executable).resolve())
+    python = str(Path(sys.executable).absolute())
     subprocess.run([python, "-I", "-c", "import cryptography"], check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
     destination.mkdir(mode=0o700)  # Refuse existing snapshots, including symlinks.
