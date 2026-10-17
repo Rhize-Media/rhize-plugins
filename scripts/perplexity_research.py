@@ -558,7 +558,8 @@ def read_thread(client, backend, query_text, requested_model, mode="research", t
     # shortcut: first/latest 20 entries only; add pagination if older-parent recovery is needed.
     params = {"with_schematized_response": "true", "version": "2.18", "source": "default",
               "limit": "20", "offset": "0", "from_first": "false", "with_first_entry": "true",
-              "supported_block_use_cases": THREAD_BLOCKS}
+              # Broad Research capabilities suppress ask_text in Search thread responses.
+              "supported_block_use_cases": THREAD_BLOCKS if mode == "research" else ["answer_modes", "unified_assets"]}
     response = client.get_json("/rest/thread/" + thread_id + "?" + urllib.parse.urlencode(params, doseq=True))
     entries = [entry for entry in response.get("entries", []) if entry.get("backend_uuid") == backend]
     if len(entries) != 1 or entries[0].get("query_str") != query_text:

@@ -47,7 +47,8 @@ def build(destination, permission_reference):
         (plugin / "CHANGELOG.md").write_text(
             "# Changelog\n\n## 0.1.0\n\nInitial local snapshot: Search/Research, durable jobs, "
             "recovery, exports and native encrypted browser-to-Keychain setup. "
-            "Accepts Codex discovery progress metadata.\n")
+            "Accepts Codex discovery progress metadata. Search thread reads request the answer "
+            "and explicit citation rows together while retaining strict citation validation.\n")
         manifest = {"name": NAME, "version": "0.1.0", "description": DESCRIPTION,
                     "author": {"name": "Rhize Media"}, "mcpServers": {
                         "perplexity_research": {"command": python, "cwd": ".",

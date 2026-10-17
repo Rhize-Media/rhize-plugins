@@ -1,5 +1,36 @@
 # Local Perplexity Search and Research bridge
 
+## Search citation fix verified — 2026-10-17
+
+Verified through this chat's installed MCP tools, using the client date. Search now requests
+`answer_modes` and `unified_assets` on thread GETs. The broad Research capability list returned
+explicit citation rows but omitted the Search answer; the minimal Search list returns both.
+Research requests and strict citation validation are unchanged. Reviewed-source order is
+never substituted for main-answer citation IDs.
+
+- Original failed job `6e386acb-8386-45dc-a470-e67dd1c494ae` recovered by GET only, with two
+  explicit numbered citations. Its original error and source hash remain in recovery metadata.
+- One fresh Search, job `2eb52984-0655-481d-a484-b7b1ed39a9e7`, completed as
+  `COMPLETED / SEARCH / pplx_pro`: 572 answer characters, two explicit citations and 24 reviewed
+  sources. [Live thread](https://www.perplexity.ai/search/0eaf7185-23bd-4a0b-8363-251726e72541).
+  Result, Markdown export and identical-ID replay passed without manual recovery. The first
+  submission was refused before job creation while another worker was busy; the same ID was
+  reused after that worker released its lock. Only one new query was submitted for this test.
+- Local plugin `0.1.0` was rebuilt and reinstalled with rollback snapshots retained. All ten
+  installed file hashes match the snapshot. CLI SHA-256
+  `99fe7213570f93708cc024f65d4620f463cff6e4724ad7422e823fe2b5e25800`
+  matches both the recovery metadata and fresh job. The unchanged MCP adapter used the updated
+  CLI in this chat without a reload; health remained ready.
+- The regression failed before the fix. All 109 focused tests then passed, including rejection
+  of unmatched numeric markers and preservation of Research capabilities. Required repository
+  checks passed: 534 Dev Flow tests, seven impact-map contracts and static/config/setup checks.
+  Cold self-review covered the diff, saved MCP results and installed hashes.
+
+This proves transport/completion and explicit citation mapping, not factual accuracy or browser
+parity. One returned official Python citation uses the rolling `/3/` URL rather than a pinned
+`/3.14/` URL. Quota use remains unknown. Follow-ups and cancellation were not resubmitted for
+this fix; their earlier direct-chat results and remote-cancellation limit are recorded below.
+
 ## Direct-chat live acceptance — 2026-10-17
 
 After restarting Codex, all eleven plugin tools were present in this chat. Direct MCP health
@@ -8,15 +39,15 @@ credential transfer or API billing was used. Three new request IDs were retained
 
 | Test | Result | Evidence and limit |
 | --- | --- | --- |
-| Standalone Search, explicit pplx_pro | **Failed completion validation** | Job 6e386acb-8386-45dc-a470-e67dd1c494ae reached server COMPLETED / SEARCH / pplx_pro, but the answer's numeric [1]/[2] markers had no explicit citation mapping. Ten reviewed sources had null IDs. Local status is incomplete, error incomplete_answer_or_sources; same-thread GET recovery failed identically. |
+| Standalone Search, explicit pplx_pro | **Initially failed; recovered after fix above** | Job 6e386acb-8386-45dc-a470-e67dd1c494ae reached server COMPLETED / SEARCH / pplx_pro, but its stream had numeric [1]/[2] markers without explicit citation rows. Ten reviewed sources had null IDs. The broad-capability GET returned citation rows but omitted the answer, causing incomplete_answer_or_sources. Corrected GET-only recovery later completed with two explicit citations. |
 | Search follow-up to completed Research | **Passed** | Job d1a0ee01-0ebd-4c6b-b558-bfde92f11a92 continued parent 7290aedb-2445-482f-8565-0476cdfc7341. The 637-character answer completed as SEARCH / pplx_pro, retained the parent's thread URL and had a distinct backend UUID. Result, Markdown export and same-ID replay passed. |
 | Cancel a running Research job | **Passed locally** | Job 7810234b-582e-4fb8-a94c-3cbca6af0ce5 was submitted and running before cancellation. It became cancelled_local with remote_cancellation_unconfirmed; export was refused and same-ID replay remained cancelled without resubmission. |
 
 The follow-up contains an inline official-documentation link and no numeric citation markers;
 its citations and reviewed-source arrays are empty. That is accepted by the existing Search
-contract and does not prove numeric-citation mapping works. The failed standalone Search is
-preserved as a real compatibility failure; no citation order was guessed and no new-ID retry
-was issued. The completed parent was reused because the failed Search cannot be a parent.
+contract and does not prove numeric-citation mapping works. The original standalone failure is
+preserved in its recovery metadata; no citation order was guessed and no new-ID retry was issued
+for that job. The completed Research parent was reused while the Search remained incomplete.
 The follow-up used the same [Perplexity thread](https://www.perplexity.ai/search/7e3ba507-3b82-405b-b5d2-96219ef2e0ff).
 
 Cancellation terminates local work only. Perplexity may continue remotely and quota may still
@@ -80,7 +111,10 @@ not run a query or refresh credentials.
 
 For a local update, stop active jobs first, retain the old snapshot as a rollback, rebuild at
 the registered marketplace path, and repeat `codex plugin add`. The builder deliberately
-does not overwrite snapshots. Verify installed hashes, reload the host, and check health.
+does not overwrite snapshots. Verify installed hashes and check health. Reload the host when
+the MCP adapter or manifest changes. For a CLI/docs-only update at the same installed path,
+the unchanged adapter launches its sibling CLI on each call; verify the new job or recovery
+source hash against the installed CLI to establish that the current chat used the update.
 Never delete durable jobs to update a plugin. To uninstall only the plugin:
 
 ```sh
@@ -266,8 +300,12 @@ may request another read later. Recovery never issues a Research POST.
 
 At the SSE end marker, the worker performs one same-thread GET if citation rows or a referenced
 report asset are missing. A lost/truncated stream is still a failure; use explicit recovery.
-The v2.18 GET advertises the block capabilities observed on the successful web thread; requesting
-fewer omitted the full report. HTTP bodies and asset download tokens are never persisted.
+The v2.18 Research GET retains the full block capability list needed for report assets.
+Search requests only `answer_modes` and `unified_assets`: the broad Research list omitted
+`ask_text` on the failed Search thread even though explicit citation rows were returned.
+The minimal Search list returns the answer and numbered rows together. This shared read path
+covers stream completion, explicit recovery and follow-up parent verification; citation
+validation is unchanged. HTTP bodies and asset download tokens are never persisted.
 
 Main-answer citations use explicit `sources_answer_mode` row numbers, or legacy source IDs.
 Reviewed sources without citation IDs stay in the separate ordered `sources` array. Research

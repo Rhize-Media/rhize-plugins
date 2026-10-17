@@ -248,6 +248,31 @@ def test_explicit_row_citation_is_separate_from_source_identity(modern_payload):
     assert b.validate_final(b.snapshot(modern_payload), "pplx_alpha")["citations"][0]["id"] == 1
 
 
+@pytest.mark.parametrize("marker", [1, 2])
+def test_search_thread_negotiates_answer_and_explicit_citation_rows(modern_payload, marker):
+    modern_payload["search_mode"] = "SEARCH"
+    modern_payload["model_preference"] = "pplx_pro"
+    modern_payload["blocks"] = modern_payload["blocks"][:3]
+    modern_payload["blocks"][0]["markdown_block"]["answer"] = f"Public answer [{marker}]"
+
+    def get_thread(path):
+        capabilities = urllib.parse.parse_qs(urllib.parse.urlsplit(path).query)["supported_block_use_cases"]
+        # Broad Research capabilities omit ask_text on live Search thread reads.
+        blocks = modern_payload["blocks"] if capabilities == ["answer_modes", "unified_assets"] else modern_payload["blocks"][1:]
+        return {"entries": [{**modern_payload, "blocks": blocks}]}
+
+    client = Mock(get_json=Mock(side_effect=get_thread), safe=Mock(side_effect=lambda value: value))
+    args = (client, modern_payload["backend_uuid"], "Public", "pplx_pro", "search")
+    if marker == 1:
+        value = b.read_thread(*args)
+        assert value["answer"] == "Public answer [1]"
+        assert value["citations"] == [{"id": 1, "url": "https://example.org/second", "title": "Second"}]
+    else:
+        with pytest.raises(b.BridgeError, match="citation_mapping_unverified"):
+            b.read_thread(*args)
+    client.get_json.assert_called_once()
+
+
 @pytest.mark.parametrize("end", [True, False])
 def test_modern_stream_uses_one_get_after_end_only(monkeypatch, modern_payload, end):
     partial = {**modern_payload, "blocks": modern_payload["blocks"][:2]}
@@ -262,7 +287,7 @@ def test_modern_stream_uses_one_get_after_end_only(monkeypatch, modern_payload, 
     reads = [r for r in calls if "/rest/thread/" in r.full_url]
     assert len(reads) == int(end)
     if reads:
-        assert "supported_block_use_cases=unified_assets" in reads[0].full_url
+        assert urllib.parse.parse_qs(urllib.parse.urlsplit(reads[0].full_url).query)["supported_block_use_cases"] == b.THREAD_BLOCKS
     assert len([r for r in calls if r.data]) == 1
 
 

@@ -12,11 +12,14 @@ installation. The review below is the historical
 pre-implementation assessment; its statements about no account access and held validation
 apply to that earlier phase, not the subsequent live proof.
 
-Latest validation (2026-10-17, client date): direct-chat MCP health/models passed after restart.
-A Search follow-up completed in its verified parent thread; running-job cancellation reached
-cancelled_local, with remote cancellation/refund unknown. Standalone Search failed completion
-validation because numeric citations had no explicit mapping; GET-only recovery also failed.
-See the [live acceptance table](perplexity-local-bridge.md#direct-chat-live-acceptance--2026-10-17).
+Latest validation (2026-10-17, client date): the Search compatibility failure is fixed.
+The Research GET capability list omitted the Search answer while returning citation rows;
+Search now requests the minimal capabilities that return both. The original failed job
+recovered by GET, and one fresh direct-chat MCP Search completed with two explicitly numbered
+citations, export and same-ID replay. All 109 focused tests and required repository checks
+passed; the local plugin and documentation were rebuilt and installed. Earlier follow-up and
+local-cancellation proofs remain valid historical results; remote stop/refund and quota remain
+unknown. See the [Search fix acceptance](perplexity-local-bridge.md#search-citation-fix-verified--2026-10-17).
 
 ## Original decision
 

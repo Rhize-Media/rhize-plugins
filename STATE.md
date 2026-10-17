@@ -2,6 +2,25 @@
 
 ## Verified facts
 
+- 2026-10-17: Perplexity Search citation completion fixed at the shared thread GET. Broad
+  Research capabilities returned explicit source rows but omitted ask_text; Search now requests
+  answer_modes/unified_assets, retaining the existing strict citation checks and full Research
+  capabilities. Original failed job 6e386acb-8386-45dc-a470-e67dd1c494ae recovered by GET only.
+  One fresh direct-chat MCP Search 2eb52984-0655-481d-a484-b7b1ed39a9e7 completed as
+  SEARCH/pplx_pro with 572 answer characters, two numbered citations and 24 reviewed sources;
+  result/export/replay passed without manual recovery. The initial worker_busy refusal created
+  no job; the same ID was reused after the unrelated worker exited. Runtime SHA begins
+  99fe7213570f; recovery and fresh-job metadata match the installed CLI. Local plugin 0.1.0
+  and final docs rebuilt/reinstalled with rollback snapshots; all ten installed hashes match,
+  enabled status and MCP health verified. Regression reproduced before fix; 109 focused tests,
+  534 Dev Flow tests, seven impact-map contracts and static/config/setup checks pass. Cold
+  self-review covered shared callers, strict negative checks, evidence, docs and protected
+  boundaries; no auth/adapter/manifest/dependency changes. Lesson: request capabilities can
+  omit the answer independently of citation rows; do not infer numbering from reviewed sources.
+  Browser parity, factual correctness and quota were not verified; one returned citation uses
+  a rolling Python /3/ URL. Follow-up/cancellation not rerun. Workflow context capture and a
+  source-bound pilot outcome observation remained unavailable; no acceptance was fabricated.
+
 - 2026-10-17: Perplexity tools are active directly in this restarted chat. Live health/models
   passed. Three new IDs exercised standalone Search, a Search follow-up to the completed
   Research parent, and cancellation after Research entered running. Follow-up passed with
