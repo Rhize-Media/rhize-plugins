@@ -1429,6 +1429,31 @@
           "weight": 2
         }
       ],
+      "skill:rhize-ops/business-premortem": [
+        {
+          "kind": "name",
+          "label": "business-premortem",
+          "weight": 1
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "evidence",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "review",
+          "weight": 2
+        }
+      ],
       "skill:rhize-ops/cross-model-handoff": [
         {
           "kind": "name",

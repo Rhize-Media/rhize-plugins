@@ -9,7 +9,7 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### rhize-core
 
-Version 1.0.7. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
+Version 1.0.8. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
 
 [README](../rhize-core/README.md) · [GUIDE](../rhize-core/GUIDE.md) · [0 skills](../generated/SKILL-CATALOG.md#rhize-core)
 
@@ -45,9 +45,9 @@ Version 0.48.0. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.31.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
+Version 0.32.0. Rhize Media's internal operations toolkit — stress-tests business decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
 
-[README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [4 skills](../generated/SKILL-CATALOG.md#rhize-ops)
+[README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [5 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
 ### rhize-tasks
 

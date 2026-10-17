@@ -34,6 +34,8 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-17_ version bump — **rhize-core** 1.0.7 → 1.0.8 (patch); marketplace 2.110.0 → 2.110.1.
+- _2026-10-17_ version bump — **rhize-ops** 0.31.0 → 0.32.0 (minor); marketplace 2.109.0 → 2.110.0.
 - _2026-10-16_ version bump — **rhize-devflow** 2.28.0 → 2.29.0 (minor); marketplace 2.108.0 → 2.109.0.
 - _2026-10-16_ version bump — **rhize-devflow** 2.27.0 → 2.28.0 (minor); marketplace 2.104.3 → 2.105.0.
 - _2026-10-16_ Laya advise everywhere ([plan](./docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md)): the `advise` mode and majority-baseline gate land across rhize-context-manager 0.48.0, rhize-devflow 2.28.0, rhize-ops 0.31.0 and project-launcher 1.15.0, together with the credential-procedure decision from PR 55. Per-plugin detail is in each plugin changelog; all decisions ship in `shadow`.

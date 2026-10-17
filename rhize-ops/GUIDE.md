@@ -4,7 +4,9 @@ This guide explains what the rhize-ops plugin does and how to get the most out o
 
 ## What This Plugin Does
 
-rhize-ops covers four everyday ops jobs:
+rhize-ops covers five everyday ops jobs:
+
+- **Testing a business decision before committing** — turn plausible failures into a revised plan, stop conditions and measurable warning signals.
 
 - **Getting a second model’s help** — Claude and Codex can request reviews or bounded file changes from each other through one shared bridge.
 - **Handing work off to a teammate** without losing context — turning a messy session into a clear, encouraging task package they can actually execute.
@@ -20,6 +22,29 @@ Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate
 The same `parallel-agent-optimization` skill contract is discoverable in Claude Code and Codex.
 Restart the host after installing or updating the plugin before running a discovery smoke; commands
 are Claude adapters, while Codex routes through the canonical skill and its OpenAI metadata.
+
+## Business pre-mortem
+
+Use `rhize-ops:business-premortem` (Codex: `$business-premortem`) for a launch, hire,
+pricing change, partnership or expansion. Provide the plan, decision/start date, budget,
+capacity, success criteria and alternatives. No setup is needed.
+
+> "Run a business pre-mortem on this proposed training cohort. Here are the costs,
+> capacity, demand evidence, deposit deadline and target profit. Tell me what would
+> make us pause or walk away, and which signals to check before we commit."
+
+The memo follows five steps: autopsy, verdict, rebuild, adversary and tripwires. It
+separates facts from inferences, highlights the biggest hidden assumption, compares
+alternatives, and revises the recommendation after challenging the rebuilt plan.
+Tripwires include a metric/data source, threshold basis, check date/cadence, proposed
+owner and action. Missing dates stay relative; unsupported thresholds stay provisional.
+
+A thin idea gets a few focused questions, not seven invented failures. A plan can be
+rejected if its numbers or constraints cannot meet its goal. For internal decisions,
+inertia or conflicting incentives can replace a competitor. Expect roughly 1–2 pages,
+with more depth only when useful. Owners and actions remain proposed until accepted.
+The skill does not spend, schedule or contact people. A second-model opinion is optional
+and only runs when requested through an authorized workflow.
 
 ## Cross-model reviews and tasks
 

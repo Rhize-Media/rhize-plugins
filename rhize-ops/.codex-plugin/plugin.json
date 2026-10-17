@@ -1,7 +1,7 @@
 {
   "name": "rhize-ops",
-  "version": "0.31.0",
-  "description": "Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.",
+  "version": "0.32.0",
+  "description": "Rhize Media's internal operations toolkit — stress-tests business decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
   "author": {
     "name": "Rhize Media"
   },
@@ -18,8 +18,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Rhize Ops",
-    "shortDescription": "Delegation and safe parallel-agent operations for Rhize.",
-    "longDescription": "Rhize operational workflows for delegation and host-neutral, inspectable parallel task graphs with self-contained two-arm routing and privacy-safe terminal v2 receipts.",
+    "shortDescription": "Business decisions, delegation and agent operations.",
+    "longDescription": "Stress-test business decisions with pre-mortems, prepare contextual handoffs, and coordinate inspectable agent workflows.",
     "developerName": "Rhize Media",
     "category": "Developer Tools",
     "capabilities": [
@@ -28,6 +28,7 @@
       "Write"
     ],
     "defaultPrompt": [
+      "Run a business pre-mortem before I commit to this plan.",
       "Prepare a safe delegation handoff for this task.",
       "Assess whether this work should use parallel agents.",
       "Set up Rhize benchmark baselines and evaluation capture."

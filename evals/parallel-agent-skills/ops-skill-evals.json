@@ -92,6 +92,44 @@
           ]
         }
       ]
+    },
+    {
+      "id": "business-premortem",
+      "source": "rhize-ops/skills/business-premortem/SKILL.md",
+      "include_patterns": [
+        "business pre[- ]?mortem",
+        "stress-test (?:this |our |a )?(?:business|hiring|pricing|launch|partnership|expansion)"
+      ],
+      "positive_cases": [
+        "premortem-positive"
+      ],
+      "negative_cases": [
+        "premortem-incident-near-miss",
+        "premortem-code-near-miss"
+      ],
+      "quality_contracts": [
+        {
+          "id": "evidence-calibration",
+          "patterns": [
+            "hypothetical, not a forecast",
+            "provisional"
+          ]
+        },
+        {
+          "id": "rebuild-after-adversary",
+          "patterns": [
+            "revisit the rebuild",
+            "residual risk"
+          ]
+        },
+        {
+          "id": "actionable-bounded-tripwires",
+          "patterns": [
+            "Action on breach",
+            "does not authorize spending"
+          ]
+        }
+      ]
     }
   ],
   "cases": [
@@ -142,6 +180,9 @@
     },
     {"id": "bridge-positive", "prompt": "Ask Codex to review this plan independently.", "expected": ["cross-model-handoff"]},
     {"id": "bridge-docs-near-miss", "prompt": "Explain the difference between Claude and Codex.", "expected": []},
-    {"id": "bridge-local-near-miss", "prompt": "Review this function locally with the current model.", "expected": []}
+    {"id": "bridge-local-near-miss", "prompt": "Review this function locally with the current model.", "expected": []},
+    {"id": "premortem-positive", "prompt": "Run a business pre-mortem before we commit to this training launch.", "expected": ["business-premortem"]},
+    {"id": "premortem-incident-near-miss", "prompt": "Write the incident postmortem for yesterday’s failed database migration.", "expected": []},
+    {"id": "premortem-code-near-miss", "prompt": "Review this price calculation function for a rounding bug.", "expected": []}
   ]
 }

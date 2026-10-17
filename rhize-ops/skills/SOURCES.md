@@ -24,3 +24,11 @@ One entry per external-skill ingestion decision.
   - Gate evidence: skill-forge 0.21.0 scanned all 32 SKILL.md files plus the MCP server; skill-map overlap < 0.2 everywhere (control self-match 0.982); independent Codex reviews on rhize-bridge jobs `6f1c2a8e` and `9a4d7c21`.
   - Revisit the WATCH if permission bypass or telemetry becomes opt-in.
   - Vault: "Forge decision - paperclip (2026-09-27)".
+
+## business-premortem — 2026-10-17
+- **Source:** Five user-supplied screenshots of a dominatingtech carousel, numbered 1–5: pre-mortem prompt, verdict, rebuild, adversary, tripwire.
+- **Verb:** ADAPT concepts; original Rhize wording. No image or source prompt body redistributed.
+- **Target:** rhize-ops:business-premortem
+- **Gap:** A reusable business-decision pre-mortem with evidence separation, causal failures, cost-aware rebuild, adversarial revision and dated owner/action tripwires. Existing project planning and product diagnostics do not supply this complete sequence.
+- **Review:** User-requested Fable consultation; proposed rigid counts, a new option flag and unsupported numeric heuristics were not adopted. Hypothetical scenarios and residual risk remain explicit.
+- **Graph relation:** provenance-only

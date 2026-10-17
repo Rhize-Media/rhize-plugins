@@ -1257,6 +1257,12 @@
     {
       "from": "plugin:rhize-ops",
       "source": "marketplace",
+      "to": "skill:rhize-ops/business-premortem",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
       "to": "skill:rhize-ops/cross-model-handoff",
       "type": "contains"
     },
@@ -2620,6 +2626,24 @@
     },
     {
       "from": "skill:rhize-devflow/test-evidence",
+      "source": "frontmatter",
+      "to": "tag:topic/review",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/business-premortem",
+      "source": "frontmatter",
+      "to": "tag:topic/evidence",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/business-premortem",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/business-premortem",
       "source": "frontmatter",
       "to": "tag:topic/review",
       "type": "topic-tag"
@@ -4531,7 +4555,7 @@
       "path": "rhize-devflow"
     },
     {
-      "description": "Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.",
+      "description": "Rhize Media's internal operations toolkit — stress-tests business decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
       "id": "plugin:rhize-ops",
       "kind": "plugin",
       "name": "rhize-ops",
@@ -5057,6 +5081,17 @@
       "path": "rhize-devflow/skills/test-evidence/SKILL.md",
       "totalBytes": 3126,
       "treeHash": "07dc1a4fd0e99e1419fa4f7a989445d4483404936a6aeb16ca246f2e104f815e"
+    },
+    {
+      "contentHash": "f2115ac24c5cbe63ebd0d7dc200a3c6928f7cc0f878ca4dd1584b493fd2ab85e",
+      "description": "Stress-test a business decision before committing resources. Use for \"run a pre-mortem\", \"why would this business plan fail\", or \"stress-test this hiring, pricing, launch, partnership or expansion decision\". Produce a revised plan, stop conditions and measurable tripwires. Not an incident postmortem, code review or execution workflow.",
+      "fileCount": 2,
+      "id": "skill:rhize-ops/business-premortem",
+      "kind": "skill",
+      "name": "business-premortem",
+      "path": "rhize-ops/skills/business-premortem/SKILL.md",
+      "totalBytes": 7415,
+      "treeHash": "acc8c7e6fbbb42a3ef401a5051ae8a98ce817098992eb00ad26a143370e7355e"
     },
     {
       "contentHash": "f4a3f1ee01a5c43510a24260dd5d937422447ef24aac1da31270e151837442bf",

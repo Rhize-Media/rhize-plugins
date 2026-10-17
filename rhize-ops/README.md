@@ -1,6 +1,6 @@
 # rhize-ops
 
-Rhize Media's **operations** plugin — internal delegation, hand-offs, and team-workflow automation. Distinct from `rhize-devflow` (which is about *building* software); `rhize-ops` is about *running the team*.
+Rhize Media's **operations** plugin — business decision reviews, internal delegation, hand-offs, and team-workflow automation. Distinct from `rhize-devflow` (which is about *building* software); `rhize-ops` is about *running the team*.
 
 ## Setup
 
@@ -13,7 +13,7 @@ evaluation baselines) moved to the `rhize-core` plugin's `/rhize-core:setup` —
 
 Claude Code loads the thin commands plus canonical skills from `.claude-plugin/plugin.json`.
 Codex loads the same skill bodies from `.codex-plugin/plugin.json`; skills with Codex-specific
-interface metadata also ship a `skills/<skill>/agents/openai.yaml` (`parallel-agent-optimization` and `cross-model-handoff`).
+interface metadata also ship a `skills/<skill>/agents/openai.yaml` (`business-premortem`, `parallel-agent-optimization` and `cross-model-handoff`).
 After installing or updating either host, start a fresh session before checking discovery so a
 previously cached plugin snapshot is not mistaken for the release.
 
@@ -22,11 +22,25 @@ previously cached plugin snapshot is not mistaken for the release.
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
+| `business-premortem` | Stress-test a business decision before committing resources. | evidence, project-planning, review |
 | `cross-model-handoff` | Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Cla… | automation, review, testing, workflow-patterns |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the… | automation, obsidian, workflow-patterns |
 | `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, evidence, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
 <!-- SKILL-MAP:END -->
+
+### `business-premortem`
+
+Stress-tests a business decision before committing resources: hypothetical autopsy → verdict →
+rebuild → adversary → tripwires. Covers launches, hiring, pricing, partnerships and expansion.
+Separates evidence from assumptions, checks constraints, preserves residual risks, and gives
+pre-commitment checks plus measurable signals, proposed owners and actions. No setup or model
+handoff is required; it produces a proposed decision memo without executing business actions.
+
+**Invoked as:** `rhize-ops:business-premortem` in Claude Code, or `$business-premortem` in Codex.
+Supply the plan, dates, budget/capacity, success criteria and alternatives. See the
+[skill](skills/business-premortem/SKILL.md), [user guide](GUIDE.md#business-premortem), and
+[behavioral checks](../evals/business-premortem/README.md). Static checks do not prove business outcomes.
 
 ### `delegate-to-teammate`
 
