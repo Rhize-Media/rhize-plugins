@@ -2,6 +2,20 @@
 
 ## Verified facts
 
+- 2026-10-17: Investigated oversized Research job 4f40bde9-478e-40cd-9377-96df324d6d87.
+  Installed MCP recovery reproduces response_too_large after stream_too_large. GET uses the
+  512 KiB SSE event limit for the entire thread response; measured response is 1,892,470 bytes.
+  A diagnostic GET bounded at the existing 16 MiB state ceiling passed unchanged query/thread/
+  model/mode/citation validation in memory: server COMPLETED, 24,834 report characters,
+  243 report sources, 21 summary citations, normalized result 104,306 bytes. Raw HTTP body
+  and credentials were not persisted; no query POST, job-state mutation or installed-code
+  change. Original SSE event-vs-total trigger cannot be distinguished from its stored error.
+  Root issue: transport metadata size is conflated with answer size; thread GET needs its own
+  bounded budget, with large-event/total-stream handling tested separately. Installed job
+  remains incomplete pending that fix; report is available on the same remote thread.
+  Existing stream/recovery-focused tests pass (11); they do not cover this live payload size.
+  Workflow context unavailable; bounded recall found no suitable existing procedure.
+
 - 2026-10-17: Perplexity Search citation completion fixed at the shared thread GET. Broad
   Research capabilities returned explicit source rows but omitted ask_text; Search now requests
   answer_modes/unified_assets, retaining the existing strict citation checks and full Research
