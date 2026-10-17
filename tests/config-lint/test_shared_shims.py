@@ -62,3 +62,22 @@ def test_copy_is_executable(path: Path) -> None:
         f"{path} is not executable — it is invoked directly as an MCP server 'command', "
         "not sourced, so it needs the executable bit."
     )
+
+
+# typed_advice.py is the shared Laya advice client (docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md
+# section 5): Context Manager owns the source, the other three plugin islands carry byte-identical copies.
+TYPED_ADVICE_SOURCE = REPO_ROOT / "rhize-context-manager/scripts/typed_advice.py"
+TYPED_ADVICE_COPIES = [
+    REPO_ROOT / plugin / "scripts/typed_advice.py"
+    for plugin in ("rhize-devflow", "rhize-ops", "project-launcher")
+]
+
+
+@pytest.mark.parametrize("path", TYPED_ADVICE_COPIES, ids=lambda p: str(p.relative_to(REPO_ROOT)))
+def test_typed_advice_copy_matches_context_manager_source(path: Path) -> None:
+    assert TYPED_ADVICE_SOURCE.is_file(), f"{TYPED_ADVICE_SOURCE} is the source of truth and must exist"
+    assert path.is_file(), f"{path} is missing — each plugin island carries its own typed_advice.py"
+    assert path.read_bytes() == TYPED_ADVICE_SOURCE.read_bytes(), (
+        f"{path} differs from {TYPED_ADVICE_SOURCE} — edit the Context Manager copy, then re-copy it "
+        "byte-for-byte into rhize-devflow, rhize-ops and project-launcher."
+    )

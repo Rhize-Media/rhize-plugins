@@ -4,6 +4,10 @@
 
 ### Added
 
+- 2026-10-17: Include business-premortem in the mirrored evaluation inventory and update exact coverage to 67 skills; preserve domains, baseline policy and validation logic.
+- _2026-10-17_ version bump — 1.0.7 → 1.0.8 (patch); marketplace 2.110.0 → 2.110.1.
+- 2026-10-15: Synchronize the credential-access skill in the mirrored evaluation inventory; retain domains, capture modes, baseline policy and existing runtime behavior.
+- _2026-10-15_ version bump — 1.0.6 → 1.0.7 (patch); marketplace 2.104.4 → 2.104.5.
 - _2026-09-24_ version bump — 1.0.5 → 1.0.6 (patch); marketplace 2.81.0 → 2.81.1.
 - _2026-09-19_ Include the canonical RHIZE Content Engine in the evaluation catalog and 58-skill coverage contract; preserve byte-identical core/ops fallback catalogs and setup scripts.
 - _2026-09-19_ version bump — 1.0.4 → 1.0.5 (patch); marketplace 2.76.0 → 2.76.1.

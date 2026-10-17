@@ -801,6 +801,18 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "hook:rhize-context-manager/credential-workflow",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/credential-workflow-prompt",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "hook:rhize-context-manager/duplicate-check",
       "type": "contains"
     },
@@ -1101,7 +1113,19 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-a3a2bdba",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "hook:rhize-devflow/inline-d45b5937",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-e12f824e",
       "type": "contains"
     },
     {
@@ -1150,6 +1174,12 @@
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "skill:rhize-devflow/completed-branch-promotion",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/credential-access",
       "type": "contains"
     },
     {
@@ -1222,6 +1252,12 @@
       "from": "plugin:rhize-ops",
       "source": "marketplace",
       "to": "command:rhize-ops/rhize-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
+      "to": "skill:rhize-ops/business-premortem",
       "type": "contains"
     },
     {
@@ -2327,6 +2363,18 @@
       "type": "topic-tag"
     },
     {
+      "from": "skill:rhize-devflow/credential-access",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/credential-access",
+      "source": "frontmatter",
+      "to": "tag:topic/security",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
       "to": "mcp:sentry",
@@ -2578,6 +2626,24 @@
     },
     {
       "from": "skill:rhize-devflow/test-evidence",
+      "source": "frontmatter",
+      "to": "tag:topic/review",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/business-premortem",
+      "source": "frontmatter",
+      "to": "tag:topic/evidence",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/business-premortem",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/business-premortem",
       "source": "frontmatter",
       "to": "tag:topic/review",
       "type": "topic-tag"
@@ -4055,6 +4121,28 @@
       "status": "wired"
     },
     {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/credential-workflow.js\"",
+      "event": "PreToolUse",
+      "id": "hook:rhize-context-manager/credential-workflow",
+      "kind": "hook",
+      "matcher": "*",
+      "name": "credential-workflow",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/credential-workflow-prompt.js\"",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/credential-workflow-prompt",
+      "kind": "hook",
+      "matcher": "",
+      "name": "credential-workflow-prompt",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/duplicate-check.sh",
       "event": "PreToolUse",
       "id": "hook:rhize-context-manager/duplicate-check",
@@ -4242,12 +4330,34 @@
       "status": "wired"
     },
     {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command-post",
+      "event": "PostToolUse",
+      "id": "hook:rhize-devflow/inline-a3a2bdba",
+      "kind": "hook",
+      "matcher": "Bash|exec_command|functions.exec",
+      "name": "inline-a3a2bdba",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command",
       "event": "PreToolUse",
       "id": "hook:rhize-devflow/inline-d45b5937",
       "kind": "hook",
       "matcher": "Bash|exec_command|functions.exec",
       "name": "inline-d45b5937",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/credential_guard.py\"",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/inline-e12f824e",
+      "kind": "hook",
+      "matcher": "*",
+      "name": "inline-e12f824e",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"
@@ -4445,7 +4555,7 @@
       "path": "rhize-devflow"
     },
     {
-      "description": "Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.",
+      "description": "Rhize Media's internal operations toolkit — stress-tests business decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
       "id": "plugin:rhize-ops",
       "kind": "plugin",
       "name": "rhize-ops",
@@ -4628,7 +4738,7 @@
       "treeHash": "adc23b3650424c5d8623dff9872df9ce4e6212cee534b742ae16299116d923e9"
     },
     {
-      "contentHash": "e1e7b34d8548a23f77aa160d96b029ae14fdaa00b5d3b9d85fc571926499b100",
+      "contentHash": "a1493efef433d583945e38917d699941cad5a7b61ca9cda2fdcf7013ee7dcde6",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development. End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff. Triggers on: \"start a new project\", \"create a PRD\", \"plan an automation\", \"scaffold for GSD\", \"prepare for autonomous development\", \"launch a project\", \"set up a new n8n workflow project\", \"I want to build...\", \"let's plan...\", \"new project idea\", \"prepare handoff for GSD\", \"research and plan\", \"write requirements for\", \"scaffold and hand off\", \"gsd handoff\", \"project kickoff\", or any request involving turning a project idea into a structured plan ready for autonomous execution. Also triggers when users mention wanting to research a topic before building, gather requirements, interview about a project, analyze a PRD for gaps, or prepare a CLAUDE.md and .planning directory for a new codebase. Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology with integrated MCP server orchestration and GSD v2 framework knowledge.",
       "fileCount": 16,
       "id": "skill:project-launcher/project-launcher",
@@ -4636,8 +4746,8 @@
       "name": "project-launcher",
       "path": "project-launcher/skills/project-launcher/SKILL.md",
       "summary": "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder.",
-      "totalBytes": 74124,
-      "treeHash": "2b8013c1e47753ca6a0dc426d70150744cbb7fb663469f0209c69603e14426b9"
+      "totalBytes": 75439,
+      "treeHash": "07e78699ab9c65d1d224ac9b5d55697d0b1980b395f0337d4927b7071c2a6735"
     },
     {
       "contentHash": "3e6f92771cf781b0e05511fce37cfbe2633a0cce488cb2155985de395a935e38",
@@ -4875,6 +4985,22 @@
       "treeHash": "9e674d0cbe185944e20c23e316e1f82f8200bb1ce06f8fed2608459786b9e960"
     },
     {
+      "contentHash": "f384bc7b0316fdf058220d56912e51ac4f9c7aadf82c3780ec867fdde25f257a",
+      "description": "Use when authenticating a CLI or retrieving a stored credential, password, token, or API key from macOS Keychain. Choose CLI-first access and private child-process consumption; never open Keychain Access or expose secrets in tool output.",
+      "fileCount": 1,
+      "id": "skill:rhize-devflow/credential-access",
+      "kind": "skill",
+      "name": "credential-access",
+      "path": "rhize-devflow/skills/credential-access/SKILL.md",
+      "routerPhrases": [
+        "keychain access",
+        "keychain credentials",
+        "stored credentials"
+      ],
+      "totalBytes": 2956,
+      "treeHash": "14e4d85f326ec56ac8d1f54c4e34f969e654fdd512f680f5738d7721726fa18a"
+    },
+    {
       "contentHash": "06e735f04458cc2dd5aa0ccc5e8d45e2140add57c9f3b465919b4e461c91eba6",
       "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via the read-only /rhize-devflow:mutation-check command (scoped, --all, and --fix-plan modes).",
       "fileCount": 25,
@@ -4957,6 +5083,17 @@
       "treeHash": "07dc1a4fd0e99e1419fa4f7a989445d4483404936a6aeb16ca246f2e104f815e"
     },
     {
+      "contentHash": "f2115ac24c5cbe63ebd0d7dc200a3c6928f7cc0f878ca4dd1584b493fd2ab85e",
+      "description": "Stress-test a business decision before committing resources. Use for \"run a pre-mortem\", \"why would this business plan fail\", or \"stress-test this hiring, pricing, launch, partnership or expansion decision\". Produce a revised plan, stop conditions and measurable tripwires. Not an incident postmortem, code review or execution workflow.",
+      "fileCount": 2,
+      "id": "skill:rhize-ops/business-premortem",
+      "kind": "skill",
+      "name": "business-premortem",
+      "path": "rhize-ops/skills/business-premortem/SKILL.md",
+      "totalBytes": 7415,
+      "treeHash": "acc8c7e6fbbb42a3ef401a5051ae8a98ce817098992eb00ad26a143370e7355e"
+    },
+    {
       "contentHash": "f4a3f1ee01a5c43510a24260dd5d937422447ef24aac1da31270e151837442bf",
       "description": "Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Claude Code and Codex. Use when the user asks Claude to consult Codex, Codex to consult Claude, or explicitly authorizes a cross-model review or task. Keep implementation, integration and approval with the coordinating host.",
       "fileCount": 2,
@@ -4979,15 +5116,15 @@
       "treeHash": "8b3b60ea7521455cc34cf9c62a85ab6cd28ca018be7f5bfd4c5030d3245f5faa"
     },
     {
-      "contentHash": "fd2fc2e446735c41f02b83a3b4e38b45a93434f716a30f36a3a579d2ff7b6867",
+      "contentHash": "dbca6e8cb5dd04c0604808463fcffdb2a07cbc7c798228ad196c139c6b037b17",
       "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.",
       "fileCount": 12,
       "id": "skill:rhize-ops/parallel-agent-optimization",
       "kind": "skill",
       "name": "parallel-agent-optimization",
       "path": "rhize-ops/skills/parallel-agent-optimization/SKILL.md",
-      "totalBytes": 113483,
-      "treeHash": "319ffedb2bdede84afbfa6ce15f71e4d9ebe8fe16b0eda63fc63e669a4a5abc1"
+      "totalBytes": 113761,
+      "treeHash": "382e7d961900275c08c12d1ce12721dcc417db6cd656626e74cca09838b02359"
     },
     {
       "contentHash": "c524caf2ba19775c60a49f51feeff7d2860aa913bdd4d9a1fef36638feefb1cb",

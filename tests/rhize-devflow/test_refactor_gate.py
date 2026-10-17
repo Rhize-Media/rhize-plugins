@@ -1369,3 +1369,334 @@ def test_non_owner_stop_does_not_relax_workspace_release_gate(tmp_path: Path) ->
 
     assert release.returncode == 2
     assert "reconciled refactor-evidence receipt" in release.stderr
+
+
+# --- Shell writes while pending (2026-10-16: an executor edited six source files through Bash
+# heredocs, `sed -i` and redirects before any map existed; only the commit was caught). ---
+
+SHELL_PATCH = """diff --git a/src/example.ts b/src/example.ts
+--- a/src/example.ts
++++ b/src/example.ts
+@@ -1 +1 @@
+-export const value = 1
++export const value = 2
+"""
+
+SHELL_SOURCE_WRITES = [
+    "python3 - <<'EOF'\np = 'src/example.ts'\nopen(p, 'w').write('export const value = 2\\n')\nEOF",
+    "python3 -c \"open('src/example.ts', 'w').write('x')\"",
+    "node -e \"require('fs').writeFileSync('src/example.ts', 'x')\"",
+    "sed -i '' 's/1/2/' src/example.ts",
+    "perl -pi -e 's/1/2/' src/example.ts",
+    "echo 'export const value = 2' > src/example.ts",
+    "cat <<'EOF' > src/created.ts\nexport const created = true\nEOF",
+    "printf x | tee -a src/example.ts",
+    "cp /etc/hosts src/example.ts",
+    "cd src && echo x >> example.ts",
+    "git apply fix.patch",
+    "rtk sed -i '' 's/1/2/' src/example.ts",
+    "rtk proxy python3 -c \"open('src/example.ts', 'w').write('x')\"",
+    "FOO=1 rtk proxy tee src/example.ts < /dev/null",
+    # Verifier follow-ups: comments, `#` inside a word, ANSI-C quotes, runner prefixes, loops.
+    "npm test # run tests first\nsed -i '' 's/1/2/' src/example.ts",
+    "curl -s https://example.test/#frag > src/example.ts",
+    "echo $'it\\'s' && sed -i '' 's/1/2/' src/example.ts",
+    "uv run python -c \"open('src/example.ts', 'w')\"",
+    "python3 - <<'EOF'\nfor p in ['src/example.ts']:\n    Path(p).write_text('x')\nEOF",
+    "echo x > src/my\\ file.ts",
+]
+
+
+def _isolated_repo(workspace: Path) -> None:
+    init_repo(workspace)
+    # The gate shells out to git itself; keep the user's global excludes out of the fixture.
+    git(workspace, "config", "core.excludesFile", "/dev/null")
+    (workspace / ".gitignore").write_text("dist/\n")
+    (workspace / "fix.patch").write_text(SHELL_PATCH)
+    git(workspace, "add", ".gitignore", "fix.patch")
+    git(workspace, "commit", "-qm", "ignore build output; patch fixture")
+
+
+def _shell(state_dir: Path, workspace: Path, command: str, mode: str = "hook-command"):
+    return run_gate(
+        state_dir,
+        mode,
+        payload={"session_id": "executor", "cwd": str(workspace), "tool_input": {"command": command}},
+    )
+
+
+@pytest.mark.parametrize("command", SHELL_SOURCE_WRITES)
+def test_pending_gate_blocks_shell_writes_to_source(tmp_path: Path, command: str) -> None:
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+
+    blocked = _shell(state_dir, workspace, command)
+
+    assert blocked.returncode == 2, blocked.stderr
+    assert "source edits require a prepared refactor-evidence receipt" in blocked.stderr
+    assert "prepare --workspace" in blocked.stderr
+    assert "src/" in blocked.stderr
+    assert _status(state_dir, workspace)["phase"] == "pending"
+
+
+@pytest.mark.parametrize("command", SHELL_SOURCE_WRITES)
+def test_prepared_gate_allows_shell_writes_and_records_the_owner(tmp_path: Path, command: str) -> None:
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan, ("src/example.ts", "src/created.ts"))
+    assert run_gate(
+        state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan),
+        "--query", "Refactor the application example safely",
+    ).returncode == 0
+
+    allowed = _shell(state_dir, workspace, command)
+
+    assert allowed.returncode == 0, allowed.stderr
+    receipt = _status(state_dir, workspace)
+    assert receipt["phase"] == "implementation"
+    assert receipt["owner_sessions"] == ["executor"]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cat src/example.ts",
+        "grep -n value src/example.ts",
+        "rtk grep -n value src",
+        "git diff -- src/example.ts",
+        "rtk git diff",
+        "python3 -m pytest -q 2>&1 | tail -5",
+        "npm run build > /dev/null 2>&1",
+        "python3 -c \"print(open('src/example.ts').read())\"",
+        "sed -n 1p src/example.ts",
+        "git apply --check fix.patch",
+        "echo 'a > b.ts' | cat",
+        "echo x > dist/out.js",
+        "echo x > build.log",
+        "echo notes > docs/notes.md",
+        "cat <<'EOF' > .claude/plans/next.md\n# plan > src/example.ts\nEOF",
+        "python3 - <<'EOF'\nimport json\njson.dump({}, open('/tmp/out.json', 'w'))\nEOF",
+        "cp src/example.ts {scratch}/copy.ts",
+        "echo x > {scratch}/out.ts",
+        # Quoted or escaped operators are arguments, not redirects.
+        "grep -c '>' src/example.ts",
+        "rg -n \">>\" src/example.ts",
+        "echo 'x' \\> src/example.ts",
+        "perl -Ilib src/example.ts",
+        # A variable write target no longer charges every file the snippet reads.
+        "python3 -c \"import sys; d = open('src/example.ts').read(); open(sys.argv[1], 'w').write(d)\" /tmp/x",
+        "python3 - <<'EOF'\nimport os, tempfile\nout = os.path.join(tempfile.gettempdir(), 'probe.py')\nopen(out, 'w').write('x')\nEOF",
+        "python3 - <<'EOF'\nf = 'src/example.ts'\ndata = open(f).read()\nf = '/tmp/out.ts'\nopen(f, 'w').write(data)\nEOF",
+        "echo ok 2>&1 | tee test-output.log",
+    ],
+)
+def test_pending_gate_allows_read_only_and_non_source_shell_commands(tmp_path: Path, command: str) -> None:
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    (workspace / "dist").mkdir()
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+
+    result = _shell(state_dir, workspace, command.replace("{scratch}", str(scratch)))
+
+    assert result.returncode == 0, result.stderr
+    assert _status(state_dir, workspace)["phase"] == "pending"
+
+
+@pytest.mark.parametrize(
+    "interpreter",
+    [sys.executable] + (["/usr/bin/python3"] if Path("/usr/bin/python3").exists() else []),
+)
+@pytest.mark.parametrize(
+    "command",
+    [
+        "sed -i '' 's/1/2/' " + "a" * 3000 + ".ts",
+        "echo x > " + "b" * 3000 + "/c.ts",
+        "sed -i '' 's/1/2/' src/ex\x00ample.ts",
+        "echo 'unterminated > src/example.ts",
+        "python3 - <<'EOF'\nopen('src/example.ts', 'w')\n",
+    ],
+)
+def test_shell_write_detection_never_crashes_the_hook(tmp_path: Path, interpreter: str, command: str) -> None:
+    # Runs on every Bash call: Python 3.9 hosts raise ENAMETOOLONG/NUL errors that 3.14 swallows.
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    env = {**os.environ, "RHIZE_REFACTOR_GATE_STATE_DIR": str(state_dir)}
+    result = subprocess.run(
+        [interpreter, str(SCRIPT), "hook-command"],
+        input=json.dumps({"cwd": str(workspace), "tool_input": {"command": command}}),
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode in (0, 2), result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_post_command_records_source_changed_while_pending_and_reconcile_requires_it(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    # A write no static rule can see (a script, `bash -c`, `npm run codemod`) lands while pending.
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+
+    flagged = _shell(state_dir, workspace, "./scripts/codemod.sh", mode="hook-command-post")
+
+    assert flagged.returncode == 2
+    assert "src/example.ts" in flagged.stderr
+    assert "prepare --workspace" in flagged.stderr
+    assert _shell(state_dir, workspace, "true", mode="hook-command-post").returncode == 0  # once
+    assert _status(state_dir, workspace)["unprepared_source_changes"] == ["src/example.ts"]
+
+    # The arm-time baseline survives prepare, so a map that omits the file cannot reconcile.
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan)
+    query = "Refactor the application example safely"
+    assert run_gate(state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan), "--query", query).returncode == 0
+    unmapped = run_gate(state_dir, "reconcile", "--workspace", str(workspace))
+    assert unmapped.returncode == 2
+    assert "src/example.ts" in unmapped.stderr
+
+    write_plan(plan, ("src/example.ts",))
+    assert run_gate(state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan), "--query", query).returncode == 0
+    reconciled = run_gate(state_dir, "reconcile", "--workspace", str(workspace))
+    assert reconciled.returncode == 0, reconciled.stderr
+
+
+def test_rearmed_pending_receipt_still_requires_recorded_unprepared_changes(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+    assert _shell(state_dir, workspace, "./scripts/codemod.sh", mode="hook-command-post").returncode == 2
+
+    # A new material prompt re-arms pending with a fresh baseline; the record carries over.
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Now fix the failing tests"))
+    assert _status(state_dir, workspace)["unprepared_source_changes"] == ["src/example.ts"]
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan)
+    assert run_gate(
+        state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan),
+        "--query", "Refactor the application example safely",
+    ).returncode == 0
+    unmapped = run_gate(state_dir, "reconcile", "--workspace", str(workspace))
+    assert unmapped.returncode == 2
+    assert "src/example.ts" in unmapped.stderr
+
+
+def test_post_command_ignores_exempt_changes_and_non_pending_receipts(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    state_dir = tmp_path / "state"
+    assert _shell(state_dir, workspace, "true", mode="hook-command-post").returncode == 0  # no receipt
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    (workspace / "docs").mkdir()
+    (workspace / "docs/notes.md").write_text("findings\n")
+    (workspace / "STATE.md").write_text("progress\n")
+    # Logs, notes and other non-code untracked files are not source (same rule as pre-command).
+    (workspace / "test-output.log").write_text("ok\n")
+    (workspace / "notes.txt").write_text("x\n")
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan, ("src/example.ts",))
+    assert _shell(state_dir, workspace, "true", mode="hook-command-post").returncode == 0
+    assert "unprepared_source_changes" not in _status(state_dir, workspace)
+
+    assert run_gate(
+        state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan),
+        "--query", "Refactor the application example safely",
+    ).returncode == 0
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+    assert _shell(state_dir, workspace, "true", mode="hook-command-post").returncode == 0
+
+
+@pytest.mark.parametrize("commit", [RELEASE_FIXTURE, "git -c user.name=z " + "commit -qam sneak"])
+def test_post_command_sees_a_hidden_write_committed_in_the_same_command(tmp_path: Path, commit: str) -> None:
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    commit_command = "bash -c 'echo x > src/example.ts' && " + commit
+
+    # Someone else's commit arriving through a pull is not charged; the stored HEAD advances.
+    (workspace / "src/other.ts").write_text("export const other = 1\n")
+    git(workspace, "add", "src/other.ts")
+    git(workspace, "commit", "-qm", "upstream work")
+    assert _shell(state_dir, workspace, "git pull --ff-only", mode="hook-command-post").returncode == 0
+
+    # The pre-command check saw a clean tree; the post check sees what the commit carried.
+    (workspace / "src/example.ts").write_text("export const value = 9\n")
+    git(workspace, "commit", "-qam", "sneak")
+    flagged = _shell(state_dir, workspace, commit_command, mode="hook-command-post")
+
+    assert flagged.returncode == 2
+    assert _status(state_dir, workspace)["unprepared_source_changes"] == ["src/example.ts"]
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan)
+    assert run_gate(
+        state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan),
+        "--query", "Refactor the application example safely",
+    ).returncode == 0
+    unmapped = run_gate(state_dir, "reconcile", "--workspace", str(workspace))
+    assert unmapped.returncode == 2
+    assert "src/example.ts" in unmapped.stderr
+    assert "src/other.ts" not in unmapped.stderr
+
+
+def test_docs_only_commit_ignores_an_untracked_nested_worktree(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    _isolated_repo(workspace)
+    git(workspace, "worktree", "add", "-q", ".claude/worktrees/agent", "-b", "agent")
+    (workspace / ".claude/worktrees/agent/src/example.ts").write_text("agent work\n")
+    # Control: the nested worktree really is visible to git as an untracked entry.
+    assert "?? .claude/worktrees/agent/" in git(workspace, "status", "--porcelain", "--untracked-files=all")
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Fix the application bug"))
+    (workspace / "STATE.md").write_text("progress\n")
+    (workspace / "docs").mkdir()
+    (workspace / "docs/m1-queue.md").write_text("queue\n")
+    command = "git add STATE.md docs/m1-queue.md && " + RELEASE_FIXTURE
+
+    allowed = _shell(state_dir, workspace, command)
+    assert allowed.returncode == 0, allowed.stderr
+
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+    assert _shell(state_dir, workspace, command).returncode == 2
+
+
+def test_prepare_accepts_a_map_in_the_primary_checkout_of_a_linked_worktree(tmp_path: Path) -> None:
+    primary = tmp_path / "primary"
+    init_repo(primary)
+    worktree = tmp_path / "agent"
+    git(primary, "worktree", "add", "-q", str(worktree), "-b", "agent")
+    plan = primary / ".claude/plans/agent.md"
+    write_plan(plan, ("src/example.ts",))
+    elsewhere = tmp_path / "elsewhere.md"
+    write_plan(elsewhere, ("src/example.ts",))
+    state_dir = tmp_path / "state"
+
+    def prepare(workspace: Path, map_path: Path) -> subprocess.CompletedProcess[str]:
+        return run_gate(
+            state_dir, "prepare", "--workspace", str(workspace), "--plan", str(map_path),
+            "--query", "example refactor",
+        )
+
+    accepted = prepare(worktree, plan)
+    assert accepted.returncode == 0, accepted.stderr
+    assert _status(state_dir, worktree)["plan"]["path"] == str(plan.resolve())
+    for workspace in (worktree, primary):
+        rejected = prepare(workspace, elsewhere)
+        assert rejected.returncode == 2
+        assert "inside the workspace" in rejected.stderr

@@ -4,6 +4,23 @@ This guide explains what the rhize-devflow plugin does, how its pieces fit toget
 
 ## What This Plugin Does
 
+When a task needs stored credentials, use the `credential-access` skill. It starts with an
+already authenticated service CLI, then uses an exact Keychain CLI lookup only if necessary.
+Keep the value inside the consuming child process; report metadata only. Missing credentials
+or OS consent stop that step rather than opening Keychain Access.
+
+The auto-wired credential guard rejects explicit Keychain GUI selection/launch requests before
+supported tools run, including during existing tasks. Codex must trust the current hook
+definition first, and updated hosts must reload it. Verify both an allowed control and a
+denied GUI request; an agent refusal before tool dispatch is not proof that the hook blocked
+anything. Harmless native probe fixtures under `tests/rhize-devflow/fixtures/` record markers
+and never execute supplied code or launch apps. Native proof and remaining coverage limits are
+recorded in repository `STATE.md`. The guard cannot contain arbitrary encoded code or tools
+that skip the hook path. Context Manager's separately activated credential workflow policy
+can choose fixed CLI procedure guidance; it never clears this guard or grants permission.
+The content/general measurement pilot remains in shadow. See the marketplace's
+`docs/handoffs/credential-workflow-activation.md` for release and fresh-session verification.
+
 rhize-devflow is Rhize's engineering control plane: the executable workflow that takes a change
 from "what will this touch" through "does it pass" to "is it safe to ship" —
 
@@ -270,7 +287,7 @@ receipt is shared between Claude and Codex. New receipts keep only the prompt ha
 policy/fixed reason code/task kind, exact available source identity, active handler-invocation counts, and append-only phase
 events; they do not retain raw task text.
 
-**When the gate blocks you — what each message means and what to do.** The gate is four hooks
+**When the gate blocks you — what each message means and what to do.** The gate is five hooks
 around one receipt file per workspace (`~/.claude/rhize-devflow/refactor-gate/`); every message
 below names the next command, and `python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" status
 --workspace <repo>` always tells you which state you are in.
@@ -278,6 +295,9 @@ below names the next command, and `python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor
 | You see | It means | Do this |
 | --- | --- | --- |
 | `source edits require a prepared refactor-evidence receipt` | Your prompt was classed as material work and no map has been prepared yet | The first source-write hook prepares a single recent, complete map that includes the active `Preparation ID:` and `Discovery query:` lines. For missing or ambiguous maps, persist one under `.claude/plans/<name>.md` (with the five required sections) and run the exact `refactor_gate.py prepare --workspace <repo> --plan <that file> --query "<same query>"` command shown by the hook. |
+| The same message on a Bash command (`Blocked paths:` names the files) | A shell command would write source while no map is prepared: a redirect, `tee`, `sed -i`, `cp`/`mv`, `git apply`, or a Python/Node heredoc or `-c` write | Same as above. Writes to scratch or `/tmp`, ignored build output, docs, and plans are not blocked |
+| PostToolUse: `source changed while no impact map is prepared: <paths>` | A command the static check could not read (a script, `bash -c`, `npm run …`) changed source while the receipt was `pending`. The edit already happened | Stop editing source, write the map naming those files, `prepare`. The receipt keeps the pre-edit snapshot and the recorded paths, so `reconcile` requires them in the map |
+| `impact map must be stored inside the workspace` | The `--plan` path is outside `--workspace` | Keep the map in the workspace. For a linked worktree, a map in its primary checkout (for example the orchestrator's `.claude/plans/`) is also accepted |
 | `impact map changed after preparation; run prepare again` | You edited the map after preparing it (every source write is blocked until you do) | Run `prepare` again — it keeps the original baseline, so nothing already implemented is lost |
 | `actual changed files are missing from the impact map: <paths>` (from `reconcile`) | Files changed that the map never named | Add those paths to the map, `prepare` again, then `reconcile` |
 | `commit/push/merge requires a reconciled refactor-evidence receipt` | Source changed since `prepare` and you have not reconciled | Run `reconcile --workspace <repo>`; a leading `cd <other-repo> &&`/`cd <other-repo>;`, a `git -C <other-repo> …`, or a `--git-dir=`/`--work-tree=` flag is checked against *that repo's own* receipt — use a literal path. A shell variable or command substitution in the path, any further `cd` after the leading one (even separated by another command), a subshell (`(cd … )`), or `pushd` is ambiguous and keeps the payload's own cwd instead; a `cd`/flag target that isn't a real Git repo also falls back to cwd |
@@ -291,6 +311,8 @@ config files (`.json`, `.yaml`, `.toml`, lockfiles, ignore files), and prose und
 `docs/`, `claudedocs/`, `.claude/analyses/` or `.codex/analyses/` (`.md`, `.markdown`, `.txt`, `.rst`) are exempt from this source gate.
 Executable files and MDX in those documentation directories remain gated, as do mixed source
 and context edits. The same classification applies to write, reconciliation, and release checks.
+An untracked nested repository or worktree (for example `.claude/worktrees/<agent>/`) is not a
+change in the parent repository, so it does not block a docs-only commit there.
 To set a receipt aside deliberately, run
 `refactor_gate.py dismiss --workspace <repo> --reason "<why>"`; `RHIZE_REFACTOR_GATE=off` in the
 environment is the emergency bypass, and both leave a record. Bash commands whose text contains a
@@ -572,4 +594,10 @@ you expected delegation to happen.
 
 **Heavier guard hooks (prewrite mutation check, protect-files, mutation/sentry-stale-data suggesters) don't seem to be running:** They're opt-in by design — all four ship under `hooks/` but nothing is auto-wired. See the README's Hooks section (or `setup/manifest.json`, which the `/rhize-core:setup` wizard in `rhize-ops` reads) for the full list and exact commands, and wire in the ones you want per-project rather than expecting them to fire out of the box.
 
-For measured pilots, set `RHIZE_LAYA_DEVFLOW_SHADOW=1` and follow the [typed checkpoint contract](docs/typed-checkpoint.md) at existing Dev Flow stages. It records an observational candidate directive with evidence and variant binding; unavailable responses leave the incumbent workflow in force.
+To get Laya's next-action signal, run `scripts/typed_checkpoint.py --mode advise` at existing Dev Flow stages per the [typed checkpoint contract](docs/typed-checkpoint.md). The registry decides what is shown (shadow until earned) and it never changes obligations; `--mode shadow` is the observational receipt for measured pilots. Unavailable responses leave the incumbent workflow in force.
+
+`/rhize-devflow:check` can also run fewer routine checks on a low-risk diff: it asks `scripts/check_plan.py plan` which
+checks to run and re-verifies the plan right before the verdict. Docs-only changes swap the full test suite for affected
+tests, and a diff without UI or logic files skips browser QA or mutation analysis. Protected paths (CI, auth, env, lockfiles,
+migrations, infra) and anything release-stage always get the full list, and Laya (`check-relaxation`, shadow until earned)
+can only keep it. See [check relaxation](docs/check-relaxation.md).

@@ -79,7 +79,7 @@
       "id": "rhize-ops",
       "kind": "plugin",
       "domain": "operations",
-      "skills": ["cross-model-handoff", "delegate-to-teammate", "parallel-agent-optimization", "skill-dashboard"],
+      "skills": ["business-premortem", "cross-model-handoff", "delegate-to-teammate", "parallel-agent-optimization", "skill-dashboard"],
       "suites": [{"id": "rhize-ops-local", "kind": "python", "path": "evals/parallel-agent-skills/scripts/evaluate_ops_skills.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
       "benchmarks": [{"id": "operations-existing-vs-rhize", "protocol": "evals/parallel-agent-skills/manifest.json", "arm_a": "user-confirmed existing operations workflow", "arm_b": "rhize-ops", "natural_capture_eligible": true}]
     },
@@ -103,7 +103,7 @@
       "id": "rhize-devflow",
       "kind": "plugin",
       "domain": "engineering-delivery",
-      "skills": ["chrome-devtools-mcp", "completed-branch-promotion", "data-mutation-consistency", "dev-flow-foundations", "error-lifecycle-management", "sanity-development", "sentry-instrumentation", "simplify", "test-evidence"],
+      "skills": ["chrome-devtools-mcp", "completed-branch-promotion", "credential-access", "data-mutation-consistency", "dev-flow-foundations", "error-lifecycle-management", "sanity-development", "sentry-instrumentation", "simplify", "test-evidence"],
       "suites": [{"id": "devflow-local", "kind": "python", "path": "evals/rhize-devflow/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
       "benchmarks": [{"id": "devflow-existing-vs-plugin", "protocol": "evals/rhize-devflow/benchmark_contracts.json", "arm_a": "user-confirmed existing engineering workflow", "arm_b": "rhize-devflow", "natural_capture_eligible": true}]
     },

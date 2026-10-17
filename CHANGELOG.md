@@ -34,6 +34,19 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-17_ version bump — **rhize-core** 1.0.7 → 1.0.8 (patch); marketplace 2.110.0 → 2.110.1.
+- _2026-10-17_ version bump — **rhize-ops** 0.31.0 → 0.32.0 (minor); marketplace 2.109.0 → 2.110.0.
+- _2026-10-16_ version bump — **rhize-devflow** 2.28.0 → 2.29.0 (minor); marketplace 2.108.0 → 2.109.0.
+- _2026-10-16_ version bump — **rhize-devflow** 2.27.0 → 2.28.0 (minor); marketplace 2.104.3 → 2.105.0.
+- _2026-10-16_ Laya advise everywhere ([plan](./docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md)): the `advise` mode and majority-baseline gate land across rhize-context-manager 0.48.0, rhize-devflow 2.28.0, rhize-ops 0.31.0 and project-launcher 1.15.0, together with the credential-procedure decision from PR 55. Per-plugin detail is in each plugin changelog; all decisions ship in `shadow`.
+- _2026-10-16_ version bump — **project-launcher** 1.14.0 → 1.15.0 (minor); marketplace 2.107.0 → 2.108.0.
+- _2026-10-16_ version bump — **rhize-ops** 0.30.1 → 0.31.0 (minor); marketplace 2.106.0 → 2.107.0.
+- _2026-10-16_ version bump — **rhize-devflow** 2.27.2 → 2.28.0 (minor); marketplace 2.105.1 → 2.106.0.
+- _2026-10-16_ version bump — **rhize-devflow** 2.27.1 → 2.27.2 (patch); marketplace 2.105.0 → 2.105.1.
+- _2026-10-16_ version bump — **rhize-context-manager** 0.47.3 → 0.48.0 (minor); marketplace 2.104.6 → 2.105.0.
+- _2026-10-15_ version bump — **rhize-ops** 0.30.0 → 0.30.1 (patch); marketplace 2.104.5 → 2.104.6.
+- _2026-10-15_ version bump — **rhize-core** 1.0.6 → 1.0.7 (patch); marketplace 2.104.4 → 2.104.5.
+- _2026-10-15_ version bump — **rhize-devflow** 2.27.0 → 2.27.1 (patch); marketplace 2.104.3 → 2.104.4.
 - _2026-10-15_ version bump — **rhize-context-manager** 0.47.2 → 0.47.3 (patch); marketplace 2.104.2 → 2.104.3.
 - _2026-10-14_ version bump — **rhize-context-manager** 0.47.1 → 0.47.2 (patch); marketplace 2.104.1 → 2.104.2.
 - _2026-10-14_ version bump — **rhize-context-manager** 0.47.0 → 0.47.1 (patch); marketplace 2.104.0 → 2.104.1.

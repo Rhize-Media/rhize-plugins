@@ -1173,6 +1173,40 @@
           "weight": 2
         }
       ],
+      "skill:rhize-devflow/credential-access": [
+        {
+          "kind": "name",
+          "label": "credential-access",
+          "weight": 1
+        },
+        {
+          "kind": "phrase",
+          "label": "keychain access",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "keychain credentials",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "stored credentials",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "security",
+          "weight": 2
+        }
+      ],
       "skill:rhize-devflow/data-mutation-consistency": [
         {
           "kind": "name",
@@ -1392,6 +1426,31 @@
           "facet": "stack",
           "kind": "tag",
           "label": "testing",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-ops/business-premortem": [
+        {
+          "kind": "name",
+          "label": "business-premortem",
+          "weight": 1
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "evidence",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "review",
           "weight": 2
         }
       ],

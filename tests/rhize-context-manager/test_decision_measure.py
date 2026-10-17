@@ -137,8 +137,11 @@ def test_measurement_binds_only_complete_sealed_observation(tmp_path):
     import workflow_selection as workflow
     import workflow_task_context as context
     receipts, root = tmp_path / 'receipts', tmp_path / 'pilot'
-    receipt, _ = workflow.opportunity({'prompt': 'invented task', 'session_id': 'fixture', 'turn_id': '1'},
-        'codex', receipts, {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    payload = {'prompt': 'invented task', 'session_id': 'fixture', 'turn_id': '1'}
+    receipt, _ = workflow.opportunity(payload, 'codex', receipts,
+        {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    import workflow_context_packet
+    workflow_context_packet.capture_request_snapshot(receipts, receipt, payload)
     identity = receipt['opportunityId']
     evidence = {'schemaVersion': context.SCHEMA, 'opportunityId': identity,
                 'promptHash': receipt['promptHash'], 'sessionHash': receipt['sessionHash'],

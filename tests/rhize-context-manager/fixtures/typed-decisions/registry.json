@@ -38,10 +38,242 @@
  "invalidRegistries": [
   {
    "name": "critical-cosign",
-   "reason": "critical decisions are shadow-only",
+   "reason": "critical decisions never reach cosign",
    "registry": {
     "decisions": {
+     "browser-qa-selection": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "browser-qa-default",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "check-relaxation": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "full-checks",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     },
+     "devflow-next-action": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "devflow-hard-gates",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "gsd-directive": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "gsd-supervisor",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "model-routing": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "ops-router",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "procedure-pick": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "procedural-recall-top1",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
      "skill-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "laya-choice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": "cosign-v1",
       "endpoint": "http://127.0.0.1:8000",
@@ -70,11 +302,27 @@
       "reachableModes": [
        "off",
        "shadow",
+       "advise",
        "cosign"
       ],
       "tier": "critical"
      },
      "workflow-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": null,
       "endpoint": null,
@@ -86,7 +334,8 @@
       "latencyBudgetMs": null,
       "model": null,
       "reachableModes": [
-       "shadow"
+       "shadow",
+       "advise"
       ],
       "tier": "workflow"
      }
@@ -99,7 +348,239 @@
    "reason": "only advisory decisions may reach cosign",
    "registry": {
     "decisions": {
+     "browser-qa-selection": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "browser-qa-default",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "check-relaxation": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "full-checks",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     },
+     "devflow-next-action": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "devflow-hard-gates",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "gsd-directive": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "gsd-supervisor",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "model-routing": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "ops-router",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "procedure-pick": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "procedural-recall-top1",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
      "skill-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "laya-choice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": "cosign-v1",
       "endpoint": "http://127.0.0.1:8000",
@@ -128,11 +609,27 @@
       "reachableModes": [
        "off",
        "shadow",
+       "advise",
        "cosign"
       ],
       "tier": "advisory"
      },
      "workflow-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": null,
       "endpoint": null,
@@ -158,7 +655,239 @@
    "reason": "endpoint must be a literal loopback http address",
    "registry": {
     "decisions": {
+     "browser-qa-selection": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "browser-qa-default",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "check-relaxation": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "full-checks",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     },
+     "devflow-next-action": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "devflow-hard-gates",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "gsd-directive": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "gsd-supervisor",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "model-routing": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "ops-router",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "procedure-pick": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "procedural-recall-top1",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
      "skill-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "laya-choice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": "cosign-v1",
       "endpoint": "http://localhost:8000",
@@ -187,11 +916,27 @@
       "reachableModes": [
        "off",
        "shadow",
+       "advise",
        "cosign"
       ],
       "tier": "advisory"
      },
      "workflow-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": null,
       "endpoint": null,
@@ -203,7 +948,8 @@
       "latencyBudgetMs": null,
       "model": null,
       "reachableModes": [
-       "shadow"
+       "shadow",
+       "advise"
       ],
       "tier": "workflow"
      }
@@ -216,7 +962,239 @@
    "reason": "invalid defaultMode",
    "registry": {
     "decisions": {
+     "browser-qa-selection": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "browser-qa-default",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "check-relaxation": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "full-checks",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     },
+     "devflow-next-action": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "devflow-hard-gates",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "gsd-directive": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "gsd-supervisor",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "model-routing": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "ops-router",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "procedure-pick": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "procedural-recall-top1",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
      "skill-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "laya-choice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "cosign",
       "deployablePolicy": "cosign-v1",
       "endpoint": "http://127.0.0.1:8000",
@@ -249,6 +1227,21 @@
       "tier": "advisory"
      },
      "workflow-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": null,
       "endpoint": null,
@@ -260,7 +1253,8 @@
       "latencyBudgetMs": null,
       "model": null,
       "reachableModes": [
-       "shadow"
+       "shadow",
+       "advise"
       ],
       "tier": "workflow"
      }
@@ -273,7 +1267,173 @@
    "reason": "invalid decision id",
    "registry": {
     "decisions": {
+     "browser-qa-selection": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "browser-qa-default",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "check-relaxation": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "full-checks",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "credential-procedure": {
+      "advise": null,
+      "defaultMode": "shadow",
+      "deployablePolicy": "credential-cli-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": null,
+      "holdback": 0,
+      "incumbent": "credential-cli-first",
+      "instrument": "credential-cli-v1",
+      "lambda": null,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     },
+     "devflow-next-action": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "devflow-hard-gates",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
+     "gsd-directive": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.15,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 10,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "gsd-supervisor",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "critical"
+     },
      "gsd-finish": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": null,
       "endpoint": null,
@@ -285,11 +1445,93 @@
       "latencyBudgetMs": null,
       "model": null,
       "reachableModes": [
-       "shadow"
+       "shadow",
+       "advise"
       ],
       "tier": "workflow"
      },
+     "model-routing": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "ops-router",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
+     "procedure-pick": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "procedural-recall-top1",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "off",
+       "shadow",
+       "advise"
+      ],
+      "tier": "advisory"
+     },
      "skill-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "laya-choice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": "cosign-v1",
       "endpoint": "http://127.0.0.1:8000",
@@ -318,11 +1560,27 @@
       "reachableModes": [
        "off",
        "shadow",
+       "advise",
        "cosign"
       ],
       "tier": "advisory"
      },
      "workflow-fit": {
+      "advise": {
+       "alphaBase": 0.1,
+       "demote": {
+        "consecutive": 2,
+        "freshLabels": 10,
+        "window": 30
+       },
+       "gate": "majority-baseline",
+       "holdback": 0.1,
+       "instrument": "typed-advice-v1",
+       "minCohort": 30,
+       "minCoverage": 0.9,
+       "minCriticalCases": 0,
+       "policy": "advise-v1"
+      },
       "defaultMode": "shadow",
       "deployablePolicy": null,
       "endpoint": null,
@@ -334,7 +1592,8 @@
       "latencyBudgetMs": null,
       "model": null,
       "reachableModes": [
-       "shadow"
+       "shadow",
+       "advise"
       ],
       "tier": "workflow"
      }

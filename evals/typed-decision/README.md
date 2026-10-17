@@ -60,7 +60,7 @@ Run a small replayable 4–6-pair pilot with identical rubric and frozen fixture
 `pilot_cycle.py --research-root PRIVATE_DIRECTORY` is the daily workflow coordinator. Its automatic
 CLI processes only `workflow-pilot-v2`; historical v1 exports and frozen experiments remain intact.
 The older callable `legacy_cycle` is retained for explicit v1 fixture/exploratory compatibility,
-not selected by this CLI. Automatic `--minimum-labels` cannot be below **200**.
+not selected by this CLI. Automatic `--minimum-labels` defaults to **30** and is bounded to 20..10000 (the old 200-label floor is retired; see the advise-v1 gate below).
 
 V2 export adds `cohort_version`, `normalization_version`, `collection_source_sha256`, opaque
 `grouping_keys`, `task_family`, `host`, `candidate_ids`, human `routing_choice` and nullable
@@ -75,7 +75,7 @@ bases the private label policy accepts (human only unless the operator enables
 carry `label_basis`, `family`, `phase`, `areas`, `risk_flags`, `choice_basis` and the richer
 `stratum` (`routine`, `elevated`, `critical`; the evaluator still counts `critical*` misses).
 Only explicitly judged routing choices are scored. Slice gates (each route >=15, >=4 families
->=15, >=20 elevated or critical) apply on top of the 200 floor, and every output reports its label
+>=15, >=20 elevated or critical) apply on top of the label minimum, and every output reports its label
 bases. `research.py` accepts `label_basis` `human_adjudicated` (the default when missing) or
 `ai_model_reviewed`.
 
@@ -91,7 +91,7 @@ and tie break, exclusion mask, then threshold abstention. It does not grade thre
 answers as three independent routing decisions. V2 relevance values are uncalibrated and its
 `brier_mean` stays null; generic non-pilot choice/Noul diagnostics retain their existing semantics.
 
-In addition to 200 eligible human labels, provisional development gates apply to the **whole
+In addition to the label minimum (default 30), provisional development gates apply to the **whole
 corpus**, including the reserved holdout, and require the following. They do not guarantee these
 counts in train or validation separately:
 
@@ -122,11 +122,52 @@ so a genuine binding-input repair changes the identity. Invalid CLI bounds retur
 failure JSON; unavailable failure-receipt persistence is reported rather than hidden.
 Insufficient labels creates a separate durable non-error hold, not a failed experiment.
 
-Successful development search freezes one candidate for human review and reports
-`releaseEligible: false`, `holdout: not_run`, and `promotion: not_performed`. The daily job never
-runs a holdout, promotes a candidate, trains weights, fabricates labels or launches duplicate
-coding tasks. The generic holdout commands above describe a separately authorized review workflow;
+Successful development search freezes one candidate for human review (`holdout: not_run`). The daily
+job never runs a holdout, trains weights, fabricates labels or launches duplicate coding tasks.
+
+### advise-v1 baseline gate (`workflow-fit`)
+
+The 200-label floor is retired for the pilot: advise is earned by a reserved promotion cohort of at least `minCohort` = 30 cases, and the 200-case figure above remains only for the generic non-pilot research release gate (`research.py`). After the search, the cycle sends only the default wording (no instruction
+overrides, no abstention threshold; the constants `ADVICE_QUESTION`/`ADVICE_CANDIDATES`/`ADVICE_POLICY` in
+`decision_pilot_v2.py`) through one attempt of `typed_promotion.run_attempt`:
+
+- Groups split by `sha256('split:'+group) % 3`: 2/3 tuning, 1/3 promotion. The baseline is the tuning
+  majority class, frozen in the cohort's `reserve` event; it predicts the same promotion cases.
+- The group is the statistical unit: one case per group (the smallest case id), never a group an earlier cohort
+  of the decision used. The cohort (at least `minCohort` = 30 cases from 30 distinct groups) is written to
+  `<root>/workflow-fit/advise-cohorts.jsonl` (case ids and group hashes) BEFORE Laya is called, and consumed by
+  exactly one verdict. The availability probe is mandatory and must return exactly `True`; anything else holds
+  without a ledger write. The receipt is published exclusively per cohort, and a reserved cohort left without a
+  verdict (crash, or a probe failure right before evaluation) is resumed, its stored receipt adopted unchanged,
+  instead of reserving another. Attempt k tests at `alphaBase * 2^-(k-1)`; the budget is per decision, not per policy
+  or Laya revision.
+- Abstentions, timeouts and unavailable answers count as Laya wrong; coverage must be at least `minCoverage`.
+- Pass needs the one-sided Clopper-Pearson lower bound of b/(b+c) above 0.5 (b: Laya right and baseline wrong,
+  c: the reverse), a balanced accuracy above the baseline's, and for every class with at least 10% tuning
+  share (zero-count classes included) at least 3 cases and recall at least 0.5. A critical decision also needs
+  `minCriticalCases` trusted `critical_if_wrong` cases and zero critical misses; a critical miss is any such case
+  Laya did not get right, an abstention or unavailable answer included.
+- A pass calls `decision_registry.mutate('workflow-fit', 'advise', actor='cycle', reason='gate_pass')` with the
+  binding `{policySha256, instrumentSha256, layaRevision, cohortId}`; a refused write (pin, stale revision,
+  corrupt state) is recorded in the status receipt, never raised. `modes.json` no longer exists.
+- With `advise` in force the cycle spends no attempt and probes Laya before re-querying it (an outage holds the
+  check instead of scoring every answer wrong). It scores the latest `demote.window` cases once
+  `demote.freshLabels` new cases accrue, and demotes to `shadow` (`gate_demote`) after `demote.consecutive`
+  consecutive evaluations below the baseline (state in `<root>/workflow-fit/advise-demotion.json`); a critical
+  miss demotes at once. A binding that went stale (new policy hash) is reset to `shadow` (`binding_stale`)
+  so the gate can earn it again.
+- Gate settings come from the registry entry's `advise` object (`rhize-context-manager/catalog/decision-registry.json`).
+
+The generic holdout commands above describe a separately authorized review workflow;
 they are not part of the automatic pilot. Existing Arm A continues executing throughout shadow
 collection; Arm B recommendations cannot be credited with Arm A's task outcomes. `arm_a_coverage` records
 known/total incumbent choices by split; comparison remains unavailable if even one required
 incumbent choice is missing, rather than substituting a score for missing evidence.
+
+## The advise learning loop (every advise decision, plan §8)
+
+Surfaces record each advise-capable decision with `typed_advice.advise` (`<root>/<decision>/choice|snapshot|outcome/<id>.json`; `groupSha256` hashes the optional `group`, default the decision key). Three scripts close the loop; the daily autolabel job runs them in this order under its run lock.
+
+1. **Labels** (`rhize-context-manager/scripts/typed_decisions/choice_labels.py run [--decision D] [--max-cases N] [--dry-run]`). For every advise decision except `skill-fit` and `workflow-fit` (which keep their own labelers), choice records with a snapshot and no label get a blinded packet: the snapshot request re-sanitized by `pilot_redaction` (its source hash is stored as `redactor`), the question, and candidate ids with criteria under neutral shuffled keys. Laya's recommendation, probabilities, mode, arm, outcome and earlier labels never enter a packet. Two no-tools annotators (Claude and Codex through `skillfit_labels`' backend) answer independently; identical answers are accepted, a split goes to a reviewer model that is neither annotator, an unresolved review is stored as ambiguous. Labels are write-once `<root>/<decision>/label/<id>.json` (`rhize-typed-choice-label-v1`, `basis: ai_model_reviewed`, `rubricVersion`, annotators, reviewer, `evidenceSha256`). The run spends at most `maxCases` (default 50) model-labelled cases in total, shared fairly across decisions, and shares `pilot_autolabel`'s `state/run.lock` (a held lock exits quietly with zero calls). Right after the import, a critical-tier decision with an imported label that contradicts a shown advice (record mode `advise`, arm `treatment`, `criticalIfWrong`, Laya status `ok`, label not ambiguous) is demoted to `shadow` (`critical_miss`) through `decision_registry.mutate`; `no_change` and pins are recorded in the run receipt `<root>/choice-labels/receipts/`.
+2. **Cycle** (`decision_cycle.py run`). The skill-fit cosign cycle is unchanged. After it, `run_advise` handles every decision with an `advise` entry except `workflow-fit` (owned by `pilot_cycle.py`). The gate is **prospective**. Records are the ones on one binding: `policySha256` (the registry state's once advise is earned, else the most recent record's), the entry's advise instrument hash and the running Laya revision. Group is `groupSha256` (falling back to the decision id); skill-fit uses the session hash and the label's `bestSkill`, with the contract's `advise-v1` policy hash (the one the Node router writes and reads). With a tuning baseline available and no open cohort, the first pass probes Laya (must return exactly `True`) and appends an `open` event (`openedAt`, rule `earliest-record-per-promotion-group-after-open`, and the **baseline frozen at that moment**: the tuning-split majority) and holds as `cohort_opened`; nothing recorded before that moment is ever a case. Later passes **enroll** without reading a label, outcome or Laya answer: the earliest record of each promotion-split group created after `openedAt` on that binding (skipping groups earlier cohorts used), in record-time order, until there are `ceil(minCohort / 0.8)` of them (the headroom covers up to 20% ambiguous labels) and, for a critical decision, `ceil(minCriticalCases / 0.8)` critical cases (the critical flag is pre-decision state). Until then the pass holds as `cohort_collecting`. The immutable `enrolled` event (case ids and group hashes) is then appended; there is no replacement afterwards. The cohort waits (`cohort_labelling`) until every enrolled case has a final label; ambiguous labels are excluded, and more than 20% of them consume the cohort as a hold (`ambiguous_share`). Immediately before the final evaluation the pass probes Laya again (a failure holds as `laya_unavailable` and consumes nothing), then evaluates the enrolled set with the open-frozen baseline exactly once. The receipt is published exclusively per cohort id and `consumed` is appended after it; a retry after a crash in between adopts the stored receipt unchanged (no re-evaluation, whatever labels arrived since) and appends the missing `consumed`. A binding change `abandon`s the open or enrolled cohort (its attempt and alpha stay spent) and opens a new one. The required classes are the tuning classes with at least 10% share. Laya's answers are the ones recorded at decision time. A pass promotes to `advise` with `{policySha256, instrumentSha256, layaRevision, cohortId}`; with `advise` in force the rolling demotion rule runs on the latest advise-arm treatment cases (`gate_demote`), and a critical decision demotes at once (`critical_miss`) on any critical case Laya did not get right among all labelled cases with a `shown` marker since advise began, not only the window. Pins, `off`, `cosign` and registry refusals are recorded holds. `--no-advise` skips the pass.
+3. **Scoreboard** (`typed_decisions/scoreboard.py render`). One advise row per decision: mode, labelled n, last verdict, accuracy vs baseline, CP lower bound, coverage, critical cases and misses, attempts used and the next alpha.

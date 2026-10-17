@@ -574,3 +574,15 @@ Regressions added:
 **Daily loop.** `laya-autolabel.sh` (07:30) now runs `skillfit-daily.py` after the workflow labeler: outcomes, then cohort and pool labels, then the cycle, then the scoreboard, within a 10-minute budget. A smoke run passed. Live cosign smoke: an agreed suggestion was shown, and a timeout fell back to the incumbent.
 
 **Open finding (operational).** After a few idle minutes, the first Laya inference exceeded the 800 ms hook budget, so the record shows `timeout` and the incumbent is shown. Warm calls took 137–220 ms, and after 45 s idle a call took 322 ms. Timeouts are reported separately and do not trigger operational demotion. They do count as unavailable in the promotion gate, so they would hold future live cohorts once they pass 5%. Recommended fix: a keep-warm tick in the Laya service, or a measured budget increase.
+
+## Superseded in part (2026-10-16)
+
+The [advise-everywhere plan](2026-10-16-laya-advise-everywhere-plan.md) (Jim, 2026-10-16) overrides these
+invariants of this plan; the text above is left as written. Everything else here still stands.
+
+- **I5** (the v2 workflow pilot and its 200-label floor are unchanged): the floor is retired for workflow
+  fit, which moves to the v3 choice envelope and earns `advise` through the majority-baseline gate.
+- **I6** (critical decisions are shadow-only by schema): critical decisions may reach `advise`, never
+  `cosign`, through the baseline gate with at least 10 critical cases and zero critical misses.
+- **I8** (only `cosign-v1` is auto-deployable): `advise-v1` is a second deployable policy that the baseline
+  gate may set automatically; passing one mode's gate never authorizes the other.

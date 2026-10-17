@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/typed-choice-outcome-v1.schema.json",
+  "title": "typed-choice-outcome-v1",
+  "description": "What the agent actually chose for an advise-v1 decision (typed_advice.record_outcome), stored write-once at <root>/<decision>/outcome/<decisionId>.json (0600). `chosen` must be one of the record's candidates; the first write wins and a conflicting duplicate is refused. `followed` is true when chosen equals Laya's choice.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "decision",
+    "decisionId",
+    "chosen",
+    "followed",
+    "ts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "rhize-typed-choice-outcome-v1"
+    },
+    "decision": {
+      "enum": [
+        "skill-fit",
+        "workflow-fit",
+        "procedure-pick",
+        "devflow-next-action",
+        "browser-qa-selection",
+        "model-routing",
+        "gsd-directive",
+        "check-relaxation"
+      ]
+    },
+    "decisionId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "chosen": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$"
+    },
+    "followed": {
+      "type": "boolean"
+    },
+    "ts": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+    }
+  }
+}

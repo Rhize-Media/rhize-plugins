@@ -151,7 +151,7 @@ def identities_fixture():
         for holdback in (0, 0.1, 0.5):
             arms.append({'sessionHash': s, 'promptHash': p, 'holdback': holdback,
                          'expected': contract.arm_for(s, p, holdback)})
-    return {'policySha256': {'cosign-v1': contract.policy_sha256('cosign-v1')},
+    return {'policySha256': {p: contract.policy_sha256(p) for p in (contract.POLICY_COSIGN, contract.POLICY_ADVISE)},
             'instrumentSha256': instrument.instrument_sha256(), 'occurrenceKeys': occ, 'arms': arms}
 
 

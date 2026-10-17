@@ -57,9 +57,11 @@
 // non-explicit router suggestion the hook asks the local Laya server (literal
 // loopback only, see lib/laya-client.js) which of the lexical top-5 skills (or
 // none) fits the prompt. In mode `cosign`, in the treatment arm, a suggestion
-// Laya does not independently choose is withheld; in every other case (mode
-// `shadow`, the holdback arm, any Laya failure or deadline expiry, any
-// exception) the precomputed incumbent payload is emitted unchanged. The
+// Laya does not independently choose is withheld. In mode `advise` (treatment
+// arm) the incumbent payload is kept and, where Laya picks another skill, one
+// advisory line is appended; those records carry policy `advise-v1`. In every
+// other case (mode `shadow`, the holdback arm, any Laya failure or deadline
+// expiry, any exception) the precomputed incumbent payload is emitted unchanged. The
 // payload is settled exactly once and flushed before any logging or exit, and
 // one decision record (no prompt text) is appended per eligible prompt.
 //
@@ -126,6 +128,8 @@ const DECISION = 'skill-fit';
 // `shadow` for the invocation, whatever the registry or machine state says: Codex has no co-sign
 // evidence yet, and it must not be pooled into the promotion/demotion gate (plan section 7, F6).
 const COSIGN_HOSTS = ['claude'];
+// `advise` is capped the same way: unknown and machine hosts read `shadow`.
+const ADVISE_HOSTS = ['claude', 'codex'];
 const PACKAGED = process.argv.includes('--packaged');
 const MAX_CONFIG_BYTES = 16 * 1024;
 const MAX_SETTINGS_BYTES = 1024 * 1024;
@@ -487,6 +491,7 @@ function packagedMayRun(data, env = process.env, home = os.homedir()) {
 // Caps the effective mode at shadow for hosts outside COSIGN_HOSTS (state and registry stay untouched).
 function capModeForHost(config, host) {
   if (config && config.mode === 'cosign' && !COSIGN_HOSTS.includes(host)) return { ...config, mode: 'shadow' };
+  if (config && config.mode === 'advise' && !ADVISE_HOSTS.includes(host)) return { ...config, mode: 'shadow' };
   return config;
 }
 
@@ -562,6 +567,7 @@ function prepare(raw, data) {
   const explicit = Boolean(match) && match.signals.some((signal) => signal.label === 'explicit skill request');
   return {
     ts, prompt, sessionId, host, machineThread, promptTokens, contextHash: ctxHash, routerIndex, match, observer,
+    incumbentMessage,
     incumbentPayload: payloadFor(incumbentMessage),
     incumbentShown: incumbentMessage && routerRef && match ? match.skillId : null,
     suppressedPayload: payloadFor(suppressedMessage),
@@ -675,6 +681,7 @@ function routerSourceSha256() {
 }
 
 function buildRecord(state, plan, laya, shown) {
+  const policy = plan.config.mode === 'advise' ? L.td.POLICY_ADVISE : L.td.POLICY_COSIGN;
   return {
     schema: L.td.RECORD_SCHEMA,
     decision: DECISION,
@@ -690,8 +697,8 @@ function buildRecord(state, plan, laya, shown) {
     routerSourceSha256: routerSourceSha256(),
     indexSha256: L.sha256Hex(JSON.stringify(state.routerIndex)),
     registryRevision: plan.config.registryRevision,
-    policy: L.td.POLICY_COSIGN,
-    policySha256: L.td.policySha256(),
+    policy,
+    policySha256: L.td.policySha256(policy),
     instrument: L.INSTRUMENT,
     instrumentSha256: plan.built.instrumentSha256,
     criteriaSha256: plan.built.criteriaSha256,
@@ -765,6 +772,11 @@ async function finalize(state, plan, laya) {
         && laya.status === 'ok' && laya.choice !== state.match.skillId) {
       payload = state.suppressedPayload;
       shown = null;
+    } else if (plan && laya && plan.config.mode === 'advise' && plan.arm === 'treatment' && state.incumbentMessage
+        && laya.status === 'ok' && laya.choice !== 'none' && laya.choice !== state.match.skillId) {
+      // advise: the incumbent payload is unchanged and one advisory line is appended; `shown` stays the incumbent.
+      const ref = formatSkillRef(laya.choice);
+      if (ref) payload = payloadFor(`${state.incumbentMessage}\nLaya suggests the ${ref} skill (advisory).`);
     }
   } catch (_) { payload = state.incumbentPayload; shown = state.incumbentShown; }
   await emit(payload); // flush BEFORE any persistence or exit

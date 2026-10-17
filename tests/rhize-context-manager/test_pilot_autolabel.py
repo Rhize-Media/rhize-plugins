@@ -27,11 +27,18 @@ import workflow_task_context as context
 import workflow_context_packet as request_context
 
 DIGEST_FILES = ('decision_pilot_v2.py', 'decision_pilot.py', 'workflow_selection.py', 'workflow_task_context.py',
-                'workflow_context_packet.py', 'pilot_redaction.py', 'pilot_routing.py',
+                'workflow_context_packet.py', 'pilot_redaction.py', 'pilot_routing.py', 'typed_advice.py',
                 'context_experiments/typed_relevance.py')
 SESSION = '0f1e2d3c-4b5a-4968-8778-a1b2c3d4e5f6'
 OTHER_SESSION = '9a8b7c6d-5e4f-4321-8fed-cba987654321'
 ALLOWED_PACKET_KEYS = {'caseId', 'prompt', 'promptTruncated', 'precedingContext', 'role', 'text', 'truncated'}
+
+
+@pytest.fixture(autouse=True)
+def sealed_request_body(monkeypatch):
+    """These fixtures exercise labeling, not request sealing, and must not own a real request snapshot
+    (the annotator treats a snapshot as captured context). Observations get a fixed invented v3 body."""
+    monkeypatch.setattr(v2, 'request_snapshot', lambda receipts, identity: {'originalRequest': 'invented sealed request'})
 
 
 class Clock:
@@ -586,7 +593,8 @@ def test_annotator_prompts_hold_only_whitelisted_packet_keys_and_no_pilot_artifa
     observation = workflow.read_json(root / 'v2/observations' / (receipt['opportunityId'] + '.json'))
     result = v2.assess(observation, receipts, lambda url, request: ({
         'routing': {'model': 'typed-decisions'}, 'usage': {'input_tokens': 3, 'output_tokens': 0},
-        'answers': {'c%d' % i: {'type': 'noul', 'noul': n} for i, n in enumerate((0.91, 0.05, 0.04))}}, 1.5), root=root)
+        'answers': {'route': {'type': 'choice', 'choice': 'content',
+                              'probabilities': {'content': 0.91, 'general': 0.05, 'none': 0.04}}}}, 1.5), root=root)
     pilot.save_once(root / 'v2/results', receipt['opportunityId'], result)
     evidence = tmp_path / 'consult-evidence'
     evidence.write_text('invented lookup result')
@@ -1448,9 +1456,10 @@ def test_sigterm_finishes_a_summary_keeps_finished_cases_and_import_run_recovers
     assert code == 0 and settled['import']['results'] == {'recorded': 1}
 
 
-def test_a_real_sigterm_stops_the_child_and_leaves_a_terminated_summary(tmp_path):
-    root, receipts, receipt = make(tmp_path, 'add a report filter')
-    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+def test_a_real_sigterm_stops_the_child_and_leaves_a_terminated_summary(tmp_path, monkeypatch):
+    monkeypatch.undo()  # the child process validates against a real sealed request snapshot
+    root, receipts, receipt = native_request(tmp_path, 'add a report filter')
+    native_rows(tmp_path, [(receipt, 'add a report filter')])
     home = tmp_path / 'home'
     (home / '.codex').mkdir(parents=True)
     (home / '.codex/auth.json').write_text(json.dumps({'tokens': {'a': 'b'}}))

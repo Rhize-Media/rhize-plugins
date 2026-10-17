@@ -28,7 +28,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE.parent) not in sys.path:
     sys.path.insert(0, str(HERE.parent))
 
-from typed_decisions import cohorts, contract, decision_registry, locked_io, records  # noqa: E402
+from typed_decisions import advise_ledger, choice_labels, cohorts, contract, decision_registry, locked_io, records  # noqa: E402
 
 SCHEMA = 'rhize-typed-decision-scoreboard-v1'
 DECISION = 'skill-fit'
@@ -195,6 +195,45 @@ def last_mode_change(root):
     return None
 
 
+def advise_rows(root, registry, state, status, labels, laya_revision) -> list:
+    """One row per advise-capable decision: mode, labelled n and the baseline gate's ledger (attempts, next alpha,
+    last verdict with its receipt's accuracy vs baseline, CP lower bound, coverage, critical cases/misses).
+    Read-only; a missing ledger or receipt reads as empty, a corrupt ledger as `ledger: invalid`."""
+    rows = []
+    for decision, entry in registry['decisions'].items():
+        cfg = entry.get('advise')
+        if not cfg:
+            continue
+        if decision == 'skill-fit':
+            labelled = sum(1 for l in labels if l['basis'] != 'harness' and not l['ambiguous'])
+        elif decision == 'workflow-fit':
+            labelled = None                      # its corpus is the workflow pilot's, not under this root
+        else:
+            labelled = sum(1 for l in choice_labels.read_labels(root, decision).values() if not l['ambiguous'])
+        row = {'decision': decision, 'tier': entry['tier'], 'labelled': labelled, 'attempts': 0,
+               'nextAlpha': cohorts.alpha_for_attempt(cfg['alphaBase'], 1), 'lastVerdict': None, 'ledger': 'ok',
+               'mode': decision_registry.effective_mode(decision, registry, state, status, laya_revision)}
+        try:
+            events = advise_ledger.read(root, decision)
+        except ValueError:
+            row['ledger'] = 'invalid'
+            rows.append(row)
+            continue
+        row['attempts'] = sum(e['event'] in ('open', 'reserve') for e in events)
+        row['nextAlpha'] = cohorts.alpha_for_attempt(cfg['alphaBase'], row['attempts'] + 1)
+        consumed = [e for e in events if e['event'] == 'consumed']
+        if consumed:
+            row['lastVerdict'] = consumed[-1]['verdict']
+            try:
+                stats = locked_io.read_json_file(Path(root) / decision / 'advise-receipts' / (consumed[-1]['cohortId'] + '.json'))['stats']
+                row.update({k: stats.get(k) for k in ('accuracy', 'baselineAccuracy', 'cpLower', 'coverage',
+                                                      'criticalCases', 'criticalMisses')})
+            except (OSError, ValueError, KeyError, TypeError):
+                pass
+        rows.append(row)
+    return rows
+
+
 def build(root, now=None) -> dict:
     root = Path(root)
     registry = decision_registry.load_registry()
@@ -231,6 +270,7 @@ def build(root, now=None) -> dict:
         'gateHosts': list(cohorts.GATE_HOSTS),
         'hosts': host_breakdown(recs, outcomes),
         'keepWarm': read_keepwarm(root, now),
+        'advise': advise_rows(root, registry, state, status, labels, records.laya_revision(root)),
     }
 
 
@@ -378,6 +418,15 @@ def render_md(data: dict) -> str:
                      f'(timeouts {_pct(demotion["operational"]["timeoutShare"])} reported separately), '
                      f'latency p90 {_num(lat["p90"], 0)} ms vs {lat["budgetMs"]} ms'
                      f'{" (report-only)" if lat["reportOnly"] else ""}')
+    lines += ['', '### Advise (majority-baseline gate, one row per decision)',
+              '| decision | mode | labelled | last verdict | accuracy / baseline | cp lower | coverage | critical cases / misses '
+              '| attempts | next alpha |', '|---|---|---|---|---|---|---|---|---|---|']
+    for row in data['advise']:
+        accuracy = '-' if row.get('accuracy') is None else f'{_pct(row["accuracy"])} / {_pct(row.get("baselineAccuracy"))}'
+        critical = '-' if row.get('criticalCases') is None else f'{row["criticalCases"]} / {row["criticalMisses"]}'
+        lines.append(f'| {row["decision"]} | {row["mode"]} | {"-" if row["labelled"] is None else row["labelled"]} | '
+                     f'{row["lastVerdict"] or "-"} | {accuracy} | {_num(row.get("cpLower"))} | {_pct(row.get("coverage"), 0)} | '
+                     f'{critical} | {row["attempts"]}{" (ledger invalid)" if row["ledger"] != "ok" else ""} | {row["nextAlpha"]:g} |')
     versions = (data['lastCycle'] or {}).get('versions')
     if versions:
         lines.append(f'- Versions: policy {versions["policySha256"][:12]}, instrument {versions["instrumentSha256"][:12]}, '

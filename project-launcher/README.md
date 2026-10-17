@@ -43,6 +43,9 @@ model and routed checkpoint in receipts. The launch probe rejects a different
 local checkpoint and requires Laya's `instructions` field. Research and holdout
 evaluation instructions live in [evals/typed-decision](../evals/typed-decision/README.md).
 
+With `install --local-laya` (or the same three env values set by hand) the client runs in `advisory` mode against local Laya: each supervised checkpoint records a `gsd-directive` decision with its outcome, so a new project produces labels from its first run. Laya's directive is shown to the agent only after the central registry earns `advise` for it (none is earned at release) and never changes a gate or hook result; `outcome --decision-id --chosen` records what the agent did. Hosted Jev is unchanged.
+Plan: [advise everywhere](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md); matrix: [typed decision layer](../docs/typed-decision-layer.md#earned-authority-registry).
+
 From a scaffolded project, run `python3 .claude/rhize-decision/typed_decision.py status`
 and `gsd-sdk query agent-skills gsd-planner` (also executor and verifier). A `ready`
 status proves configuration and a recent provider probe; inspect per-agent receipts

@@ -1,7 +1,7 @@
 {
  "counts": {
-  "eval:neg": 110,
-  "eval:pos": 72,
+  "eval:neg": 112,
+  "eval:pos": 74,
   "probe:pos": 17
  },
  "rows": [
@@ -1399,6 +1399,42 @@
    "should_trigger": false,
    "source": "evals/rhize-devflow/trigger_cases.json",
    "target": "skill:rhize-devflow/test-evidence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-credential-keychain",
+   "prompt": "Use stored credentials in Keychain Access to authenticate this service CLI privately.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/credential-access"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-credential-stored",
+   "prompt": "Find the appropriate CLI workflow for stored credentials in the OS keychain.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/credential-access"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-credential-neg-browser",
+   "prompt": "Check this public page in the browser.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/credential-access"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-credential-neg-validation",
+   "prompt": "Implement password strength validation in the signup form.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/credential-access"
   },
   {
    "authored": "eval",

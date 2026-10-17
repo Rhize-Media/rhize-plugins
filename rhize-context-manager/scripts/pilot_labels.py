@@ -22,7 +22,7 @@ from pathlib import Path
 
 from workflow_selection import DEFAULT_ROOT, digest, locked_update, read_json
 from decision_pilot import inventory
-from decision_pilot_v2 import NORMALIZATION, canonical, ensure_root, joined, validate_observation
+from decision_pilot_v2 import COHORT, NORMALIZATION, canonical, ensure_root, joined, validate_observation
 from pilot_routing import CHOICES
 
 LABEL_SCHEMA = 'rhize-workflow-taxonomy-label-v1'
@@ -425,7 +425,7 @@ def taxonomy_coverage(rows):
 
 
 def export_cases(root, receipts, bases, choice_bases=RESEARCH_CHOICE_BASES):
-    """Eligible, bound taxonomy-labeled v2 cases whose label and choice basis the caller accepts."""
+    """Eligible, bound taxonomy-labeled v3-shaped cases (one `route` choice question) whose label and choice basis the caller accepts."""
     labels = {label['opportunityId']: label for label in load_labels(root)}
     cases = []
     for row in joined(root, receipts):
@@ -442,7 +442,7 @@ def export_cases(root, receipts, bases, choice_bases=RESEARCH_CHOICE_BASES):
         keys = ['session:' + row['receipt']['sessionHash'], 'task:' + context['taskRootId'],
                 'input:' + input_sha, 'prompt:' + row['receipt']['promptHash']]
         cases.append({'case_id': row['id'], 'group_id': input_sha, 'grouping_keys': sorted(keys),
-            'normalization_version': NORMALIZATION, 'cohort_version': 'workflow-pilot-v2',
+            'normalization_version': NORMALIZATION, 'cohort_version': COHORT,
             'collection_source_sha256': observation['sourceSha256'], 'input_sha256': input_sha,
             'task_family': context['domain'], 'host': row['receipt']['host'],
             'decision_type': 'workflow_fit', 'stratum': label['stratum'], 'label_source': label['reviewEvidenceSha256'],
@@ -451,11 +451,82 @@ def export_cases(root, receipts, bases, choice_bases=RESEARCH_CHOICE_BASES):
             'areas': label['areas'], 'risk_flags': label['riskFlags'], 'choice_basis': label['choiceBasis'],
             'state': request['state'], 'questions': request['questions'],
             'candidate_ids': list(CHOICES), 'routing_choice': label['choice'], 'arm_a_choice': row['armA'],
-            'labels': {f'c{i}': choice == label['choice'] for i, choice in enumerate(CHOICES)},
-            **({'arm_a': {f'c{i}': choice == row['armA'] for i, choice in enumerate(CHOICES)}} if row['armA'] else {})})
+            'labels': {'route': label['choice']},
+            **({'arm_a': {'route': row['armA']}} if row['armA'] else {})})
     if len({c['collection_source_sha256'] for c in cases}) > 1:
         raise ValueError('mixed_collection_sources')
     return cases
+
+
+REPLAY_STRATUM = {'routine': 'ordinary', 'elevated': 'ordinary', 'critical': 'critical_safety'}
+
+
+def replay_cases(receipts, root, policy):
+    """Rebuild v3 research cases from accepted explicit taxonomy labels and their sealed snapshots.
+
+    Every case goes through the current decision_pilot_v2.request_for, so labels collected under any
+    earlier collection source are comparable: the envelope is identical, which is the only reason pooling
+    across sources is allowed. Returns {'cases', 'provenance'}; unusable labels are counted by reason.
+    """
+    import decision_pilot_v2
+    import workflow_context_packet
+    import workflow_task_context
+    bases = policy['acceptedBases']
+    receipt_rows = dict(inventory(receipts))
+    labels = load_labels(root)
+    skipped, cases = Counter(), []
+    for label in labels:
+        identity = label['opportunityId']
+        if label['basis'] not in bases:
+            skipped['basis_not_accepted'] += 1
+            continue
+        if label['choiceBasis'] not in RESEARCH_CHOICE_BASES:
+            skipped['choice_not_explicit'] += 1
+            continue
+        receipt = receipt_rows.get(identity)
+        try:
+            context = workflow_task_context.load_context(receipts, identity)
+            if receipt is None or context is None:
+                skipped['context_missing'] += 1
+                continue
+            if workflow_task_context.eligibility(context)['eligible'] is not True:
+                skipped['ineligible_context'] += 1
+                continue
+            snapshot = workflow_context_packet.load_request_snapshot(receipts, identity)
+            if snapshot is None:
+                skipped['snapshot_missing'] += 1
+                continue
+            request = decision_pilot_v2.request_for(context, snapshot)
+            consultation = workflow_task_context.load_consultation(receipts, identity)
+        except (OSError, ValueError, KeyError, TypeError):
+            skipped['context_or_snapshot_invalid'] += 1
+            continue
+        if label['choice'] == 'content' and 'content_creation' in request['state'].get('exclusions', []):
+            skipped['label_contradicts_exclusions'] += 1
+            continue
+        input_sha = digest(canonical({'state': request['state'], 'questions': request['questions']}))
+        keys = ['session:' + receipt['sessionHash'], 'task:' + context['taskRootId'],
+                'input:' + input_sha, 'prompt:' + receipt['promptHash']]
+        arm_a = consultation['kind'] if consultation else None
+        cases.append({'case_id': identity, 'group_id': input_sha, 'grouping_keys': sorted(keys),
+            'normalization_version': NORMALIZATION, 'cohort_version': COHORT, 'replayed': True,
+            'collection_source_sha256': label['sourceSha256'], 'input_sha256': input_sha,
+            'task_family': context['domain'], 'host': receipt['host'], 'decision_type': 'workflow_fit',
+            'stratum': REPLAY_STRATUM[label['stratum']], 'taxonomy_stratum': label['stratum'],
+            'label_source': label['reviewEvidenceSha256'], 'adjudicated': True, 'label_basis': label['basis'],
+            'label_schema': LABEL_SCHEMA, 'taxonomy_version': label['taxonomyVersion'], 'family': label['family'],
+            'phase': label['phase'], 'areas': label['areas'], 'risk_flags': label['riskFlags'],
+            'choice_basis': label['choiceBasis'], 'state': request['state'], 'questions': request['questions'],
+            'candidate_ids': list(CHOICES), 'routing_choice': label['choice'], 'arm_a_choice': arm_a,
+            'labels': {'route': label['choice']}})
+    sources = Counter(case['collection_source_sha256'] for case in cases)
+    return {'cases': cases, 'provenance': {
+        'cohort': COHORT, 'normalization': NORMALIZATION, 'replayed': True,
+        'labels': len(labels), 'cases': len(cases), 'skipped': dict(sorted(skipped.items())),
+        'supersededArchived': superseded_count(root),
+        'labelBasis': dict(sorted(Counter(case['label_basis'] for case in cases).items())),
+        'collectionSources': dict(sorted(sources.items())), 'pooledAcrossSources': len(sources) > 1,
+        'poolingBasis': 'cases rebuilt through one request_for envelope; collection source kept per case'}}
 
 
 def write_cases(root, receipts, output, bases):
@@ -496,7 +567,7 @@ def report(root):
             'byStratum': count('stratum', accepted), 'byChoice': count('choice', accepted),
             'byChoiceBasis': count('choiceBasis', accepted), 'researchUsable': len(scored),
             'researchChoiceBases': list(RESEARCH_CHOICE_BASES), 'coverage': taxonomy_coverage(rows),
-            'researchFloor': 200,
+            'researchFloor': 30,
             'byCollectionSource': {
                 source: {'labels': sum(l['sourceSha256'] == source for l in labels),
                          'accepted': sum(l['sourceSha256'] == source for l in accepted),

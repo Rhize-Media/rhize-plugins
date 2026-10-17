@@ -21,6 +21,7 @@ import hashlib
 import json
 import math
 import re
+from pathlib import Path
 
 INSTRUMENT = 'laya-choice-v1'
 MODEL = 'typed-decisions'
@@ -47,7 +48,12 @@ def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
 
 
-def instrument_sha256() -> str:
+def instrument_sha256(instrument: str = INSTRUMENT) -> str:
+    if instrument == 'credential-cli-v1':
+        catalog = Path(__file__).resolve().parents[2] / 'catalog/credential-workflows.json'
+        return sha256_hex(canonical_json(json.loads(catalog.read_text())))
+    if instrument != INSTRUMENT:
+        raise ValueError('unknown instrument')
     return sha256_hex(canonical_json({
         'instrument': INSTRUMENT, 'model': MODEL, 'question': QUESTION, 'questionId': QUESTION_ID,
         'noneKey': NONE_KEY, 'noneCriterion': NONE_CRITERION,
