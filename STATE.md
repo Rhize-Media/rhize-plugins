@@ -639,3 +639,26 @@ while validating that same configuration at CLI, MCP and detached-worker boundar
 
 Lesson: fixture HOME changes can make a version-manager shim resolve or reject a different
 runtime; pin an already-installed executable in the test PATH, then rerun the unchanged suite.
+
+## Perplexity marketplace release and installed proof — 2026-10-17
+
+- PR #57 merged to main as `6b276baf77acf2afdee3e7807aa1aba73381f06a`; automated
+  tag `v2.111.0` points to it. Native Fable5.1 review preceded publication. Exact PR-head
+  hosted CI passed: 4,431 tests, 8 skips, 21 subtests, then all release contracts; security
+  scan passed. Local macOS total remains 4,429/7/21, recorded separately.
+- Published Perplexity 0.2.0 and Ops 0.33.0 are installed/enabled in Codex. Core 1.0.9 is
+  published but was not previously installed here. Fresh native MCP discovered 11 tools
+  with no errors; native skill discovery found enabled general-use decision-premortem.
+  Installed Perplexity files and decision skill match merged source.
+- Health/models GET, same recovered report, export and jobs checks passed. Report 24,834
+  characters/243 citations; summary 3,274/21; export 47,854 characters. All 8 job hashes
+  stayed unchanged. No new query, session refresh or data migration/deletion occurred.
+- Retired the old local plugin and temporary/local marketplace registrations only after
+  published proof. Private JSON retains the prior state and Keychain service. Current
+  chat tools can remain cached until reload; this is fresh native-host verification.
+- Full evidence and remaining provider/decision-evaluation limits:
+  `docs/release/perplexity-marketplace-2.111.0.md`. Public docs and private vault context
+  distinguish source, hosted validation and installed proof.
+
+Lesson: verify the published marketplace identity and installed source bytes, not just a
+locally pinned candidate; retrieve durable results without resubmitting user queries.
