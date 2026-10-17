@@ -2,6 +2,28 @@
 
 ## Verified facts
 
+- 2026-10-17: Perplexity tools are active directly in this restarted chat. Live health/models
+  passed. Three new IDs exercised standalone Search, a Search follow-up to the completed
+  Research parent, and cancellation after Research entered running. Follow-up passed with
+  matching parent thread, distinct backend UUID, 637-character answer, export and replay.
+  Cancellation reached cancelled_local, refused export and stayed cancelled on replay;
+  remote stop/refund remains unknown. Standalone Search failed incomplete_answer_or_sources:
+  server COMPLETED/SEARCH/pplx_pro returned numeric markers but no explicit citation mapping;
+  GET recovery failed identically. Do not guess source positions or call the full suite green.
+  Source runtime unchanged; three durable IDs and direct MCP evidence are preserved privately.
+  Documentation records actual outcomes. A second host reload cleared stale hook paths to
+  removed Dev Flow 2.28.0 and Context Manager 0.47.3 caches. The documentation snapshot was
+  rebuilt and installed with the previous snapshot retained; all ten installed hashes match,
+  the three runtime files are unchanged, the plugin remains enabled and MCP health is ready.
+  Cold self-review matched the docs against saved MCP outcomes, parent/child thread IDs,
+  exports and replay; git diff --check passed. Runtime tests were not rerun for these Markdown
+  changes. Workflow context capture returned request_context_unavailable and consultation
+  recording was refused; the actual bounded lookup found no matching end-to-end procedure.
+  After reload, the measured repository check passed: 534 Dev Flow tests, seven impact-map
+  contracts and static/config/setup checks. No source-bound pilot observation was available
+  for outcome recording. A stale zero-byte Git index lock was removed only after confirming
+  its age, unchanged identity, no open owner and no active Git process; unrelated work is preserved.
+
 - 2026-10-16: Perplexity local plugin 0.1.0 is installed and enabled as
   perplexity-research@perplexity-local. Native Codex 0.162.1 discovery found all 11 tools;
   its tools/list progress metadata exposed a rejection fixed with an exact regression.

@@ -12,6 +12,12 @@ installation. The review below is the historical
 pre-implementation assessment; its statements about no account access and held validation
 apply to that earlier phase, not the subsequent live proof.
 
+Latest validation (2026-10-17, client date): direct-chat MCP health/models passed after restart.
+A Search follow-up completed in its verified parent thread; running-job cancellation reached
+cancelled_local, with remote cancellation/refund unknown. Standalone Search failed completion
+validation because numeric citations had no explicit mapping; GET-only recovery also failed.
+See the [live acceptance table](perplexity-local-bridge.md#direct-chat-live-acceptance--2026-10-17).
+
 ## Original decision
 
 **Do not install the upstream MCP unchanged. A subscription Research bridge is technically

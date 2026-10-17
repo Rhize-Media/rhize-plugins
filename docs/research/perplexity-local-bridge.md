@@ -1,5 +1,30 @@
 # Local Perplexity Search and Research bridge
 
+## Direct-chat live acceptance — 2026-10-17
+
+After restarting Codex, all eleven plugin tools were present in this chat. Direct MCP health
+and model discovery passed with Pro access; no browser query, app-server test harness, new
+credential transfer or API billing was used. Three new request IDs were retained throughout.
+
+| Test | Result | Evidence and limit |
+| --- | --- | --- |
+| Standalone Search, explicit pplx_pro | **Failed completion validation** | Job 6e386acb-8386-45dc-a470-e67dd1c494ae reached server COMPLETED / SEARCH / pplx_pro, but the answer's numeric [1]/[2] markers had no explicit citation mapping. Ten reviewed sources had null IDs. Local status is incomplete, error incomplete_answer_or_sources; same-thread GET recovery failed identically. |
+| Search follow-up to completed Research | **Passed** | Job d1a0ee01-0ebd-4c6b-b558-bfde92f11a92 continued parent 7290aedb-2445-482f-8565-0476cdfc7341. The 637-character answer completed as SEARCH / pplx_pro, retained the parent's thread URL and had a distinct backend UUID. Result, Markdown export and same-ID replay passed. |
+| Cancel a running Research job | **Passed locally** | Job 7810234b-582e-4fb8-a94c-3cbca6af0ce5 was submitted and running before cancellation. It became cancelled_local with remote_cancellation_unconfirmed; export was refused and same-ID replay remained cancelled without resubmission. |
+
+The follow-up contains an inline official-documentation link and no numeric citation markers;
+its citations and reviewed-source arrays are empty. That is accepted by the existing Search
+contract and does not prove numeric-citation mapping works. The failed standalone Search is
+preserved as a real compatibility failure; no citation order was guessed and no new-ID retry
+was issued. The completed parent was reused because the failed Search cannot be a parent.
+The follow-up used the same [Perplexity thread](https://www.perplexity.ai/search/7e3ba507-3b82-405b-b5d2-96219ef2e0ff).
+
+Cancellation terminates local work only. Perplexity may continue remotely and quota may still
+be consumed; neither remote cancellation nor a refund was established. No browser parity check
+was performed. The source runtime remains unchanged from b2adf73 during these tests.
+
+## Earlier Research proof — 2026-10-16
+
 Experimental local CLI and installed Codex MCP plugin. On 2026-10-16 (environment date),
 native Codex MCP discovery, encrypted session refresh, health/models, one new Research
 submission, polling, result, export and same-ID replay passed. The new report contains 8,410
@@ -357,7 +382,8 @@ normal completion path; this proof does not isolate whether that read was needed
 
 Cookies can expire, undocumented schemas can change and quota is unmeasured. The new report's
 browser UI parity was not rechecked; the original proof established parity for its own thread.
-Search and follow-up POSTs and live cancellation have synthetic coverage only. Cold self-review
-was used, without an independent agent. This chat's already-loaded tool catalog was not hot
-reloaded; a fresh native host was verified. Uploads, account creation, Computer/Labs, API billing
+The 2026-10-17 direct-chat tests above supersede the earlier untested Search/follow-up/cancellation
+status: follow-up and local cancellation passed, while standalone numeric-citation Search failed.
+Cold self-review was used, without an independent agent. Direct-chat activation is now verified.
+Uploads, account creation, Computer/Labs, API billing
 and public marketplace publication remain outside this local implementation.
