@@ -116,12 +116,25 @@ def _route(prompt: str, tmp_path: Path) -> str | None:
     context_dir = tmp_path / "context-manager"
     context_dir.mkdir(parents=True, exist_ok=True)
     (context_dir / "skill-map.indexes.json").write_bytes(INDEXES_PATH.read_bytes())
+    typed_root = tmp_path / "typed"
+    typed_root.mkdir(exist_ok=True)
+    (typed_root / "registry-state.json").write_text(json.dumps({
+        "schemaVersion": 1, "revision": 1, "updatedAt": "2026-10-15T00:00:00Z",
+        "decisions": {"skill-fit": {
+            "mode": "off", "pinned": True, "since": "2026-10-15T00:00:00Z",
+            "reason": "lexical_routing_fixture", "policySha256": None,
+            "instrumentSha256": None, "layaRevision": None, "cohortId": None,
+        }},
+    }))
     result = subprocess.run(
         ["node", str(ROUTER_SCRIPT)],
         input=json.dumps({"prompt": prompt}),
         capture_output=True,
         text=True,
-        env={**os.environ, "RHIZE_CONTEXT_MANAGER_DIR": str(context_dir)},
+        env={**os.environ, "HOME": str(tmp_path), "XDG_DATA_HOME": str(tmp_path / "xdg"),
+             "RHIZE_TYPED_DECISIONS_ROOT": str(typed_root),
+             "RHIZE_SUGGESTION_LOG": str(tmp_path / "suggestions.jsonl"),
+             "RHIZE_CONTEXT_MANAGER_DIR": str(context_dir)},
         check=True,
     )
     if not result.stdout.strip():

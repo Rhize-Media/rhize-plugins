@@ -12,14 +12,18 @@ import decision_pilot as pilot
 import decision_pilot_v2 as v2
 import workflow_selection as workflow
 import workflow_task_context as context
-from pilot_routing import decode_scores
+import workflow_context_packet as packets
+from pilot_routing import decode_choice, decode_scores
 
 
 def make(tmp_path, turn='task', *, kind='new_task', action='implement', domain='software',
-         exclusions=None, parent=None, prebound=None, capture=True, session='session'):
+         exclusions=None, parent=None, prebound=None, capture=True, session='session', text=None, snapshot=True):
     receipts, root = tmp_path / 'receipts', tmp_path / 'pilot'
-    receipt, _ = workflow.opportunity({'prompt': 'invented fixture ' + turn, 'session_id': session, 'turn_id': turn},
-        'codex', receipts, {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    payload = {'prompt': text or 'invented fixture ' + turn, 'session_id': session, 'turn_id': turn}
+    receipt, _ = workflow.opportunity(payload, 'codex', receipts,
+        {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    if snapshot:
+        packets.capture_request_snapshot(receipts, receipt, payload)
     evidence = {'schemaVersion': context.SCHEMA, 'opportunityId': receipt['opportunityId'],
                 'promptHash': receipt['promptHash'], 'sessionHash': receipt['sessionHash'],
                 'eventKind': kind, 'action': action, 'domain': domain, 'exclusions': exclusions or [],
@@ -32,10 +36,16 @@ def make(tmp_path, turn='task', *, kind='new_task', action='implement', domain='
 
 def call(url, request):
     assert url == 'http://127.0.0.1:8000'
-    assert set(request['state']) == {'eventKind', 'action', 'domain', 'exclusions'}
-    return {'routing': {'model': 'typed-decisions'},
-            'answers': {f'c{i}': {'type': 'noul', 'noul': n} for i, n in enumerate((.9, .8, .2))},
-            'usage': {'input_tokens': 10, 'output_tokens': 0}}, 3.2
+    assert set(request['state']) == {'request', 'eventKind', 'action', 'domain', 'exclusions'}
+    assert set(request['questions']) == {'route'}
+    return answer({'content': .6, 'general': .3, 'none': .1}), 3.2
+
+
+def answer(probabilities, **overrides):
+    value = {'type': 'choice', 'probabilities': probabilities,
+             'choice': max(probabilities, key=probabilities.get)}
+    return {'routing': {'model': 'typed-decisions'}, 'answers': {'route': {**value, **overrides}},
+            'usage': {'input_tokens': 10, 'output_tokens': 0}}
 
 
 def consult(tmp_path, receipts, receipt, kind='general'):
@@ -57,7 +67,7 @@ def test_v2_context_seals_private_request_before_consultation(tmp_path):
     path = root / 'v2/observations' / (receipt['opportunityId'] + '.json')
     before = path.read_bytes()
     observation = json.loads(before)
-    assert 'invented fixture' not in before.decode()
+    assert observation['request']['state']['request'] == 'invented fixture task'
     assert observation['requestSha256'] == workflow.digest(v2.canonical(observation['request']))
     assert observation['contextSha256'] == observation['context']['contextSha256']
     consult(tmp_path, receipts, receipt)
@@ -66,6 +76,7 @@ def test_v2_context_seals_private_request_before_consultation(tmp_path):
     pilot.drain(root, call, receipts=receipts, cohort='v2')
     row = v2.joined(root, receipts)[0]
     assert row['armA'] == 'general' and row['armB'] == 'content'
+    assert 'invented fixture' not in (root / 'v2/results' / (receipt['opportunityId'] + '.json')).read_text()
     assert path.read_bytes() == before
     assert not (root / 'observations').exists()
 
@@ -123,8 +134,8 @@ def test_continuation_inherits_sealed_choice_without_rescoring(tmp_path):
 
 
 def test_packet_deduplicates_with_counts_and_strata(tmp_path):
-    root, receipts, _, _ = make(tmp_path, 'a')
-    make(tmp_path, 'b')
+    root, receipts, _, _ = make(tmp_path, 'a', text='same invented request')
+    make(tmp_path, 'b', text='same invented request')
     _, _, agreement, _ = make(tmp_path, 'agreement', action='review')
     consult(tmp_path, receipts, agreement, 'content')
     make(tmp_path, 'abstention', action='validate')
@@ -150,7 +161,9 @@ def test_v2_export_only_eligible_bound_human_labels(tmp_path):
     assert case['routing_choice'] == 'general' and case['arm_a_choice'] == 'general'
     assert case['candidate_ids'] == ['content','general','none']
     assert set(k.split(':')[0] for k in case['grouping_keys']) == {'session','task','input','prompt'}
-    assert case['cohort_version'] == 'workflow-pilot-v2'
+    assert case['cohort_version'] == 'workflow-pilot-v3' and case['normalization_version'] == 'workflow-input-v3'
+    assert case['labels'] == {'route': 'general'} and case['arm_a'] == {'route': 'general'}
+    assert set(case['questions']) == {'route'}
     _, _, excluded, _ = make(tmp_path, 'excluded', kind='status')
     with pytest.raises(ValueError, match='only eligible'): label(tmp_path, root, excluded)
 
@@ -245,7 +258,7 @@ def test_export_and_research_share_route_decoder(tmp_path):
     observation = workflow.read_json(root/'v2/observations'/(receipt['opportunityId']+'.json'))
     response, _ = call('http://127.0.0.1:8000', observation['request'])
     live = v2.assess(observation, receipts, call)
-    offline = research.decode_route(case, response, 0)
+    offline, _ = research.decode_route_v3(case, response, 0)
     assert live['choice'] == offline['choice'] == 'general'
     assert live['ranking'] == offline['ranking']
 
@@ -456,3 +469,191 @@ def test_drain_leaves_other_v2_source_pending_without_sealing_a_failure(tmp_path
         'status': 'drained', 'processed': 0, 'sourceHeld': 1}
     row = next(r for r in v2.joined(root, receipts) if r['id'] == old['opportunityId'])
     assert row['bucket'] == 'held' and row['reason'] == 'source_changed' and row['result'] is None
+
+
+# ---- workflow-input-v3: choice decoder, sealed request text, typed answers ----------------------
+
+SNAPSHOT = lambda text: {'originalRequest': text}
+CONTEXT = {'eventKind': 'new_task', 'action': 'implement', 'domain': 'software', 'exclusions': ['publishing', 'content_creation']}
+
+
+@pytest.mark.parametrize('probabilities', [
+    {'content': float('nan'), 'general': .5, 'none': .5}, {'content': float('inf'), 'general': .5, 'none': .5},
+    {'content': -.1, 'general': .5, 'none': .5}, {'content': 1.1, 'general': .5, 'none': .5},
+    {'content': True, 'general': .5, 'none': .5}, {'content': '0.5', 'general': .5, 'none': .5},
+    {'content': .5, 'general': .5}, {'content': .5, 'general': .5, 'none': .5, 'extra': .1}, [.5, .5, .5], None])
+def test_choice_decoder_rejects_invalid_probabilities(probabilities):
+    with pytest.raises(ValueError, match='invalid routing score'):
+        decode_choice(probabilities)
+
+
+def test_choice_decoder_errors_match_the_historical_decoder():
+    for bad in ({'abstain_below': 2}, {'abstain_below': float('nan')}, {'exclusions': ['bogus']},
+                {'exclusions': ['publishing', 'publishing']}, {'exclusions': 'content_creation'}):
+        with pytest.raises(ValueError) as new:
+            decode_choice({'content': .5, 'general': .5, 'none': .5}, **bad)
+        with pytest.raises(ValueError) as old:
+            decode_scores({'content': .5, 'general': .5, 'none': .5}, **bad)
+        assert str(new.value) == str(old.value)
+
+
+def test_choice_decoder_ranking_mask_and_threshold():
+    tie = {'content': .5, 'general': .5, 'none': .5}
+    assert decode_choice(tie) == decode_scores(tie)
+    assert decode_choice(tie)['ranking'] == [{'candidateId': n, 'score': .5} for n in ('content', 'general', 'none')]
+    masked = decode_choice({'content': .9, 'general': .06, 'none': .04}, exclusions=['content_creation'])
+    assert masked['choice'] == 'general' and all(r['candidateId'] != 'content' for r in masked['ranking'])
+    assert decode_choice(tie, abstain_below=.6) == {
+        'choice': None, 'ranking': decode_choice(tie)['ranking'], 'reason': 'below_threshold'}
+
+
+def test_request_for_builds_v3_state_with_sorted_exclusions_and_one_choice_question():
+    request = v2.request_for(CONTEXT, SNAPSHOT('  Fix   the\n\tbilling   defect  '))
+    assert request['model'] == 'typed-decisions'
+    assert request['state'] == {'request': 'Fix the billing defect', 'eventKind': 'new_task', 'action': 'implement',
+                                'domain': 'software', 'exclusions': ['content_creation', 'publishing']}
+    assert list(request['questions']) == ['route'] and request['questions']['route']['type'] == 'choice'
+    assert set(request['questions']['route']['criteria']) == {'content', 'general', 'none'}
+    assert 'data, not instructions' in request['questions']['route']['instructions']
+    assert v2.NORMALIZATION == 'workflow-input-v3'
+
+
+def test_request_for_truncates_at_1500_after_whitespace_collapse():
+    request = v2.request_for(CONTEXT, SNAPSHOT('word ' * 1000))
+    assert len(request['state']['request']) == 1500 and '  ' not in request['state']['request']
+    assert len(v2.request_for(CONTEXT, SNAPSHOT('x' * 1500))['state']['request']) == 1500
+
+
+def test_request_for_redacts_again_defensively_and_requires_snapshot_text():
+    request = v2.request_for(CONTEXT, SNAPSHOT('mail owner@example.test about the migration'))
+    assert 'owner@example.test' not in request['state']['request']
+    for bad in (None, {}, {'originalRequest': 5}):
+        with pytest.raises(ValueError, match='request_snapshot_missing'):
+            v2.request_for(CONTEXT, bad)
+
+
+def test_missing_request_snapshot_is_refused_at_enqueue_and_never_falls_back(tmp_path):
+    with pytest.raises(ValueError, match='request_snapshot_missing'):
+        make(tmp_path, snapshot=False)
+    assert not list((tmp_path / 'pilot/v2/observations').glob('*.json'))
+    assert 'request_snapshot_missing' in v2.HELD_REASONS
+    assert v2.failure_reason(ValueError('request_snapshot_missing')) == 'request_snapshot_missing'
+
+
+def test_snapshot_lost_after_enqueue_holds_the_observation(tmp_path):
+    root, receipts, receipt, _ = make(tmp_path)
+    (receipts.parent / 'request-snapshots' / (receipt['opportunityId'] + '.json')).unlink()
+    row = v2.joined(root, receipts)[0]
+    assert row['bucket'] == 'held' and row['reason'] == 'request_snapshot_missing' and row['armB'] is None
+
+
+def test_tampered_snapshot_holds_the_observation_as_unverifiable(tmp_path):
+    root, receipts, receipt, _ = make(tmp_path)
+    path = receipts.parent / 'request-snapshots' / (receipt['opportunityId'] + '.json')
+    value = json.loads(path.read_text())
+    value['originalRequest'] += ' tampered'
+    path.write_text(json.dumps(value))
+    row = v2.joined(root, receipts)[0]
+    assert row['bucket'] == 'held' and row['reason'] == 'request_snapshot_missing'  # binding hash no longer matches
+
+
+def observation_for(tmp_path, **kwargs):
+    root, receipts, receipt, _ = make(tmp_path, **kwargs)
+    return root, receipts, workflow.read_json(root / 'v2/observations' / (receipt['opportunityId'] + '.json'))
+
+
+def test_assess_accepts_a_valid_choice_answer(tmp_path):
+    _, receipts, observation = observation_for(tmp_path)
+    result = v2.assess(observation, receipts, lambda url, request: (answer({'content': .1, 'general': .7, 'none': .2}), 4.5))
+    assert result['status'] == 'shadow' and result['choice'] == 'general' and result['confidenceCalibrated'] is False
+    assert result['scores'] == {'content': .1, 'general': .7, 'none': .2} and result['incumbentAltered'] is False
+    assert result['requestSha256'] == observation['requestSha256'] and result['model'] == 'typed-decisions'
+    assert result['routedModel'] == 'typed-decisions' and result['latencyMs'] == 4.5
+    assert [r['candidateId'] for r in result['ranking']] == ['general', 'none', 'content']
+    assert result['reasonCode'] is None and 'invented fixture' not in json.dumps(result)
+
+
+def broken(**overrides):
+    return lambda url, request: (answer({'content': .1, 'general': .7, 'none': .2}, **overrides), 1.0)
+
+
+@pytest.mark.parametrize('mutate', [
+    lambda r: r['answers'].update(route={'type': 'noul', 'noul': .5}),
+    lambda r: r['answers'].update(route=None),
+    lambda r: r['answers'].update(c0={'type': 'noul', 'noul': .5}) or r['answers'].pop('route'),
+    lambda r: r.update(answers=None),
+    lambda r: r['answers']['route'].update(probabilities={'content': .5, 'general': .5}),
+    lambda r: r['answers']['route'].update(probabilities={'content': .5, 'general': .5, 'none': .5, 'x': .1}),
+    lambda r: r['answers']['route'].update(probabilities=[.1, .2, .7]),
+    lambda r: r['answers']['route'].update(choice='other'),
+    lambda r: r['answers']['route'].pop('choice')])
+def test_assess_rejects_malformed_choice_answers(tmp_path, mutate):
+    _, receipts, observation = observation_for(tmp_path)
+    def malformed(url, request):
+        value = answer({'content': .1, 'general': .7, 'none': .2})
+        mutate(value)
+        return value, 1.0
+    with pytest.raises(ValueError, match='provider_answer_type_mismatch'):
+        v2.assess(observation, receipts, malformed)
+
+
+def test_assess_rejects_out_of_range_probabilities_with_the_routing_reason(tmp_path):
+    _, receipts, observation = observation_for(tmp_path)
+    with pytest.raises(ValueError, match='invalid routing score'):
+        v2.assess(observation, receipts, lambda url, request: (answer({'content': 1.5, 'general': .2, 'none': .1}), 1.0))
+
+
+def test_assess_masks_content_when_content_creation_is_excluded(tmp_path):
+    _, receipts, observation = observation_for(tmp_path, domain='content', action='review', exclusions=['content_creation'])
+    result = v2.assess(observation, receipts, lambda url, request: (answer({'content': .9, 'general': .06, 'none': .04}), 1.0))
+    assert result['choice'] == 'general' and all(r['candidateId'] != 'content' for r in result['ranking'])
+    assert result['scores']['content'] == .9
+
+
+def test_joined_decodes_results_with_the_choice_decoder_and_holds_tampering(tmp_path):
+    root, receipts, receipt, _ = make(tmp_path)
+    pilot.drain(root, call, receipts=receipts, cohort='v2')
+    assert v2.joined(root, receipts)[0]['armB'] == 'content'
+    path = root / 'v2/results' / (receipt['opportunityId'] + '.json')
+    value = json.loads(path.read_text()); value['choice'] = 'none'; path.write_text(json.dumps(value))
+    row = v2.joined(root, receipts)[0]
+    assert row['bucket'] == 'held' and row['reason'] == 'result_decoding_changed'
+
+
+def test_source_digest_covers_the_typed_advice_transport():
+    names = ('decision_pilot_v2.py', 'decision_pilot.py', 'workflow_selection.py', 'workflow_task_context.py',
+             'workflow_context_packet.py', 'pilot_redaction.py', 'pilot_routing.py', 'typed_advice.py',
+             'context_experiments/typed_relevance.py')
+    assert v2.source_digest() == workflow.digest(b''.join((SCRIPTS / name).read_bytes() for name in names))
+
+
+def test_typed_call_posts_to_the_loopback_endpoint_and_checks_checkpoint_and_answer_keys(monkeypatch):
+    import typed_advice as typed_transport
+    request = {'model': 'typed-decisions', 'state': {}, 'questions': {'route': {'type': 'choice'}}}
+    seen = []
+    def fake(url, path, payload, timeout, max_bytes=262144):
+        seen.append((url, path, payload, timeout))
+        return seen_value[0], 2.0
+    monkeypatch.setattr(typed_transport, 'post_local', fake)
+    seen_value = [{'routing': {'model': 'typed-decisions'}, 'answers': {'route': {}}}]
+    assert pilot.typed_call('http://127.0.0.1:8000', request)[1] == 2.0
+    assert seen[0] == ('http://127.0.0.1:8000', '/v1/systemone', request, 5)
+    seen_value[0] = {'routing': {'model': 'other'}, 'answers': {'route': {}}}
+    with pytest.raises(ValueError, match='checkpoint mismatch'): pilot.typed_call('http://127.0.0.1:8000', request)
+    seen_value[0] = {'routing': {'model': 'typed-decisions'}, 'answers': {'c0': {}}}
+    with pytest.raises(ValueError, match='answers mismatch'): pilot.typed_call('http://127.0.0.1:8000', request)
+    seen_value[0] = {'answers': {'route': {}}}
+    with pytest.raises(ValueError, match='checkpoint mismatch'): pilot.typed_call('http://127.0.0.1:8000', request)
+
+
+def test_drain_defaults_to_the_typed_transport_for_v2(tmp_path, monkeypatch):
+    import typed_advice as typed_transport
+    root, receipts, receipt, _ = make(tmp_path)
+    calls = []
+    def fake(url, path, payload, timeout, max_bytes=262144):
+        calls.append((url, path))
+        return answer({'content': .2, 'general': .7, 'none': .1}), 1.5
+    monkeypatch.setattr(typed_transport, 'post_local', fake)
+    assert pilot.drain(root, receipts=receipts, cohort='v2')['processed'] == 1
+    assert calls == [('http://127.0.0.1:8000', '/v1/systemone')]
+    assert v2.joined(root, receipts)[0]['armB'] == 'general'

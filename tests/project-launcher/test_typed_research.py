@@ -87,6 +87,32 @@ class TypedResearchTests(unittest.TestCase):
         self.assertEqual(result["accuracy"], 1.0)
         self.assertAlmostEqual(result["brier_mean"], 0.04)
 
+    def test_prepare_marks_release_ineligible_and_keeps_the_old_gate_informational(self):
+        rows = [case(str(i), f"g{i}", i % 2 == 0) for i in range(8)]
+        with tempfile.TemporaryDirectory() as root:
+            manifest = RESEARCH.prepare_corpus(rows, "fixture", Path(root) / "split")
+        self.assertIs(manifest["release_eligible"], False)
+        self.assertIs(manifest["legacy_release_gate_met"], False)
+        big = [case(str(i), f"g{i}", i % 2 == 0) for i in range(800)]
+        with tempfile.TemporaryDirectory() as root:
+            manifest = RESEARCH.prepare_corpus(big, "fixture", Path(root) / "split")
+        self.assertIs(manifest["release_eligible"], False)   # only typed_promotion can grant eligibility
+        self.assertIs(manifest["legacy_release_gate_met"], True)
+
+    def test_prepare_can_materialize_tuning_splits_only(self):
+        rows = [case(str(i), f"g{i}", True) for i in range(6)]
+        assignments = {f"g{i}": ("train" if i % 2 else "validation") for i in range(6)}
+        with tempfile.TemporaryDirectory() as root:
+            out = Path(root) / "split"
+            manifest = RESEARCH.prepare_corpus(rows, "fixture", out, split_assignments=assignments,
+                                               names=("train", "validation"))
+            self.assertEqual(sorted(path.name for path in out.iterdir()), ["manifest.json", "train.jsonl", "validation.jsonl"])
+            self.assertEqual(set(manifest["split_counts"]), {"train", "validation"})
+            with self.assertRaisesRegex(ValueError, "invalid frozen split"):
+                RESEARCH.prepare_corpus(rows, "fixture", Path(root) / "other",
+                                        split_assignments={**assignments, "g0": "promotion"},
+                                        names=("train", "validation"))
+
     def test_locked_holdout_requires_exact_saved_candidate_and_one_use(self):
         dataset = "data-hash"
         seed = "seed-hash"

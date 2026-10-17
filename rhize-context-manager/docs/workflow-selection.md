@@ -1,5 +1,67 @@
 # Workflow selection and opportunity capture
 
+## Bounded credential CLI procedure selection
+
+`hooks/credential-workflow.js` is a separate UserPromptSubmit/PreToolUse dispatcher, including
+credential steps that arise after task intake. Its `credential-procedure` registry decision uses the policy
+`credential-cli-v1`, with fixed procedures in `catalog/credential-workflows.json`: authenticated
+service CLI first, necessary private Keychain CLI lookup, explicitly authorized storage, or
+clarification. Store candidates are excluded from lookup/unknown operations. Source reads,
+unrelated issue bodies and code-mode wrappers are not classified as executable credential steps.
+This is a narrow credential-step detector, not a replacement keyword classifier for the general
+workflow family pilot below.
+
+Only enum operation/tool-class/event signals and fixed shipped criteria reach loopback Laya.
+Raw prompts/commands, account/service names and credentials never enter its request or receipt.
+The shared identity/deadline/redirect-safe client is reused. The policy/instrument hashes bind the
+fixed procedure catalog; known host and runtime binding are required for active guidance.
+
+Mode `off` makes no call. Default `shadow` records a suggestion without injecting it. Explicit
+`cosign` selects and injects fixed procedure instructions into native additionalContext. This is
+active instruction selection, not command execution or permission approval: PreToolUse guidance
+does not by itself stop a pending tool call or prove private credential consumption. Dev Flow's
+independent GUI hard deny remains mandatory and cannot be cleared by a model response. Model none,
+timeout, malformed output or unavailable receipt falls back to CLI-first guidance (clarification
+for storage); no failure authorizes broader access. Unknown/contradictory host signals stay shadow.
+
+Activation uses the existing locked/audited `decision_registry.py set-mode credential-procedure cosign`
+operator path with `--manual-override`, current known `--laya-revision` and a reason. This explicit
+operator mode is not earned statistical authority. Automated cycle activation and reuse of skill-fit
+cohorts are refused; skill-fit's existing gates are unchanged. Deactivate with the same CLI's
+`set-mode credential-procedure off` or `shadow`. Do not hand-edit registry-state.json.
+
+The generated content/general pilot checkpoint now scopes shadow authority to that pilot and
+explicitly preserves the separate bounded credential policy and all hard denies. Its source digest
+changes, so subsequent pilot observations belong to the new source cohort; historical labels and
+receipts remain frozen and must not be pooled or rewritten. Source, native delivery and installed
+activation are separate checks. See the marketplace handoff for the remaining native/release gates.
+
+## Advisory Laya surfaces (`advise` mode)
+
+Two commands can print an advisory Laya recommendation. Both stay in `shadow` until the baseline gate
+earns `advise` for that decision (or an operator pins it), and in `shadow` they print nothing extra. The
+agent decides; the recommendation never selects, executes or approves anything.
+
+- **Workflow fit.** After `context` freezes the enum context, it asks Laya the fixed
+  content/general/none question over the sealed, redacted request snapshot
+  (`typed_advice.advise('workflow-fit', ...)`, 3 s budget). A `layaAdvice` object is added to the JSON
+  output only when the decision is in `advise`, this opportunity is not in the 10% holdback, and Laya
+  answered with a valid candidate. It is labelled `calibrated: false`; any failure (no snapshot, timeout,
+  stale binding, an exception) prints the unchanged context result. `consult --family X` records X as the
+  outcome, so the consult record is the decision and the gate can score Laya against it. The shadow v2/v3
+  pilot collection is untouched.
+- **Procedure pick.** `recommend-procedure --id OPPORTUNITY_ID` reads
+  `{"hits":[{"id","title","summary"}]}` (procedural-memory recall hits) on stdin, takes the first five
+  valid hits plus a `none` candidate, and asks Laya which stored procedure fits. Invalid ids are skipped; no
+  valid hit is an error; a missing request snapshot prints `{"layaAdvice": null, "reason":
+  "request_snapshot_missing"}`. The call is idempotent per opportunity and hit set. `decide --decision
+  reuse|adapt` records `--procedure` (default `--workflow`) as the outcome, and `no_match` records `none`,
+  against the most recent advised decision of that opportunity.
+
+The hook text names the mode it found: in `advise` it says `context` may print an advisory recommendation;
+otherwise it says Laya runs in shadow. The credential procedure (`credential-procedure`) is a separate,
+manual-only decision and never reaches `advise`.
+
 ## Scope and activation
 
 The shared Python checkpoint emits at most one bounded workflow advisory per host/session/turn.

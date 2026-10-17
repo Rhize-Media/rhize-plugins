@@ -94,7 +94,8 @@ def _read_body(response, deadline) -> bytes:
     chunks, total = [], 0
     while True:
         _shrink_timeout(response, _remaining(deadline))
-        chunk = response.read(min(CHUNK_BYTES, MAX_RESPONSE_BYTES + 1 - total))
+        # read1 returns what one socket read yields, so a trickling body re-checks the deadline per chunk.
+        chunk = getattr(response, 'read1', response.read)(min(CHUNK_BYTES, MAX_RESPONSE_BYTES + 1 - total))
         if not chunk:
             return b''.join(chunks)
         total += len(chunk)

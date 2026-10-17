@@ -103,7 +103,7 @@
       "id": "rhize-devflow",
       "kind": "plugin",
       "domain": "engineering-delivery",
-      "skills": ["chrome-devtools-mcp", "completed-branch-promotion", "data-mutation-consistency", "dev-flow-foundations", "error-lifecycle-management", "sanity-development", "sentry-instrumentation", "simplify", "test-evidence"],
+      "skills": ["chrome-devtools-mcp", "completed-branch-promotion", "credential-access", "data-mutation-consistency", "dev-flow-foundations", "error-lifecycle-management", "sanity-development", "sentry-instrumentation", "simplify", "test-evidence"],
       "suites": [{"id": "devflow-local", "kind": "python", "path": "evals/rhize-devflow/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
       "benchmarks": [{"id": "devflow-existing-vs-plugin", "protocol": "evals/rhize-devflow/benchmark_contracts.json", "arm_a": "user-confirmed existing engineering workflow", "arm_b": "rhize-devflow", "natural_capture_eligible": true}]
     },

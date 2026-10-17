@@ -93,6 +93,8 @@ def make_record(i, *, session=None, basis='live', mode='shadow', arm='treatment'
             rec['emitted'] = None if suppressed else incumbent
         else:
             rec['emitted'] = emitted
+    policy = contract.POLICY_ADVISE if rec['mode'] == 'advise' else contract.POLICY_COSIGN
+    rec.update({'policy': policy, 'policySha256': contract.policy_sha256(policy)})
     return contract.validate_record(rec)
 
 
@@ -165,3 +167,40 @@ def passed_cohort(root, registry, recs, *, seed=1, now='2026-10-11T00:00:00Z', e
     verdict = cohorts.evaluate(root, registry, event['cohortId'], eval_now)
     assert verdict['verdict'] == 'pass', verdict
     return event, verdict
+
+
+# ---------------------------------------------------------------- generic choice records (advise decisions)
+
+CHOICE_CANDIDATES = [{'id': 'alpha', 'criterion': 'pick alpha when the request is about alpha'},
+                     {'id': 'beta', 'criterion': 'pick beta when the request is about beta'},
+                     {'id': 'gamma', 'criterion': 'pick gamma otherwise'}]
+CHOICE_QUESTION = 'Which option fits this request?'
+CHOICE_POLICY = 'alpha|beta|gamma'
+CHOICE_IDS = [c['id'] for c in CHOICE_CANDIDATES]
+
+
+def choice_answer(choice, status='ok'):
+    if status != 'ok':
+        return {'status': status, 'choice': None, 'probabilities': None, 'latencyMs': 9.0}
+    rest = 0.3 / (len(CHOICE_IDS) - 1)
+    return {'status': 'ok', 'choice': choice, 'latencyMs': 5.0,
+            'probabilities': {c: (0.7 if c == choice else rest) for c in CHOICE_IDS}}
+
+
+def write_choice(root, decision, i, *, laya, group=None, critical=False, status='ok', text=None, snapshot=True,
+                 policy=CHOICE_POLICY):
+    """One advise() record (mode from the registry state at the root) with a fake Laya answer; returns the result."""
+    import typed_advice
+    return typed_advice.advise(decision, text or f'request {i}', CHOICE_CANDIDATES, f'key-{i}', critical_if_wrong=critical,
+                               question=CHOICE_QUESTION, policy=policy, group=group or f'group-{i}',
+                               files=['src/a.py'], store=root, snapshot=snapshot,
+                               call=lambda *a, **k: choice_answer(laya, status))
+
+
+def write_choice_label(root, decision, decision_id, label, *, ambiguous=False):
+    import typed_advice
+    return typed_advice.write_once(Path(root), decision, 'label', decision_id, {
+        'schema': 'rhize-typed-choice-label-v1', 'decision': decision, 'decisionId': decision_id,
+        'label': None if ambiguous else label, 'ambiguous': ambiguous, 'basis': 'ai_model_reviewed',
+        'rubricVersion': 'choice-rubric-v1', 'annotators': ['claude-sonnet-5-5', 'gpt-5.6-sol'], 'reviewer': None,
+        'evidenceSha256': sha(decision_id), 'redactor': sha('r'), 'labeledAt': NOW})

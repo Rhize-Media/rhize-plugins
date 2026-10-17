@@ -4,6 +4,23 @@ This guide explains what the rhize-devflow plugin does, how its pieces fit toget
 
 ## What This Plugin Does
 
+When a task needs stored credentials, use the `credential-access` skill. It starts with an
+already authenticated service CLI, then uses an exact Keychain CLI lookup only if necessary.
+Keep the value inside the consuming child process; report metadata only. Missing credentials
+or OS consent stop that step rather than opening Keychain Access.
+
+The auto-wired credential guard rejects explicit Keychain GUI selection/launch requests before
+supported tools run, including during existing tasks. Codex must trust the current hook
+definition first, and updated hosts must reload it. Verify both an allowed control and a
+denied GUI request; an agent refusal before tool dispatch is not proof that the hook blocked
+anything. Harmless native probe fixtures under `tests/rhize-devflow/fixtures/` record markers
+and never execute supplied code or launch apps. Native proof and remaining coverage limits are
+recorded in repository `STATE.md`. The guard cannot contain arbitrary encoded code or tools
+that skip the hook path. Context Manager's separately activated credential workflow policy
+can choose fixed CLI procedure guidance; it never clears this guard or grants permission.
+The content/general measurement pilot remains in shadow. See the marketplace's
+`docs/handoffs/credential-workflow-activation.md` for release and fresh-session verification.
+
 rhize-devflow is Rhize's engineering control plane: the executable workflow that takes a change
 from "what will this touch" through "does it pass" to "is it safe to ship" —
 
@@ -577,4 +594,10 @@ you expected delegation to happen.
 
 **Heavier guard hooks (prewrite mutation check, protect-files, mutation/sentry-stale-data suggesters) don't seem to be running:** They're opt-in by design — all four ship under `hooks/` but nothing is auto-wired. See the README's Hooks section (or `setup/manifest.json`, which the `/rhize-core:setup` wizard in `rhize-ops` reads) for the full list and exact commands, and wire in the ones you want per-project rather than expecting them to fire out of the box.
 
-For measured pilots, set `RHIZE_LAYA_DEVFLOW_SHADOW=1` and follow the [typed checkpoint contract](docs/typed-checkpoint.md) at existing Dev Flow stages. It records an observational candidate directive with evidence and variant binding; unavailable responses leave the incumbent workflow in force.
+To get Laya's next-action signal, run `scripts/typed_checkpoint.py --mode advise` at existing Dev Flow stages per the [typed checkpoint contract](docs/typed-checkpoint.md). The registry decides what is shown (shadow until earned) and it never changes obligations; `--mode shadow` is the observational receipt for measured pilots. Unavailable responses leave the incumbent workflow in force.
+
+`/rhize-devflow:check` can also run fewer routine checks on a low-risk diff: it asks `scripts/check_plan.py plan` which
+checks to run and re-verifies the plan right before the verdict. Docs-only changes swap the full test suite for affected
+tests, and a diff without UI or logic files skips browser QA or mutation analysis. Protected paths (CI, auth, env, lockfiles,
+migrations, infra) and anything release-stage always get the full list, and Laya (`check-relaxation`, shadow until earned)
+can only keep it. See [check relaxation](docs/check-relaxation.md).

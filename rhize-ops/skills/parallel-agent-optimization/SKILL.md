@@ -17,7 +17,10 @@ metadata:
 An explicitly enabled local Laya pilot can call `scripts/typed_routing.py --mode shadow`
 after `assess` has produced legal model or worker options. Supply bounded task signals,
 an incumbent and the user-pin fact. The ranking is private observational evidence; the
-validated task graph and host still decide dispatch. See
+validated task graph and host still decide dispatch. `--mode advise` adds one advisory line only
+after the registry has earned `advise` for `model-routing` (otherwise it stays shadow, and a user pin skips
+Laya); you may override it, then record the real choice with `typed_routing.py outcome --decision-id <id>
+--chosen <option>`. See
 [the typed pilot contract](../../../docs/typed-decision-layer.md).
 
 Choose the smallest safe execution graph, give every lane a bounded contract, and verify the joined

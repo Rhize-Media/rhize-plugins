@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Bounded shadow Laya signal at existing Dev Flow checkpoints; never changes a gate."""
+"""Laya signal at existing Dev Flow checkpoints: shadow observation or an earned, advisory next action.
+
+Neither mode changes a gate, obligation, approval or required check; the deterministic Dev Flow
+contracts stay authoritative. Advice comes from the shared typed_advice client and only shows once
+the decision registry says `advise` for `devflow-next-action`.
+"""
 from __future__ import annotations
 
 import argparse
@@ -11,6 +16,22 @@ import time
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import typed_advice  # noqa: E402 - shared byte-identical island module, sibling of this script
+
+DECISION = "devflow-next-action"
+ACTIONS = {
+    "continue": "Proceed with the planned next step; the evidence shows no open failure, stale source or missing verification.",
+    "investigate": "Stop and diagnose first: a failing test, stale source, off-track or stuck work needs a root cause before more changes.",
+    "verify": "Run or repeat verification (tests, review, requirement mapping) before proceeding; the evidence is insufficient.",
+    "escalate": "Ask a person: a protected file, missing approval or genuine ambiguity needs a human decision.",
+}
+QUESTION = ("Given only the bounded Dev Flow checkpoint observations, which next action fits best? "
+            "This is advice only: it never approves, skips or satisfies a required check.")
+POLICY = {"candidates": list(ACTIONS), "version": 1}
+CANDIDATES = [{"id": key, "criterion": text} for key, text in ACTIONS.items()]
+MAX_SIDE_FILE = 65536
 
 CHECKS = {
     "impact-map": ("scope_complete", "source_stale", "needs_human"),
@@ -91,6 +112,49 @@ def directive(stage: str, answers: dict, state: dict) -> str:
     return "continue"
 
 
+def read_side_file(path: Path) -> str:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_SIDE_FILE:
+        raise ValueError("side file must be regular and <= 64 KiB")
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+def advice_fields(decision: str, result: dict, label: str) -> dict:
+    """The output fields every devflow advise CLI shares: the decision, the earned recommendation and its line."""
+    return {"decisionId": result["decisionId"], "mode": result["mode"], "holdback": result["holdback"],
+            "recommendation": result["recommendation"],
+            "advice": typed_advice.advice_line(decision, result, label)}
+
+
+def advise_checkpoint(stage: str, state: dict, evidence_sha256: str, summary: str = "",
+                      files: tuple = ()) -> dict:
+    """Ask Laya for an advisory next action. The deterministic hard gates only decide how critical a wrong
+    answer would be (for the baseline gate's critical-miss rule); they never read Laya's output."""
+    validate_state(state)
+    if stage not in CHECKS:
+        raise ValueError("unknown Dev Flow checkpoint")
+    gates = {key: state[key] for key in HARD_FIELDS}
+    critical = not all(gates.values())
+    request = (f"Dev Flow {stage}. signals: {', '.join(state['signals'])}. "
+               + " ".join(f"{key}={str(value).lower()}" for key, value in gates.items())
+               + (f". {summary}" if summary else ""))
+    result = typed_advice.advise(DECISION, request, CANDIDATES, f"{evidence_sha256}:{stage}",
+                                 critical_if_wrong=critical, question=QUESTION, policy=POLICY,
+                                 files=list(files))
+    return {**advice_fields(DECISION, result, "next action"),
+            "stage": stage, "criticalIfWrong": critical, "gates": gates, "gateChanged": False}
+
+
+def outcome_main(argv: list, decision: str) -> int:
+    parser = argparse.ArgumentParser(prog="outcome", description="Record what the agent actually did.")
+    parser.add_argument("--decision-id", required=True)
+    parser.add_argument("--chosen", required=True)
+    args = parser.parse_args(argv)
+    print(json.dumps({"decision": decision, "decisionId": args.decision_id, "chosen": args.chosen,
+                      "recorded": typed_advice.record_outcome(decision, args.decision_id, args.chosen)},
+                     sort_keys=True))
+    return 0
+
+
 def assess(stage: str, state: dict, source_sha256: str, model: str, base_url: str,
            call=call_laya) -> dict:
     validate_state(state)
@@ -115,12 +179,17 @@ def assess(stage: str, state: dict, source_sha256: str, model: str, base_url: st
 
 
 def main() -> int:
+    if sys.argv[1:2] == ["outcome"]:
+        return outcome_main(sys.argv[2:], DECISION)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stage", choices=tuple(CHECKS), required=True)
     parser.add_argument("--evidence", type=Path, required=True, help="current deterministic evidence packet")
     parser.add_argument("--model", default="typed-decisions")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
-    parser.add_argument("--mode", choices=("disabled", "shadow"), default="disabled")
+    parser.add_argument("--mode", choices=("disabled", "shadow", "advise"), default="disabled",
+                        help="advise: the registry decides whether Laya's pick is shown; shadow until earned")
+    parser.add_argument("--summary-file", type=Path, help="advise: optional bounded summary text (scrubbed)")
+    parser.add_argument("--files-from", type=Path, help="advise: optional repo-relative file hints, one per line")
     parser.add_argument("--receipt", type=Path, help="private output path outside the repo")
     args = parser.parse_args()
     if args.mode == "disabled":
@@ -131,11 +200,19 @@ def main() -> int:
                 raise ValueError("evidence file must be regular and <= 1 MiB")
             evidence_bytes = args.evidence.read_bytes()
             evidence_hash = hashlib.sha256(evidence_bytes).hexdigest()
-            output = assess(args.stage, json.load(sys.stdin), evidence_hash,
-                            args.model, args.base_url)
+            observed = json.load(sys.stdin)
+            if args.mode == "advise":
+                output = advise_checkpoint(
+                    args.stage, observed, evidence_hash,
+                    read_side_file(args.summary_file) if args.summary_file else "",
+                    read_side_file(args.files_from).splitlines() if args.files_from else ())
+            else:
+                output = assess(args.stage, observed, evidence_hash, args.model, args.base_url)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             output = {"status": "unavailable", "variant": "A_incumbent",
                       "stage": args.stage, "reasonCode": type(exc).__name__, "gateChanged": False}
+            if args.mode == "advise":
+                output.update({"recommendation": None, "advice": ""})
     if args.receipt:
         args.receipt.parent.mkdir(parents=True, exist_ok=True)
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)

@@ -59,7 +59,8 @@ for (const c of load('laya-choice-responses.json').cases) {
 
 const ids = load('identities.json');
 check('policy and instrument hashes', () => {
-  assert.strictEqual(td.policySha256('cosign-v1'), ids.policySha256['cosign-v1']);
+  for (const [policy, digest] of Object.entries(ids.policySha256)) assert.strictEqual(td.policySha256(policy), digest);
+  assert.deepStrictEqual(Object.keys(ids.policySha256).sort(), [td.POLICY_ADVISE, td.POLICY_COSIGN].sort());
   assert.strictEqual(instrument.instrumentSha256(), ids.instrumentSha256);
 });
 for (const c of ids.occurrenceKeys) {

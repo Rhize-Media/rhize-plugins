@@ -10,6 +10,12 @@ miss negation and conversation context. V2 uses an explicit bounded task envelop
 before consultation or selection. Historical v1 records, comparisons and experiments are not
 rewritten as v2 evidence. A successful Arm A task is not an Arm B productivity result.
 
+The pilot's shadow collection (Arm B) is separate from the advisory workflow-fit surface. When the
+`workflow-fit` decision has earned `advise`, `workflow_selection.py context` may also print a
+`layaAdvice` recommendation computed from the same sealed request snapshot. That advice is
+uncalibrated, never replaces the Arm A path, is withheld from a 10% holdback, and does not change
+what the v2/v3 pilot records. See [workflow selection](workflow-selection.md#advisory-laya-surfaces-advise-mode).
+
 ## Activate and verify
 
 Merge `"decisionPilot":{"enabled":true,"mode":"shadow","cohort":"v2"}` into the existing

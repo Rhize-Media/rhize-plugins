@@ -352,18 +352,23 @@ const TREATMENT = sessionForArm('treatment');
   }
 
   // ------------------------------------------------ hooks.json and manifest
-  await check('hooks.json: entries 0-2 unchanged vs HEAD, the packaged router is entry 3, other events identical', async () => {
+  await check('hooks.json: existing entries unchanged, packaged router opt-in, exactly two bounded credential entries', async () => {
     const current = JSON.parse(fs.readFileSync(path.join(PLUGIN, 'hooks', 'hooks.json'), 'utf8'));
     const git = spawnSync('git', ['show', 'HEAD:rhize-context-manager/hooks/hooks.json'], { cwd: REPO, encoding: 'utf8' });
     assert.strictEqual(git.status, 0, git.stderr);
     const head = JSON.parse(git.stdout);
-    const entries = current.hooks.UserPromptSubmit;
+    const credential = (group) => group.hooks.some((hook) => /\/hooks\/credential-workflow(?:-prompt)?\.js/.test(hook.command));
+    const entries = current.hooks.UserPromptSubmit.filter((group) => !credential(group));
     assert.strictEqual(entries.length, 4);
-    assert.deepStrictEqual(entries.slice(0, 3), head.hooks.UserPromptSubmit.slice(0, 3));
+    assert.deepStrictEqual(entries.slice(0, 3), head.hooks.UserPromptSubmit.filter((group) => !credential(group)).slice(0, 3));
     assert.deepStrictEqual(entries[3], { hooks: [{ type: 'command', command: PACKAGED_COMMAND, timeout: 10 }] });
     for (const event of Object.keys(head.hooks)) {
-      if (event !== 'UserPromptSubmit') assert.deepStrictEqual(current.hooks[event], head.hooks[event], event);
+      if (event !== 'UserPromptSubmit') assert.deepStrictEqual(current.hooks[event].filter((group) => !credential(group)),
+        head.hooks[event].filter((group) => !credential(group)), event);
     }
+    assert.strictEqual(current.hooks.UserPromptSubmit.filter(credential).length, 1);
+    assert.strictEqual(current.hooks.PreToolUse.filter(credential).length, 1);
+    assert.strictEqual(current.hooks.PreToolUse.find(credential).matcher, '*');
     assert.deepStrictEqual(Object.keys(current.hooks), Object.keys(head.hooks));
     assert.strictEqual(current.description, head.description);
   });

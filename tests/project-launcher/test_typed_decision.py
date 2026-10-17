@@ -162,6 +162,74 @@ class TypedDecisionTests(unittest.TestCase):
                 MODULE.call_provider(request)
         self.assertEqual(seen[0]["model"], "jev-latest")
 
+    def test_provider_redirect_is_refused_and_never_followed(self):
+        hits = {"target": 0, "auth": []}
+
+        class Target(BaseHTTPRequestHandler):
+            def do_POST(self):  # urllib turns a redirected POST into a GET, so count both
+                hits["target"] += 1
+                hits["auth"].append(self.headers.get("Authorization"))
+                self.send_error(500)
+
+            do_GET = do_POST
+
+            def log_message(self, *args):
+                pass
+
+        target = ThreadingHTTPServer(("127.0.0.1", 0), Target)
+        port = target.server_address[1]
+
+        class Redirector(BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.rfile.read(int(self.headers["Content-Length"]))
+                self.send_response(302)
+                self.send_header("Location", f"http://127.0.0.1:{port}/v1/systemone")
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        redirector = ThreadingHTTPServer(("127.0.0.1", 0), Redirector)
+        threads = [threading.Thread(target=server.serve_forever, daemon=True) for server in (target, redirector)]
+        for thread in threads:
+            thread.start()
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        try:
+            url = f"http://127.0.0.1:{redirector.server_address[1]}/v1/systemone"
+            with patch.object(MODULE, "endpoint", return_value=(url, "secret-key", "compatible")), patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(MODULE.DecisionError, "provider unavailable"):
+                    MODULE.call_provider(request)
+        finally:
+            for server in (target, redirector):
+                server.shutdown()
+                server.server_close()
+        self.assertEqual(hits["target"], 0, "the redirect target must never receive a request")
+
+    def test_provider_call_ignores_proxy_environment(self):
+        proxied = []
+
+        class Proxy(BaseHTTPRequestHandler):
+            def do_POST(self):
+                proxied.append(self.headers.get("Authorization"))
+                self.send_error(502)
+
+            def log_message(self, *args):
+                pass
+
+        proxy = ThreadingHTTPServer(("127.0.0.1", 0), Proxy)
+        thread = threading.Thread(target=proxy.serve_forever, daemon=True)
+        thread.start()
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        env = {"HTTP_PROXY": f"http://127.0.0.1:{proxy.server_address[1]}", "http_proxy": f"http://127.0.0.1:{proxy.server_address[1]}"}
+        try:
+            with patch.object(MODULE, "endpoint", return_value=("http://provider.invalid/v1/systemone", "secret-key", "compatible")), patch.dict(os.environ, env, clear=True):
+                with self.assertRaisesRegex(MODULE.DecisionError, "provider unavailable"):
+                    MODULE.call_provider(request)
+        finally:
+            proxy.shutdown()
+            proxy.server_close()
+        self.assertEqual(proxied, [], "a proxy in the environment must never see the request or its key")
+
     def test_invalid_mode_never_calls_provider(self):
         request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
         with patch.dict(os.environ, {"RHIZE_DECISION_MODE": "active"}), patch.object(MODULE, "call_provider") as call:

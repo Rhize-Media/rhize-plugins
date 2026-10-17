@@ -90,6 +90,18 @@ def enqueue_v2(context, receipt, root, spawn=True, receipts=None):
     return enqueue(context, receipt, root, spawn=spawn, receipts=receipts)
 
 
+def typed_call(url, request, timeout=5):
+    """Loopback typed-decision call for the v2 cohort; checks the checkpoint and answer keys."""
+    from typed_advice import post_local
+    result, latency = post_local(url, '/v1/systemone', request, timeout)
+    if not isinstance(result.get('routing'), dict) or result['routing'].get('model') != request['model']:
+        raise ValueError('Laya checkpoint mismatch')
+    answers = result.get('answers')
+    if not isinstance(answers, dict) or set(answers) != set(request['questions']):
+        raise ValueError('Laya answers mismatch')
+    return result, latency
+
+
 def drain(root, call=None, receipts=None, cohort=None):
     from context_experiments.typed_candidates import assess
     from context_experiments.typed_relevance import local_call
@@ -125,8 +137,7 @@ def drain(root, call=None, receipts=None, cohort=None):
             try:
                 if v2:
                     from decision_pilot_v2 import assess as assess_v2
-                    result = assess_v2(observation, receipts or root.parent / 'receipts',
-                                       call or (lambda url, request: local_call(url, request, timeout=5)), root=root)
+                    result = assess_v2(observation, receipts or root.parent / 'receipts', call or typed_call, root=root)
                 elif observation.get('schema') != SCHEMA or observation.get('sourceSha256') != source_digest():
                     raise ValueError('source_changed')
                 elif not observation['state']['taskSignals']:

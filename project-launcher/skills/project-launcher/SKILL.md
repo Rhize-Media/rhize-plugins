@@ -264,6 +264,7 @@ After the grill-me session, update the PRD with all resolved questions and new r
 └── .claude/                     # GSD v2 framework (installed via npx)
     ├── settings.json
     ├── rhize-decision/typed_decision.py # Project-local Jev/Laya client
+    ├── rhize-decision/typed_advice.py   # Shared Laya advice client (decision records, outcomes)
     ├── agents/
     ├── commands/gsd/
     ├── hooks/
@@ -281,12 +282,12 @@ Run this with `{project-dir}` as the working directory. Verify the installed ver
 After GSD installation, run the Project Launcher decision installer (from the plugin root):
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/typed_decision.py" install --project "{project-dir}"
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/typed_decision.py" install --project "{project-dir}"   # add --local-laya for a local Laya server
 python3 "{project-dir}/.claude/rhize-decision/typed_decision.py" probe --project "{project-dir}"
 python3 "{project-dir}/.claude/rhize-decision/typed_decision.py" status --project "{project-dir}"
 ```
 
-The probe uses synthetic text and requires `TYPESAFE_API_KEY` for hosted Jev, or a running local Laya-compatible endpoint set through `TYPESAFE_BASE_URL`. Local Laya starts with no forced model; set `TYPESAFE_DEFAULT_MODEL=typed-decisions` to pin that checkpoint for an initial pilot, and record the actual returned model. The default `shadow` mode records answers without recommendations; set `RHIZE_DECISION_MODE=advisory` only after task-relevant evaluation. GSD agents must call the client at planning, execution, and verification checkpoints via the injected project-local skill. Inspect `gsd-sdk query agent-skills` for all three agent types in the installed GSD version. If the probe, query, or status fails, mark handoff blocked. Do not describe instruction injection alone as proof of future calls; check receipts during the project run.
+The probe uses synthetic text and requires `TYPESAFE_API_KEY` for hosted Jev, or a running local Laya-compatible endpoint set through `TYPESAFE_BASE_URL`. Local Laya starts with no forced model; set `TYPESAFE_DEFAULT_MODEL=typed-decisions` to pin that checkpoint for an initial pilot, and record the actual returned model. The default `shadow` mode records answers without recommendations; set `RHIZE_DECISION_MODE=advisory` only after task-relevant evaluation. GSD agents must call the client at planning, execution, and verification checkpoints via the injected project-local skill. Inspect `gsd-sdk query agent-skills` for all three agent types in the installed GSD version. If the probe, query, or status fails, mark handoff blocked. `install --local-laya` writes `RHIZE_DECISION_MODE=advisory`, `TYPESAFE_BASE_URL=http://127.0.0.1:8000` and `TYPESAFE_DEFAULT_MODEL=typed-decisions` into the project settings `env` (merged, no secrets). Advisory mode records a `gsd-directive` decision on every supervised checkpoint from day one, but shows advice only once the central registry has earned `advise` for it; `status` reports `effective_mode`. Do not describe instruction injection alone as proof of future calls; check receipts during the project run.
 Preserve the installer's `/.planning/decision-layer/receipts.jsonl` `.gitignore` entry when adding other project ignores.
 
 ### Install Hookify Guardrails (Next.js + Rhize stack projects)

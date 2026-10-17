@@ -11,17 +11,20 @@ import decision_pilot as pilot
 import decision_pilot_v2 as v2
 import pilot_labels as labels
 import workflow_selection as workflow
+import workflow_context_packet as packets
 import workflow_task_context as context
 
 DIGEST_FILES = ('decision_pilot_v2.py', 'decision_pilot.py', 'workflow_selection.py', 'workflow_task_context.py',
-                'workflow_context_packet.py', 'pilot_redaction.py', 'pilot_routing.py',
+                'workflow_context_packet.py', 'pilot_redaction.py', 'pilot_routing.py', 'typed_advice.py',
                 'context_experiments/typed_relevance.py')
 
 
 def make(tmp_path, turn='task', *, kind='new_task', action='implement', domain='software', exclusions=None):
     receipts, root = tmp_path / 'receipts', tmp_path / 'pilot'
-    receipt, _ = workflow.opportunity({'prompt': 'invented fixture ' + turn, 'session_id': 'session', 'turn_id': turn},
-        'codex', receipts, {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    payload = {'prompt': 'invented fixture ' + turn, 'session_id': 'session', 'turn_id': turn}
+    receipt, _ = workflow.opportunity(payload, 'codex', receipts,
+        {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    packets.capture_request_snapshot(receipts, receipt, payload)
     evidence = {'schemaVersion': context.SCHEMA, 'opportunityId': receipt['opportunityId'],
                 'promptHash': receipt['promptHash'], 'sessionHash': receipt['sessionHash'],
                 'eventKind': kind, 'action': action, 'domain': domain, 'exclusions': exclusions or [],
@@ -177,13 +180,26 @@ def test_export_respects_basis_and_choice_basis(tmp_path):
     assert [case['case_id'] for case in cases] == [explicit['opportunityId']]
     case = cases[0]
     assert case['label_basis'] == labels.AI and case['stratum'] == 'elevated' and case['risk_flags'] == ['data_integrity']
-    assert case['routing_choice'] == 'general' and case['labels'] == {'c0': False, 'c1': True, 'c2': False}
+    assert case['routing_choice'] == 'general' and case['labels'] == {'route': 'general'}
+    assert case['cohort_version'] == v2.COHORT and case['normalization_version'] == v2.NORMALIZATION
+    assert case['cohort_version'] == 'workflow-pilot-v3' and 'arm_a' not in case
     assert set(case) >= {'grouping_keys', 'collection_source_sha256', 'task_family', 'host', 'family', 'phase'}
     both = labels.export_cases(root, receipts, [labels.HUMAN, labels.AI], choice_bases=('explicit', labels.FAMILY_MAP))
     assert len(both) == 2
     out = tmp_path / 'cases.jsonl'
     written = labels.write_cases(root, receipts, out, [labels.HUMAN, labels.AI])
     assert written['count'] == 1 and written['labelBasis'] == {labels.AI: 1}
+
+
+def test_export_emits_arm_a_route_when_a_consultation_was_recorded(tmp_path):
+    root, receipts, receipt = make(tmp_path)
+    labels.record_label(root, receipts, value(root, receipt), 'd' * 64)
+    evidence = tmp_path / 'consult-evidence'
+    evidence.write_text('invented lookup result')
+    context.capture_consultation(receipts, receipt['opportunityId'], 'content', evidence)
+    case = labels.export_cases(root, receipts, [labels.AI])[0]
+    assert case['arm_a'] == {'route': 'content'} and case['arm_a_choice'] == 'content'
+    assert case['labels'] == {'route': 'general'} and case['questions'].keys() == {'route'}
 
 
 def test_coverage_gates_name_sparse_slices():

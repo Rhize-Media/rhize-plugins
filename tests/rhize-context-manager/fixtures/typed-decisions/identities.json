@@ -749,6 +749,7 @@
   }
  ],
  "policySha256": {
-  "cosign-v1": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205"
+  "cosign-v1": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+  "advise-v1": "523e08df28a899b2b0e9ba51d2e26fc001f709f43650855e7c6080e0ea015f82"
  }
 }

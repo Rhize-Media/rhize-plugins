@@ -73,7 +73,14 @@ runs compound into evidence. Ordinary `apply` runs execute once and remain obser
 
 For a local Laya pilot, `scripts/typed_routing.py --mode shadow` ranks only pre-authorized
 model or worker options from bounded metadata. It records the incumbent and user pin, but
-cannot dispatch an agent or override either. See [the decision layer contract](../docs/typed-decision-layer.md).
+cannot dispatch an agent or override either. `--mode advise` asks the shared `typed_advice.py` client
+for one recommendation among those same authorized options (candidate criteria come from each option's
+optional `description`/`hints`; `taskId` or the envelope hash is the decision key). It stays shadow
+until the baseline gate earns `advise` for `model-routing`: before that, and in the 10% holdback, Laya is
+still consulted and recorded but no advice is shown. A user pin returns `mode: pinned` with no Laya call and
+no record. When advice is shown it is one uncalibrated line; the user pin, host authorization and task graph
+still decide. Report what was actually used with `typed_routing.py outcome --decision-id <id> --chosen <option>`.
+See [the decision layer contract](../docs/typed-decision-layer.md).
 
 An explicit `compare` runs baseline and Rhize as separate, counterbalanced arms only in fresh
 replayable environments; it never repeats a live task. ECC and Superpowers are attribution/update
@@ -240,3 +247,9 @@ disable actions for Codex rows; Claude snapshots cannot establish Codex dormancy
 
 The evaluation catalog includes the canonical `procedural-memory:rhize-content-engine` skill.
 Local coverage checks do not execute or approve its graph, enable capture, or establish task benefit.
+
+## Credential workflow evaluation coverage
+
+The shared evaluation inventory includes `rhize-devflow:credential-access`. Coverage checks
+do not retrieve credentials, activate native hooks, or establish baseline benefit. Existing
+domains, capture modes and user-confirmed baseline decisions are unchanged.

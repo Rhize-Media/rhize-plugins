@@ -189,8 +189,8 @@ def test_research_held_without_labels_and_no_agent_launch(tmp_path):
     module = load_cycle()
     result = module.cycle(tmp_path/'pilot', tmp_path/'receipts', tmp_path/'research', run=lambda *a, **kw: pytest.fail('launched'))
     assert result['status'] == 'held' and result['labels'] == 0
-    hold = next((tmp_path/'research'/'workflow-pilot-v2'/'holds').glob('*.json'))
-    assert json.loads(hold.read_text())['reason'] == 'insufficient_human_labels'
+    hold = next((tmp_path/'research'/module.COHORT/'holds').glob('*.json'))
+    assert json.loads(hold.read_text())['reason'] == 'insufficient_accepted_labels'
     assert len(module.candidates()) <= 12
 
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Observe bounded tool-risk and legal browser-action candidates with local Laya.
 
-This is a shadow assessor. It does not grant permissions, click, block, or clear
-an existing policy finding. The current deterministic Dev Flow gate remains A.
+Shadow mode only observes. `--mode advise` (browser_qa only) asks the shared typed_advice client for
+one advisory pick among the approved surfaces plus `none`; the registry decides whether it is shown.
+Neither mode grants permissions, clicks, blocks, reorders, or clears an existing policy finding. The
+current deterministic Dev Flow gate remains A.
 """
 from __future__ import annotations
 
@@ -15,12 +17,19 @@ import sys
 import uuid
 from pathlib import Path
 
-from typed_checkpoint import call_laya
+import typed_advice
+from typed_checkpoint import advice_fields, call_laya, outcome_main
 
 SCHEMA = "rhize-devflow-typed-selection-v1"
 PROFILES = {"tool_trace_risk": 6, "browser_qa": 8}
 TOKEN = re.compile(r"[a-z][a-z0-9_-]{0,47}\Z")
 DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+DECISION = "browser-qa-selection"
+QUESTION = ("Given only the bounded task signals and approved test-surface metadata, which surface should the "
+            "browser QA scenario exercise first? Advice only: it never grants permission or approves an action.")
+# shortcut: the shortlist is dynamic, so the policy binds its construction rule rather than candidate ids.
+POLICY = {"construction": "approved legal browser_qa surfaces from the deterministic evidence, then none",
+          "max_surfaces": PROFILES["browser_qa"], "version": 1}
 
 
 def hash_json(value: object) -> str:
@@ -66,7 +75,7 @@ def validate(state: object) -> dict:
     return state
 
 
-def assess(state: dict, model: str, base_url: str, call=call_laya) -> dict:
+def assess(state: dict, model: str, base_url: str, call=None) -> dict:
     state = validate(state)
     if not isinstance(model, str) or not TOKEN.fullmatch(model):
         raise ValueError("invalid pinned model")
@@ -83,7 +92,8 @@ def assess(state: dict, model: str, base_url: str, call=call_laya) -> dict:
         "capability": state["capability"], "taskSignals": state["taskSignals"],
         "candidates": state["candidates"], "policy": state["policy"],
     }, "questions": questions}
-    response, latency = call(base_url, request)
+    # Resolved at call time so a patched module-level call_laya applies (a default arg binds at import).
+    response, latency = (call or call_laya)(base_url, request)
     rows = [{"candidateId": candidate["id"], "score": float(response["answers"][f"c{index}"]["noul"]),
              "incumbentIncluded": candidate["id"] in state["incumbentIds"]}
             for index, candidate in enumerate(state["candidates"])]
@@ -95,6 +105,23 @@ def assess(state: dict, model: str, base_url: str, call=call_laya) -> dict:
             "policy": state["policy"], "model": model, "routedModel": response["routing"]["model"],
             "latencyMs": latency, "usage": response["usage"], "actionTaken": False,
             "hardGateChanged": False}
+
+
+def advise_selection(state: dict) -> dict:
+    state = validate(state)
+    if state["capability"] != "browser_qa":
+        raise ValueError("advice is only available for browser_qa")
+    candidates = [{"id": item["id"], "criterion": (
+        f"Exercise approved surface {item['id']}" + (f" ({', '.join(item['hints'])})" if item["hints"] else "")
+        + " first.")} for item in state["candidates"]]
+    candidates.append({"id": "none", "criterion": "None of the listed surfaces fits the task signals."})
+    request = (f"Browser QA. task signals: {', '.join(state['taskSignals']) or 'none'}. surfaces: "
+               + "; ".join(f"{item['id']}[{','.join(item['hints'])}]" for item in state["candidates"]))
+    result = typed_advice.advise(DECISION, request, candidates, f"{state['sourceSha256']}:browser_qa",
+                                 critical_if_wrong=False, question=QUESTION, policy=POLICY)
+    return {"schema": SCHEMA, **advice_fields(DECISION, result, "browser QA surface"),
+            "capability": state["capability"], "sourceSha256": state["sourceSha256"],
+            "incumbentIds": state["incumbentIds"], "actionTaken": False, "hardGateChanged": False}
 
 
 def write_receipt(value: dict, root: Path) -> Path:
@@ -110,11 +137,13 @@ def write_receipt(value: dict, root: Path) -> Path:
 
 
 def main() -> int:
+    if sys.argv[1:2] == ["outcome"]:
+        return outcome_main(sys.argv[2:], DECISION)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--evidence", type=Path, required=True, help="current source-bound deterministic evidence file")
     parser.add_argument("--model", default="typed-decisions")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
-    parser.add_argument("--mode", choices=("disabled", "shadow"), default="disabled")
+    parser.add_argument("--mode", choices=("disabled", "shadow", "advise"), default="disabled")
     parser.add_argument("--receipt-root", type=Path,
                         default=Path.home() / ".local/share/rhize/typed-decisions/devflow-selection")
     args = parser.parse_args()
@@ -131,7 +160,8 @@ def main() -> int:
         evidence_hash = hashlib.sha256(args.evidence.read_bytes()).hexdigest()
         if not isinstance(state, dict) or state.get("sourceSha256") != evidence_hash:
             raise ValueError("evidence digest mismatch")
-        output = assess(state, args.model, args.base_url)
+        output = (advise_selection(state) if args.mode == "advise" and state.get("capability") == "browser_qa"
+                  else assess(state, args.model, args.base_url))
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
         output = {"schema": SCHEMA, "status": "unavailable", "variant": "A_incumbent",
                   "reasonCode": type(exc).__name__, "actionTaken": False, "hardGateChanged": False}

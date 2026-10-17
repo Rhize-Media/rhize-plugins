@@ -73,7 +73,7 @@ RUN_ID = re.compile(r'\d{8}T\d{6}Z-[0-9a-f]{8}')
 
 DEFAULTS = {
     'claudeModel': 'claude-sonnet-5-5', 'codexModel': 'gpt-5.6-sol', 'reviewerModel': 'claude-fable-5-1',
-    'effort': 'high', 'claudeBin': None, 'codexBin': None, 'maxCases': 15, 'packetBytes': 60000,
+    'effort': 'high', 'claudeBin': None, 'codexBin': None, 'maxCases': 50, 'packetBytes': 60000,
     'deadlineSeconds': 2400, 'callTimeoutSeconds': 420, 'transcriptRoots': None, 'retainRuns': 30,
     'root': None, 'receipts': None, 'state': None}
 # packetBytes budgets the FULL prompt (taxonomy, task text, cases and proposals), not the cases alone.

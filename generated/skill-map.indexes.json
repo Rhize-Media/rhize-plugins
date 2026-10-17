@@ -1173,6 +1173,40 @@
           "weight": 2
         }
       ],
+      "skill:rhize-devflow/credential-access": [
+        {
+          "kind": "name",
+          "label": "credential-access",
+          "weight": 1
+        },
+        {
+          "kind": "phrase",
+          "label": "keychain access",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "keychain credentials",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "stored credentials",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "security",
+          "weight": 2
+        }
+      ],
       "skill:rhize-devflow/data-mutation-consistency": [
         {
           "kind": "name",

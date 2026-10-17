@@ -161,6 +161,8 @@ thresholds, and calibration data.
 
 | Hook | Event | Purpose |
 |---|---|---|
+| `credential-workflow-prompt.js` | `UserPromptSubmit` | Selects fixed credential CLI guidance only in explicitly activated bounded mode; shadow observes without injection. |
+| `credential-workflow.js` | `PreToolUse` (`*`) | Checks later credential substeps using enum-only signals; never executes commands, grants permission or clears Dev Flow's independent GUI deny. |
 | `context-window-monitor.js` | `PreToolUse` (`Edit\|Write`) | Warns once per 10% band past 75% of the **real** context window |
 | `session-disclosure.js` | `SessionStart` | Fingerprints the CWD against a small set of cheap file/dir checks (`next.config.*` → nextjs, `sanity.config.*` → sanity, `vercel.json` → vercel, `.obsidian/` → obsidian), maps any detected stack to its stack-tag edges in the compiled skill-map artifact, and surfaces up to 8 relevant skills. Silent when no stack is detected. |
 | `remediation-suggester.js` | `PostToolUse` (`Bash`) | On a failing Bash command, matches `stdout`+`stderr` against the compiled skill-map's remediation-condition patterns (`build-failure`, `type-error`, `test-failure`, `lint-failure`, `merge-conflict`) and suggests the top remediating skill/agent via `additionalContext`. Silent when nothing matches. |
@@ -341,6 +343,13 @@ as additional unique tasks. See `evals/memory-context/README.md` in the marketpl
 
 ## Workflow selection before composition
 
+The separate bounded credential workflow hook also checks later tool calls. In explicitly
+activated `credential-procedure` cosign mode it selects fixed CLI procedure guidance, without reading
+credentials, sending raw commands/prompts to Laya, executing commands or granting permission.
+Its shadow default and existing audited activation path are described in the same reference.
+The content/general measurement pilot remains in shadow; it does not cap separately activated
+credential guidance or provide evidence that a credential operation succeeded.
+
 See [workflow selection](docs/workflow-selection.md) for the opt-in shared Claude/Codex
 UserPromptSubmit selector, private opportunity/decision/outcome receipts and explicit local
 skill-source allowlist. Metadata recall uses the supported procedural-memory launcher and
@@ -358,6 +367,26 @@ Workflow host attribution uses native host signals and reports conflicts as `unk
 Skill-router suggestions can be co-signed by the local Laya server under the earned-authority registry: `shadow` by default, `cosign` only after a passed statistical gate, automatic demotion, fail-open on any Laya failure — see [skill fit](../docs/typed-decisions/skill-fit.md). The router ships in `hooks/hooks.json` for Claude and Codex as an opt-in entry, off by default (`~/.local/share/rhize/skill-router/config.json`). Codex runs it on user threads only and stays in shadow. Companion tools: a Laya keep-warm agent, a learn-harvest feed, and a prospective weekly router evaluator. The optional local Laya shadow scorer ranks verified Context Pack candidates without changing inclusion. Set `RHIZE_LAYA_GRAPH_SHADOW=1` and pass `--decision-task` to a native pack preview; see [Context Pack](commands/context-pack.md). No real relevance or task-benefit result is established.
 
 The [typed decision pilot](../docs/typed-decision-layer.md) also scores bounded skill and workflow shortlists, governed graph query results, and source-bound retention candidates. All scores remain private shadow evidence; existing selectors and protected context continue to decide.
+
+## Laya advise mode
+
+The registry (`catalog/decision-registry.json`) now holds nine decisions and a fourth mode, `advise`: a labelled,
+uncalibrated Laya recommendation shown next to the incumbent path, which stays authoritative. Every decision
+ships in `shadow` and moves only through the baseline gate (a paired Clopper-Pearson test against the majority
+baseline on at least 30 promotion cases; critical decisions also need at least 10 critical cases and zero critical
+misses) or an operator pin. The 200-label floor no longer applies to workflow fit. Nothing is in `advise` until it
+is earned. `credential-procedure` is manual-only and never reaches `advise`.
+
+- `scripts/workflow_selection.py context` adds a `layaAdvice` object for `workflow-fit`; `recommend-procedure --id ID`
+  (recall hits as `{"hits":[...]}` on stdin) asks `procedure-pick`; `decide --decision reuse|adapt --procedure ID`
+  records the outcome. Details: [workflow selection](docs/workflow-selection.md).
+- `hooks/skill-router.js` appends one `advise` line for skill fit when Laya disagrees; the cosign branch is unchanged.
+- `scripts/typed_decisions/choice_labels.py run [--decision D] [--max-cases N] [--dry-run]` labels choice records
+  and applies critical-miss demotion; `evals/typed-decision/decision_cycle.py run` dispatches on `gateKind` and runs
+  the advise pass (`--no-advise` skips it); `scripts/typed_decisions/scoreboard.py render` shows one row per decision.
+- The shared stdlib client `scripts/typed_advice.py` is byte-identical in Context Manager, Dev Flow, Ops and
+  Project Launcher (drift-tested). Plan: [advise everywhere](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md); matrix and gates:
+  [typed decision layer](../docs/typed-decision-layer.md#earned-authority-registry).
 
 ## Workflow decision measurement pilot
 

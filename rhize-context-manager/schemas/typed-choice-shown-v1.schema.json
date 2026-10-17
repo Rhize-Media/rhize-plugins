@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/typed-choice-shown-v1.schema.json",
+  "title": "typed-choice-shown-v1",
+  "description": "Marker that typed_advice.advise() returned a recommendation to the agent, stored write-once at <root>/<decision>/shown/<decisionId>.json (0600) after the choice record. Only a shown recommendation can be a critical miss. `recommendation` is the candidate id that was shown; `policySha256` is the binding it was shown under.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "decision",
+    "decisionId",
+    "recommendation",
+    "policySha256",
+    "ts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "rhize-typed-choice-shown-v1"
+    },
+    "decision": {
+      "enum": [
+        "skill-fit",
+        "workflow-fit",
+        "procedure-pick",
+        "devflow-next-action",
+        "browser-qa-selection",
+        "model-routing",
+        "gsd-directive",
+        "check-relaxation"
+      ]
+    },
+    "decisionId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "recommendation": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$"
+    },
+    "policySha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ts": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+    }
+  }
+}

@@ -182,3 +182,49 @@ def test_the_scoreboard_never_writes_into_the_data_root(root):
     before = sorted(str(p) for p in root.rglob('*'))
     scoreboard.build(root, NOW)
     assert sorted(str(p) for p in root.rglob('*')) == before
+
+
+# ---------------------------------------------------------------- advise rows
+
+def test_every_advise_decision_has_a_row_even_on_an_empty_root(root):
+    data = scoreboard.build(root, NOW)
+    rows = {r['decision']: r for r in data['advise']}
+    expected = {d for d, e in reg.load_registry()['decisions'].items() if e['advise']}
+    assert set(rows) == expected and 'credential-procedure' not in rows
+    assert all(r['mode'] == 'shadow' and r['attempts'] == 0 and r['nextAlpha'] == 0.1 and r['lastVerdict'] is None
+               for r in rows.values())
+    assert rows['workflow-fit']['labelled'] is None and rows['model-routing']['labelled'] == 0
+    assert '### Advise (majority-baseline gate' in scoreboard.render_md(data)
+
+
+def test_advise_rows_report_the_ledger_receipt_and_labels(root):
+    from typed_decision_testkit import CHOICE_IDS, write_choice, write_choice_label
+    D = 'devflow-next-action'
+    for i in range(60):                                  # tuning data from before the cohort opens (backdated)
+        result = write_choice(root, D, i, laya=CHOICE_IDS[i % 3], critical=True)
+        write_choice_label(root, D, result['decisionId'], CHOICE_IDS[i % 3])
+        path = root / D / 'choice' / f"{result['decisionId']}.json"
+        path.write_text(json.dumps({**json.loads(path.read_text()), 'ts': '2026-10-01T00:00:00Z'}))
+    assert CYCLE.run_cycle(root, NOW, seed=1, probe=lambda: True)['advise'][D]['reason'] == 'cohort_opened'
+    for i in range(1000, 1120):                          # recorded after the open (real clock is later than NOW)
+        result = write_choice(root, D, i, laya=CHOICE_IDS[i % 3], critical=True)
+        write_choice_label(root, D, result['decisionId'], CHOICE_IDS[i % 3], ambiguous=i < 1005)
+    out = CYCLE.run_cycle(root, NOW, seed=1, probe=lambda: True)
+    assert out['advise'][D]['verdict'] == 'pass'
+    before = {str(p): p.stat().st_mtime_ns for p in root.rglob('*') if p.is_file()}
+    data = scoreboard.build(root, NOW)
+    assert before == {str(p): p.stat().st_mtime_ns for p in root.rglob('*') if p.is_file()}   # read-only
+    row = {r['decision']: r for r in data['advise']}['devflow-next-action']
+    assert row['mode'] == 'advise' and row['labelled'] == 175 and row['lastVerdict'] == 'pass' and row['attempts'] == 1
+    assert row['accuracy'] == 1.0 and row['baselineAccuracy'] < 0.5 and row['cpLower'] > 0.5 and row['coverage'] == 1.0
+    assert row['criticalCases'] >= 10 and row['criticalMisses'] == 0 and row['nextAlpha'] == 0.05
+    md = scoreboard.render_md(data)
+    assert '| devflow-next-action | advise | 175 | pass | 100.0% /' in md and '| 1 | 0.05 |' in md
+
+
+def test_a_corrupt_advise_ledger_is_flagged_not_fatal(root):
+    (root / 'model-routing').mkdir()
+    (root / 'model-routing' / 'advise-cohorts.jsonl').write_text('{"event": "reserve", "decision": "model-routing"}\n')
+    row = {r['decision']: r for r in scoreboard.build(root, NOW)['advise']}['model-routing']
+    assert row['ledger'] == 'invalid'
+    assert 'ledger invalid' in scoreboard.render_md(scoreboard.build(root, NOW))

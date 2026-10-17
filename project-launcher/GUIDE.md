@@ -175,6 +175,22 @@ has emitted a calibration-temperature warning during local startup, so its
 confidence is uncalibrated until the Rhize holdout says otherwise. The
 [typed-decision research runner](../evals/typed-decision/README.md) provides a
 bounded autoresearch-style search and locked holdout using benchmark labels.
+
+### Advising the GSD directive (local Laya)
+
+`install --local-laya` writes `RHIZE_DECISION_MODE=advisory`, `TYPESAFE_BASE_URL=http://127.0.0.1:8000` and
+`TYPESAFE_DEFAULT_MODEL=typed-decisions` into `.claude/settings.json` `env` (existing keys kept, no secrets) and copies
+`typed_advice.py` next to the client. In that mode `supervise` makes a second, bounded call for the `gsd-directive`
+decision (continue, investigate, verify, escalate; `finish_candidate` only when required checks and independent
+review have passed in the evidence). The record is written before anything is shown, `critical_if_wrong` is true
+unless checks and review passed, and ~15% of keys are a holdback that never sees advice. Advice appears as an
+`advice` line only when the central registry (`registry-state.json`, written by Context Manager) has earned
+`advise` for the decision; any mismatch reads as `shadow`. The line is advisory text: verification, hooks and
+approval gates are untouched (tested). `outcome --decision-id <id> --chosen <directive>` records the real action
+(write-once) and is the only way an outcome is recorded; the SubagentStop hook records none and never adds a
+block. `status` reports `configured_mode`, `effective_mode` and `local_laya`.
+Hosted Jev keeps the existing observational path with no advice call. See the [advise-everywhere plan](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md).
+
 Foreman-style multi-check results and a deterministic candidate directive are
 recorded in shadow for planner, executor, and verifier; no automatic steering,
 stopping, completion or release is enabled by this pilot.
