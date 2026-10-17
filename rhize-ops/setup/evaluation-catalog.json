@@ -31,7 +31,7 @@
     {
       "id": "content-intelligence",
       "title": "Content Intelligence",
-      "components": ["seo-aeo-geo"]
+      "components": ["seo-aeo-geo", "perplexity-research"]
     },
     {
       "id": "toolchain",
@@ -79,7 +79,7 @@
       "id": "rhize-ops",
       "kind": "plugin",
       "domain": "operations",
-      "skills": ["business-premortem", "cross-model-handoff", "delegate-to-teammate", "parallel-agent-optimization", "skill-dashboard"],
+      "skills": ["decision-premortem", "cross-model-handoff", "delegate-to-teammate", "parallel-agent-optimization", "skill-dashboard"],
       "suites": [{"id": "rhize-ops-local", "kind": "python", "path": "evals/parallel-agent-skills/scripts/evaluate_ops_skills.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
       "benchmarks": [{"id": "operations-existing-vs-rhize", "protocol": "evals/parallel-agent-skills/manifest.json", "arm_a": "user-confirmed existing operations workflow", "arm_b": "rhize-ops", "natural_capture_eligible": true}]
     },
@@ -138,6 +138,36 @@
       "skills": [],
       "suites": [{"id": "skill-forge-safety", "kind": "python", "path": "evals/skill-forge/integration_eval.py", "args": ["safety"], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 180, "automatic": false, "requires": ["explicit_checkout_or_binary"]}],
       "benchmarks": [{"id": "skill-forge-pre-vs-post-evolve", "protocol": "evals/skill-forge/evolve-benchmark.json", "arm_a": "digest-pinned pre-evolve skill", "arm_b": "digest-pinned staged proposal", "natural_capture_eligible": false}]
+    },
+    {
+      "id": "perplexity-research",
+      "kind": "plugin",
+      "domain": "content-intelligence",
+      "skills": [
+        "perplexity-research"
+      ],
+      "suites": [
+        {
+          "id": "perplexity-local",
+          "kind": "python",
+          "path": "evals/perplexity-research/run_evals.py",
+          "args": [],
+          "cwd": ".",
+          "network": "none",
+          "cost": "free",
+          "timeout_seconds": 120,
+          "automatic": true
+        }
+      ],
+      "benchmarks": [
+        {
+          "id": "perplexity-existing-vs-bridge",
+          "protocol": "evals/perplexity-research/benchmark_spec.json",
+          "arm_a": "user-confirmed manual Perplexity workflow",
+          "arm_b": "durable local MCP bridge",
+          "natural_capture_eligible": false
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,41 @@
+{
+  "name": "perplexity-research",
+  "version": "0.2.0",
+  "description": "Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "perplexity",
+    "research",
+    "search",
+    "citations",
+    "mcp",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "mcpServers": {
+    "perplexity_research": {
+      "command": "./scripts/launch-mcp.sh",
+      "args": [],
+      "cwd": "."
+    }
+  },
+  "interface": {
+    "displayName": "Perplexity Research",
+    "shortDescription": "Search, research and recover cited reports with your subscription.",
+    "developerName": "Rhize Media",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Set up my Perplexity session.",
+      "Research a topic with Perplexity.",
+      "Recover my existing Perplexity report without another query."
+    ]
+  }
+}

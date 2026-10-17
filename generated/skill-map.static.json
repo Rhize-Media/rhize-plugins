@@ -571,6 +571,18 @@
       "type": "contains"
     },
     {
+      "from": "plugin:perplexity-research",
+      "source": "marketplace",
+      "to": "command:perplexity-research/setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:perplexity-research",
+      "source": "marketplace",
+      "to": "skill:perplexity-research/perplexity-research",
+      "type": "contains"
+    },
+    {
       "from": "plugin:procedural-memory",
       "source": "marketplace",
       "to": "command:procedural-memory/promote",
@@ -1257,13 +1269,13 @@
     {
       "from": "plugin:rhize-ops",
       "source": "marketplace",
-      "to": "skill:rhize-ops/business-premortem",
+      "to": "skill:rhize-ops/cross-model-handoff",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-ops",
       "source": "marketplace",
-      "to": "skill:rhize-ops/cross-model-handoff",
+      "to": "skill:rhize-ops/decision-premortem",
       "type": "contains"
     },
     {
@@ -1786,6 +1798,24 @@
       "from": "skill:obsidian-second-brain/vault-templates",
       "source": "frontmatter",
       "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:perplexity-research/perplexity-research",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:perplexity-research/perplexity-research",
+      "source": "frontmatter",
+      "to": "tag:topic/evidence",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:perplexity-research/perplexity-research",
+      "source": "frontmatter",
+      "to": "tag:topic/search",
       "type": "topic-tag"
     },
     {
@@ -2631,24 +2661,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:rhize-ops/business-premortem",
-      "source": "frontmatter",
-      "to": "tag:topic/evidence",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:rhize-ops/business-premortem",
-      "source": "frontmatter",
-      "to": "tag:topic/project-planning",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:rhize-ops/business-premortem",
-      "source": "frontmatter",
-      "to": "tag:topic/review",
-      "type": "topic-tag"
-    },
-    {
       "from": "skill:rhize-ops/cross-model-handoff",
       "source": "frontmatter",
       "to": "mcp:rhize-bridge",
@@ -2676,6 +2688,24 @@
       "from": "skill:rhize-ops/cross-model-handoff",
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/decision-premortem",
+      "source": "frontmatter",
+      "to": "tag:topic/evidence",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/decision-premortem",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/decision-premortem",
+      "source": "frontmatter",
+      "to": "tag:topic/review",
       "type": "topic-tag"
     },
     {
@@ -3271,6 +3301,13 @@
       "kind": "command",
       "name": "vault-setup",
       "path": "obsidian-second-brain/commands/vault-setup.md"
+    },
+    {
+      "description": "Configure the private Perplexity runtime and session without submitting a query",
+      "id": "command:perplexity-research/setup",
+      "kind": "command",
+      "name": "setup",
+      "path": "perplexity-research/commands/setup.md"
     },
     {
       "description": "Verify, classify trust, write provenance, commit, and index a staged artifact into the procedural-memory registry",
@@ -4513,6 +4550,13 @@
       "path": "obsidian-second-brain"
     },
     {
+      "description": "Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS.",
+      "id": "plugin:perplexity-research",
+      "kind": "plugin",
+      "name": "perplexity-research",
+      "path": "perplexity-research"
+    },
+    {
       "description": "Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.",
       "id": "plugin:procedural-memory",
       "kind": "plugin",
@@ -4555,7 +4599,7 @@
       "path": "rhize-devflow"
     },
     {
-      "description": "Rhize Media's internal operations toolkit — stress-tests business decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
+      "description": "Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
       "id": "plugin:rhize-ops",
       "kind": "plugin",
       "name": "rhize-ops",
@@ -4703,6 +4747,17 @@
       "summary": "Provides ready-made note templates for meetings, book reviews, project briefs, and more.",
       "totalBytes": 9064,
       "treeHash": "93b9e999afa91341a080fc41b8650d6b01a4b3f579242d1faad364085a73f3bf"
+    },
+    {
+      "contentHash": "132942a7467178b794fd5e8c6e65f31df0be3a29b4b8b14475c0fc2aac604726",
+      "description": "Use Perplexity subscription Search or Research for user-requested cited answers and reports. Set up or refresh the local session, submit a durable query, follow up on a completed job, inspect progress, recover an incomplete report without resubmitting, export it, or cancel local processing. Use when the user explicitly asks for Perplexity; do not silently replace another research provider or turn setup into a quota-bearing test query.",
+      "fileCount": 1,
+      "id": "skill:perplexity-research/perplexity-research",
+      "kind": "skill",
+      "name": "perplexity-research",
+      "path": "perplexity-research/skills/perplexity-research/SKILL.md",
+      "totalBytes": 2873,
+      "treeHash": "87c32c10b65dbe0395b7f512dfd3a0d8e08b71cf34450e576601a3dfe48a7a6b"
     },
     {
       "contentHash": "715d6e4e67c407228afa37dff805fd7fc17aae9e82262b5d9b94a3450236f984",
@@ -5083,17 +5138,6 @@
       "treeHash": "07dc1a4fd0e99e1419fa4f7a989445d4483404936a6aeb16ca246f2e104f815e"
     },
     {
-      "contentHash": "f2115ac24c5cbe63ebd0d7dc200a3c6928f7cc0f878ca4dd1584b493fd2ab85e",
-      "description": "Stress-test a business decision before committing resources. Use for \"run a pre-mortem\", \"why would this business plan fail\", or \"stress-test this hiring, pricing, launch, partnership or expansion decision\". Produce a revised plan, stop conditions and measurable tripwires. Not an incident postmortem, code review or execution workflow.",
-      "fileCount": 2,
-      "id": "skill:rhize-ops/business-premortem",
-      "kind": "skill",
-      "name": "business-premortem",
-      "path": "rhize-ops/skills/business-premortem/SKILL.md",
-      "totalBytes": 7415,
-      "treeHash": "acc8c7e6fbbb42a3ef401a5051ae8a98ce817098992eb00ad26a143370e7355e"
-    },
-    {
       "contentHash": "f4a3f1ee01a5c43510a24260dd5d937422447ef24aac1da31270e151837442bf",
       "description": "Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Claude Code and Codex. Use when the user asks Claude to consult Codex, Codex to consult Claude, or explicitly authorizes a cross-model review or task. Keep implementation, integration and approval with the coordinating host.",
       "fileCount": 2,
@@ -5103,6 +5147,17 @@
       "path": "rhize-ops/skills/cross-model-handoff/SKILL.md",
       "totalBytes": 5820,
       "treeHash": "37b2d4f88c43c6e249af7bc02795aef4f3d0a6738345605e75ea0faa12232d3e"
+    },
+    {
+      "contentHash": "f0c9a4e8089d3ff98093ef57497990178911a12ff10a4c272569c989d0741d76",
+      "description": "Stress-test a concrete decision or plan before committing. Use for \"run a pre-mortem\", \"why would this plan fail\", or \"stress-test this decision\" across business, projects, team processes and personal choices. Produce a revised plan, stop conditions and measurable tripwires. Not an incident postmortem, code review or execution workflow.",
+      "fileCount": 2,
+      "id": "skill:rhize-ops/decision-premortem",
+      "kind": "skill",
+      "name": "decision-premortem",
+      "path": "rhize-ops/skills/decision-premortem/SKILL.md",
+      "totalBytes": 7753,
+      "treeHash": "d09f4c810812f349373f2364b30e5b177619c961f2f9c11a939c2137636e94ee"
     },
     {
       "contentHash": "901ffcb39f5c5706bf9c808c2cdfc0b2d31575b9e9b9a042d08c7d83e18bfb74",

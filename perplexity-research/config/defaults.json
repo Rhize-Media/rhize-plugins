@@ -1,0 +1,6 @@
+{
+  "pythonExecutable": null,
+  "stateDir": "~/.local/share/perplexity-research",
+  "authorizationReference": "~/.config/perplexity-research/authorization.txt",
+  "keychainService": "perplexity-research-cookies"
+}

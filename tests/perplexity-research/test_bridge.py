@@ -16,7 +16,7 @@ import urllib.error
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[2] / "scripts/perplexity_research.py"
+SCRIPT = Path(__file__).resolve().parents[2] / "perplexity-research/scripts/perplexity_research.py"
 spec = importlib.util.spec_from_file_location("perplexity_research", SCRIPT)
 b = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(b)
@@ -780,10 +780,12 @@ def test_production_spawn_drops_ambient_secrets(root, monkeypatch):
     monkeypatch.setenv("HTTPS_PROXY", "http://example.org")
     popen = Mock()
     monkeypatch.setattr(b.subprocess, "Popen", popen)
+    monkeypatch.setattr(b, "KEYCHAIN_SERVICE", "custom:session")
     b.spawn(root, str(uuid.uuid4()), 9)
     assert SECRET not in repr(popen.call_args)
     assert "HTTPS_PROXY" not in popen.call_args.kwargs["env"]
     assert "-I" in popen.call_args.args[0]
+    assert popen.call_args.args[0][popen.call_args.args[0].index("--keychain-service") + 1] == "custom:session"
     assert popen.call_args.kwargs["start_new_session"]
 
 

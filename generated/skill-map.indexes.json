@@ -623,6 +623,31 @@
           "weight": 2
         }
       ],
+      "skill:perplexity-research/perplexity-research": [
+        {
+          "kind": "name",
+          "label": "perplexity-research",
+          "weight": 1
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "evidence",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "search",
+          "weight": 2
+        }
+      ],
       "skill:procedural-memory/functionize": [
         {
           "kind": "name",
@@ -1429,31 +1454,6 @@
           "weight": 2
         }
       ],
-      "skill:rhize-ops/business-premortem": [
-        {
-          "kind": "name",
-          "label": "business-premortem",
-          "weight": 1
-        },
-        {
-          "facet": "topic",
-          "kind": "tag",
-          "label": "evidence",
-          "weight": 2
-        },
-        {
-          "facet": "topic",
-          "kind": "tag",
-          "label": "project-planning",
-          "weight": 2
-        },
-        {
-          "facet": "topic",
-          "kind": "tag",
-          "label": "review",
-          "weight": 2
-        }
-      ],
       "skill:rhize-ops/cross-model-handoff": [
         {
           "kind": "name",
@@ -1482,6 +1482,31 @@
           "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-ops/decision-premortem": [
+        {
+          "kind": "name",
+          "label": "decision-premortem",
+          "weight": 1
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "evidence",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "review",
           "weight": 2
         }
       ],

@@ -1,4 +1,7 @@
-# Business pre-mortem behavioral checks
+# Decision pre-mortem behavioral checks
+
+The skill is now `rhize-ops:decision-premortem`. This evidence directory retains its
+original name so historical outputs and links stay intact.
 
 These are synthetic decision cases, not customer data or a task-benefit benchmark.
 Apply the skill to the inputs before reading the assertions. Record the actual output,
@@ -96,3 +99,30 @@ again attested `claude-fable-5-1`; the review found no release-blocking contradi
 or missing essential safeguards. It explicitly limited its conclusion to the text.
 Minor optional phrasing suggestions did not change the approved contract. This final
 editorial review does not supersede the preserved partial behavioral results above.
+
+## D — personal study plan (broadened scope)
+
+Synthetic input: “I will replace my existing Sunday two-hour study group with solo
+study for six weeks starting 2027-01-11. I need to finish six course modules and pass
+the final practice assessment at the course's required 80%. My calendar has three
+60-minute evening slots weekly. Prior two modules each took four hours including
+practice. I have not measured my solo completion rate or practice score. The group
+seat is released on 2027-01-04 and may not be recoverable. No fee or purchase is
+involved. I decide; my household supports the goal but evening care needs can
+interrupt. Alternatives: keep the group, or test one solo module before releasing
+the seat. Stress-test the plan without silently reducing the goal.”
+
+Check: all five stages, no invented price/revenue/hostile competitor; derive 18 hours
+available versus 24 hours extrapolated from two past modules, clearly marking that
+extrapolation uncertain rather than an established fatal flaw. Missing score/rate
+baselines remain unknown. Preserve the six-module/80% goal; any scope/time changes
+require owner choice. W0 is January 11 and the January 4 commitment is W−1. Make
+pre-commitment evidence and a feasible reversible alternative explicit. Account for
+care interruptions, revisit rebuild after adversary, and give risk-linked signals,
+threshold rationale, proposed owners and actions before useful recovery expires.
+
+The [scope-review result](fable-decision-scope-pass.md) preserves the returned personal-case
+summary and independent findings. It supports broader applicability but remains partial
+behavioral validation: unsupported rankings, recoverability and response timing appeared.
+The final small date/feasibility wording corrections were cold-reviewed and source-checked,
+not rerun through a second model simulation.

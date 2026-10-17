@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decision Pre-mortem"
+  short_description: "Stress-test decisions with actionable tripwires."
+  default_prompt: "Use $decision-premortem to stress-test this decision, revise the plan and define measurable stop conditions."

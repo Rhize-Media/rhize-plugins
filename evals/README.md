@@ -38,7 +38,7 @@ Directories with `trigger_evals.json` or `quality_evals.json` are auto-discovere
 harness. Other components deliberately use offline runners with component-specific schemas so they
 cannot be swept into a paid model run by accident.
 
-The offline coverage gates account for all 65 currently published Rhize plugin skills. That is a
+The offline coverage gates account for all 68 currently published Rhize plugin skills. That is a
 coverage statement, not a benefit claim: most live and controlled Arm A/Arm B cohorts are still
 pending, and every checked-in benchmark contract says so explicitly.
 
@@ -195,6 +195,21 @@ Results are saved to `evals/results/`:
 | `has_data` | number | At least N concrete data points (numbers, percentages, URLs, scores) |
 
 ## Suites
+
+### business-premortem
+
+Historical business cases and the broader `decision-premortem` scope review live here.
+The retained directory preserves original evidence. Synthetic examples and Fable review
+are not calibrated prediction or real-world outcome evidence. See [the suite](business-premortem/README.md).
+
+### perplexity-research
+
+Free offline regression coverage for durable jobs, explicit citation mappings, response-size
+limits, encrypted local session transfer and portable marketplace startup. Run
+`python3 evals/perplexity-research/run_evals.py`; it requires pytest, cryptography and Node
+but never uses a real account, browser, Keychain session or quota-bearing query. Live MCP
+acceptance is recorded separately in the [plugin guide](../perplexity-research/docs/perplexity-local-bridge.md).
+
 
 One paragraph per directory under `evals/` (excluding `results/`, which is auto-generated output,
 and `__pycache__/`) — what it grades, how to run it, and what it writes. See "Plugin-Specific

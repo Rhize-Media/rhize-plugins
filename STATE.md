@@ -573,3 +573,49 @@ Lesson: keep concurrent Laya work isolated by branch and check planned decision 
 - Process lesson: an earlier advise worktree under `/private/tmp` was purged by macOS and its uncommitted S3 work was lost; recovery came from the committed S1/S2 branch. Long-lived worktrees now live under `~/dev-local/RHIZE/.worktrees/` and carry a `wip:` commit after every handback (global CLAUDE.md and Codex AGENTS.md carry the no-`/tmp` rule).
 - Released 2026-10-17: PR #56 merged to main as `b158c26` (after merging main's refactor-gate fix `ecbca24`). Final versions: Context Manager 0.48.0, Dev Flow 2.29.0, Ops 0.31.0, Project Launcher 1.15.0, Core 1.0.7, marketplace 2.109.0. PR #55 is closed (its commits are on main). Final review round (Dev Flow merge gate, security review, Codex) found S4 and gate-statistics gaps; all fixed before merge (spec §12) and Codex's re-review reported none blocking. Final full suite 4278 passed, 7 skipped, one unrelated load-timing flake (`test_skylos_evidence.py`) that passes alone; CI found one host-dependent test (`typed_selection` bound `call_laya` at import), fixed in `67496fc`.
 - Activated 2026-10-17: Claude and Codex hosts run the merged code (installed `typed_advice.py` hashes match main; marketplace clone at `b158c26`). The live registry validates under the new contract: skill fit keeps its earned `cosign`, every new decision reads `shadow`. The daily autolabel job now runs at 07:30 and 19:30 and its skill-fit loop also runs `choice_labels.py run` before the cycle and `pilot_cycle.py` (workflow fit) after it, with a 1200 s budget; the workflow labeler is repinned to a `b158c26` runtime. Dry runs of the labeler and cycle pass. Not yet observed: a natural advise record, label or cohort (none exist yet), and fresh native sessions on the new cache.
+
+## Decision pre-mortem rename — coordinated release slice
+
+- Renamed the canonical Ops skill to `decision-premortem`; updated UI, current docs,
+  both evaluation inventories and matching descriptions. Old invocation is replaced;
+  historical business evaluation paths/results remain intact. Scope now includes
+  concrete business, project, team-process and personal decisions. Financial checks
+  are conditional; the same five-step sequence, evidence standards, residual-risk
+  treatment, numeric audit, commitment gates and actionable tripwires remain. Body: 1007 words.
+- Native Fable5.1 job `048ec079-e386-45ea-b30e-4f0783b7998a` found no blocking text
+  defects and applied the skill to a synthetic study plan. Partial validation and
+  unsupported output assumptions are preserved in `evals/business-premortem/fable-decision-scope-pass.md`.
+  Added analysis-date/time-to-test and explicit time-feasibility clarification after review.
+- Focused checks: 41 passed, 2 existing optional skips; skill validator and17 static
+  routing cases/15 quality anchors pass. Business arithmetic/date self-checks pass.
+  These do not establish native discovery, calibrated prediction or real-world benefit.
+- Coordinated release ownership belongs to the Perplexity marketplace session. This
+  source slice intentionally leaves version/changelog helpers, generated inventory,
+  vault exact-ref reviews, combined release checks, push/merge and host updates to
+  that coordinator; no independent release or installation is claimed here.
+
+Lesson: broadening a decision method requires checking nonfinancial constraints and
+pre-commitment test feasibility, while preserving all financial safeguards where relevant.
+
+## Perplexity marketplace publication and general-use configuration — 2026-10-17
+
+- Candidate marketplace 2.111.0 publishes Perplexity Research 0.2.0 as a self-contained
+  Claude/Codex plugin with eleven MCP tools; Core 1.0.9 and Ops 0.33.0 synchronize
+  68 skills across 12 plugins and include the coordinated decision-premortem rename.
+- Canonical CLI, MCP, browser adapter and technical docs now live under the plugin.
+  The development snapshot builder retains an explicit distribution allowlist.
+  Shared Core/Ops evaluation catalogs and scripts remain byte-identical.
+- Runtime paths, selected Python and Keychain service are configured in private JSON,
+  with neutral shipped defaults and a documented schema. Malformed/oversized/shared/linked
+  configuration and unsafe service names fail closed. Detached workers retain the service.
+  Existing users explicitly configure their previous paths/service; no automatic migration,
+  credential refresh, query submission or deletion occurs during installation.
+- Both skill bodies use organization-neutral instructions. Publisher/catalog ownership and
+  optional setup-hub integration remain identified. Decision pre-mortem needs only task inputs;
+  no organization-specific configuration is required. Historical behavioral evals remain partial.
+- New regression coverage includes portable copied-plugin startup, invalid runtime/dependency,
+  private JSON validation and worker propagation. Required final check and installed MCP results
+  are recorded in the release evidence update below when available.
+
+Lesson: portable plugin packaging must preserve private state explicitly through configuration,
+while validating that same configuration at CLI, MCP and detached-worker boundaries.

@@ -30,7 +30,7 @@ import urllib.request
 import uuid
 
 ORIGIN = "https://www.perplexity.ai"
-KEYCHAIN_SERVICE = "rhize:perplexity-cookies"
+KEYCHAIN_SERVICE = "perplexity-research-cookies"
 MAX_BYTES = 16 * 1024 * 1024
 MAX_JSON = 512 * 1024
 MAX_THREAD = 4 * 1024 * 1024
@@ -167,7 +167,7 @@ def summary(job):
 
 def spawn(root, job_id, fd):
     env = {k: os.environ[k] for k in ("HOME", "USER", "LOGNAME", "PATH", "LANG") if k in os.environ}
-    return subprocess.Popen([sys.executable, "-I", str(SCRIPT), "--state-dir", str(root),
+    return subprocess.Popen([sys.executable, "-I", str(SCRIPT), "--state-dir", str(root), "--keychain-service", KEYCHAIN_SERVICE,
                              "_worker", job_id, str(fd)], pass_fds=(fd,), env=env,
                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL, start_new_session=True)
@@ -298,7 +298,7 @@ def auth_status(root):
 
 def auth_root(state_root):
     # Fixed OS temp path keeps CLI/MCP handoffs shared despite sanitized TMPDIR environments.
-    name = f"rhize-perplexity-auth-{os.getuid()}-{sha(str(state_root).encode())[:16]}"
+    name = f"perplexity-auth-{os.getuid()}-{sha(str(state_root).encode())[:16]}"
     return private_root(Path("/tmp").resolve() / name)
 
 
@@ -315,7 +315,7 @@ def auth_start(root):
             state = {"job_id": "session", "status": "starting"}
             save(root, state)
             env = {k: os.environ[k] for k in ("HOME", "USER", "LOGNAME", "PATH", "LANG") if k in os.environ}
-            subprocess.Popen([sys.executable, "-I", str(SCRIPT), "--state-dir", str(root),
+            subprocess.Popen([sys.executable, "-I", str(SCRIPT), "--state-dir", str(root), "--keychain-service", KEYCHAIN_SERVICE,
                               "_auth-worker", str(fd)], pass_fds=(fd,), env=env,
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                              stderr=subprocess.DEVNULL, start_new_session=True)
@@ -376,7 +376,7 @@ class WebClient:
 
     def request(self, path, data=None):
         headers = {"Cookie": "; ".join(f"{k}={v}" for k, v in self.cookies.items()),
-                   "User-Agent": "RhizeResearchLocal/0.1", "Accept": "text/event-stream" if data else "application/json"}
+                   "User-Agent": "PerplexityResearchLocal/0.2", "Accept": "text/event-stream" if data else "application/json"}
         if "__Host-pplx-last-active-account" in self.cookies:
             headers["x-pplx-account"] = self.cookies["__Host-pplx-last-active-account"]
         if data is not None:
@@ -754,12 +754,20 @@ def export_markdown(job):
 
 
 def main(argv=None):
+    global KEYCHAIN_SERVICE
+    import runpy
+    try:
+        settings = runpy.run_path(str(SCRIPT.with_name("perplexity_config.py")))["load_config"]()
+    except Exception:
+        print(json.dumps({"error": "invalid_local_configuration"}))
+        return 2
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--state-dir", type=Path, default=Path.home() / ".rhize" / "perplexity-research")
+    parser.add_argument("--state-dir", type=Path, default=Path(settings["stateDir"]))
+    parser.add_argument("--keychain-service", default=settings["keychainService"])
     commands = parser.add_subparsers(dest="command", required=True)
     add = commands.add_parser("submit", help="Read a public query from stdin; submit once with a durable ID")
     add.add_argument("--request-id", required=True)
-    add.add_argument("--permission-reference", type=Path, required=True)
+    add.add_argument("--permission-reference", type=Path, default=Path(settings["authorizationReference"]))
     add.add_argument("--timeout", type=int, default=600)
     add.add_argument("--mode", choices=("research", "search"), default="research")
     add.add_argument("--model")
@@ -780,6 +788,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     os.umask(0o077)
     try:
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", args.keychain_service):
+            raise BridgeError("invalid_keychain_service")
+        KEYCHAIN_SERVICE = args.keychain_service
         root = private_root(args.state_dir)
         if args.command in {"auth-start", "auth-status", "_auth-worker"}:
             if args.command == "_auth-worker":

@@ -25,10 +25,11 @@ One entry per external-skill ingestion decision.
   - Revisit the WATCH if permission bypass or telemetry becomes opt-in.
   - Vault: "Forge decision - paperclip (2026-09-27)".
 
-## business-premortem — 2026-10-17
+## decision-premortem — 2026-10-17
 - **Source:** Five user-supplied screenshots of a dominatingtech carousel, numbered 1–5: pre-mortem prompt, verdict, rebuild, adversary, tripwire.
 - **Verb:** ADAPT concepts; original Rhize wording. No image or source prompt body redistributed.
-- **Target:** rhize-ops:business-premortem
-- **Gap:** A reusable business-decision pre-mortem with evidence separation, causal failures, cost-aware rebuild, adversarial revision and dated owner/action tripwires. Existing project planning and product diagnostics do not supply this complete sequence.
+- **Target:** rhize-ops:decision-premortem
+- **Gap:** A reusable decision pre-mortem with evidence separation, causal failures, cost-aware rebuild, adversarial revision and dated owner/action tripwires. Existing project planning and product diagnostics do not supply this complete sequence.
+- **Scope:** Renamed from `business-premortem`; extends the same method to concrete nonbusiness decisions, with financial analysis conditional on relevance.
 - **Review:** User-requested Fable consultation; proposed rigid counts, a new option flag and unsupported numeric heuristics were not adopted. Hypothetical scenarios and residual risk remain explicit.
 - **Graph relation:** provenance-only

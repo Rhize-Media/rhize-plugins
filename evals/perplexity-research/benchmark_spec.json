@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Compare report retrieval and duplicate-prevention against an agreed manual workflow. No efficiency claim or live query is established by offline tests.",
+  "arms": {
+    "a": "user-confirmed manual Perplexity workflow",
+    "b": "durable local MCP bridge"
+  },
+  "measurements": [],
+  "natural_capture_eligible": false
+}

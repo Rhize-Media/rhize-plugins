@@ -14,7 +14,7 @@ from unittest.mock import Mock
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[2] / 'scripts/perplexity_research.py'
+SCRIPT = Path(__file__).resolve().parents[2] / 'perplexity-research/scripts/perplexity_research.py'
 ADAPTER = SCRIPT.with_name('perplexity_session_transfer.mjs')
 spec = importlib.util.spec_from_file_location('auth_bridge', SCRIPT)
 b = importlib.util.module_from_spec(spec)
@@ -189,3 +189,14 @@ def test_auth_temporary_directory_is_private_and_bound_to_job_state(tmp_path, mo
         assert first.stat().st_uid == os.getuid() and first.stat().st_mode & 0o077 == 0
     finally:
         first.rmdir(); second.rmdir()
+
+
+def test_auth_worker_inherits_configured_service(tmp_path, monkeypatch):
+    root = b.private_root(tmp_path.resolve() / 'auth')
+    popen = Mock()
+    monkeypatch.setattr(b.subprocess, 'Popen', popen)
+    monkeypatch.setattr(b, 'KEYCHAIN_SERVICE', 'custom:session')
+    b.auth_start(root)
+    argv = popen.call_args.args[0]
+    assert argv[argv.index('--keychain-service') + 1] == 'custom:session'
+    assert popen.call_args.kwargs['start_new_session']

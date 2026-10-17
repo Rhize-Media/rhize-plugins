@@ -7,6 +7,9 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | compiled-knowledge | obsidian-second-brain | <vault>/.rhize/compiled-knowledge/ | ls <vault>/.rhize/compiled-knowledge/ | regenerated | personal | derived | outside-repo |
 | vault-setup-log | obsidian-second-brain | <vault>/_vault-setup-log.md | open the note in Obsidian, or cat <vault>/_vault-setup-log.md | persistent | personal | authored | outside-repo |
+| authorization | perplexity-research | <home>/.config/perplexity-research/authorization.txt | ls -ld "$HOME/.config/perplexity-research" | persistent | personal | authored | outside-repo |
+| configuration | perplexity-research | <home>/.config/perplexity-research/config.json | ls -ld "$HOME/.config/perplexity-research" | persistent | config | authored | outside-repo |
+| jobs | perplexity-research | <home>/.local/share/perplexity-research/ | ls -ld "$HOME/.config/perplexity-research" | persistent | personal | derived | outside-repo |
 | candidate-queue | procedural-memory | <home>/.claude/procedural-memory/candidate-queue.jsonl | cat ~/.claude/procedural-memory/candidate-queue.jsonl | append-only | personal | transcript-derived | outside-repo |
 | procedural-memory-runs | procedural-memory | <home>/.rhize/procedural-memory/runs/ | ls ~/.rhize/procedural-memory/runs/ | per-run | none | derived | outside-repo |
 | hookify-local-rules | project-launcher | <project>/.claude/hookify.*.local.md | cat .claude/hookify.<rule-id>.local.md | persistent | config | authored | ignored |

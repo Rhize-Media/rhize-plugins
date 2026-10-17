@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "perplexity_research": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/launch-mcp.sh",
+      "args": []
+    }
+  }
+}

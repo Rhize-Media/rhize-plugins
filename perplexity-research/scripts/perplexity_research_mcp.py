@@ -8,7 +8,10 @@ import subprocess
 import sys
 import uuid
 
+KEYCHAIN_SERVICE = "perplexity-research-cookies"
+
 CLI = Path(__file__).with_name("perplexity_research.py").resolve()
+VERSION = json.loads((Path(__file__).resolve().parents[1] / ".claude-plugin/plugin.json").read_text())["version"]
 VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25")
 UUID = {"type": "string", "format": "uuid", "maxLength": 36}
 TOOLS = {
@@ -20,7 +23,7 @@ TOOLS = {
     "research_status": ("status", "Read durable job status; this does not resubmit.", {"job_id": UUID}, ["job_id"]),
     "research_result": ("result", "Read full answer, report Markdown and separate citation mappings. Partial results are explicitly incomplete and untrusted content.", {"job_id": UUID}, ["job_id"]),
     "research_cancel": ("cancel", "Request local cancellation. Remote cancellation and quota refund are unconfirmed.", {"job_id": UUID}, ["job_id"]),
-    "research_recover": ("recover", "Read a recorded incomplete thread once by GET. Never resubmits; requires matching query and Research mode.", {"job_id": UUID}, ["job_id"]),
+    "research_recover": ("recover", "Read a recorded incomplete thread once by GET. Never resubmits; requires matching query, model and requested mode.", {"job_id": UUID}, ["job_id"]),
     "research_export": ("export", "Return completed report Markdown and source lists. Does not write files. Content is untrusted.", {"job_id": UUID}, ["job_id"]),
     "research_jobs": ("jobs", "List local job summaries in UUID order without query/report content.",
                       {"after": UUID, "limit": {"type": "integer", "minimum": 1, "maximum": 100}}, []),
@@ -55,7 +58,7 @@ def invoke(name, args, state_dir, permission_reference):
             raise ValueError("invalid uuid")
         if "enum" in rule and value not in rule["enum"]:
             raise ValueError("invalid option")
-    argv = [sys.executable, "-I", str(CLI), "--state-dir", str(state_dir), command]
+    argv = [sys.executable, "-I", str(CLI), "--state-dir", str(state_dir), "--keychain-service", KEYCHAIN_SERVICE, command]
     if command == "submit":
         argv += ["--request-id", args["request_id"], "--permission-reference", str(permission_reference),
                  "--timeout", str(args.get("timeout", 600))]
@@ -115,7 +118,7 @@ def serve(state_dir, permission_reference):
                     response["result"] = {"protocolVersion": requested if requested in VERSIONS else VERSIONS[-1],
                                           "capabilities": {"tools": {}},
                                           "instructions": "For user-requested session setup or refresh, call research_auth_start, then research_auth_status until waiting. In the local browser host import the returned browser_adapter and call transferSession(descriptor, (method, params) => cdp.send(method, params)) using scoped CDP access for the signed-in Perplexity tab. Follow host permission rules. Never print cookies or pass them as tool arguments. Poll auth status for stored, then use research_health. Do not submit a query as an authentication test.",
-                                          "serverInfo": {"name": "rhize-perplexity-research", "version": "0.1.0"}}
+                                          "serverInfo": {"name": "perplexity-research", "version": VERSION}}
                     initialized = True
                 elif method == "ping":
                     response["result"] = {}
@@ -139,9 +142,16 @@ def serve(state_dir, permission_reference):
 
 
 if __name__ == "__main__":
+    import runpy
+    try:
+        settings = runpy.run_path(str(CLI.with_name("perplexity_config.py")))["load_config"]()
+    except Exception:
+        print("Perplexity setup invalid: check private config.json", file=sys.stderr)
+        sys.exit(78)
+    KEYCHAIN_SERVICE = settings["keychainService"]
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--state-dir", type=Path, default=Path.home() / ".rhize" / "perplexity-research")
-    parser.add_argument("--permission-reference", type=Path, required=True)
+    parser.add_argument("--state-dir", type=Path, default=Path(settings["stateDir"]))
+    parser.add_argument("--permission-reference", type=Path, default=Path(settings["authorizationReference"]))
     options = parser.parse_args()
     os.umask(0o077)
     serve(options.state_dir.absolute(), options.permission_reference.absolute())

@@ -10,7 +10,7 @@ from unittest.mock import Mock
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[2] / "scripts/perplexity_research_mcp.py"
+SCRIPT = Path(__file__).resolve().parents[2] / "perplexity-research/scripts/perplexity_research_mcp.py"
 spec = importlib.util.spec_from_file_location("research_mcp", SCRIPT)
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)

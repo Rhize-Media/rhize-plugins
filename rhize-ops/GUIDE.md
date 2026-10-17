@@ -6,7 +6,7 @@ This guide explains what the rhize-ops plugin does and how to get the most out o
 
 rhize-ops covers five everyday ops jobs:
 
-- **Testing a business decision before committing** — turn plausible failures into a revised plan, stop conditions and measurable warning signals.
+- **Testing a decision before committing** — turn plausible failures into a revised plan, stop conditions and measurable warning signals.
 
 - **Getting a second model’s help** — Claude and Codex can request reviews or bounded file changes from each other through one shared bridge.
 - **Handing work off to a teammate** without losing context — turning a messy session into a clear, encouraging task package they can actually execute.
@@ -23,15 +23,19 @@ The same `parallel-agent-optimization` skill contract is discoverable in Claude 
 Restart the host after installing or updating the plugin before running a discovery smoke; commands
 are Claude adapters, while Codex routes through the canonical skill and its OpenAI metadata.
 
-## Business pre-mortem
+## Decision pre-mortem
 
-Use `rhize-ops:business-premortem` (Codex: `$business-premortem`) for a launch, hire,
-pricing change, partnership or expansion. Provide the plan, decision/start date, budget,
-capacity, success criteria and alternatives. No setup is needed.
+Use `rhize-ops:decision-premortem` (Codex: `$decision-premortem`) for business, project,
+team-process or personal decisions. Provide the plan, decision/start date, relevant
+constraints, success criteria and alternatives. Financial checks apply where money matters. No setup is needed.
 
-> "Run a business pre-mortem on this proposed training cohort. Here are the costs,
+> "Run a decision pre-mortem on this proposed training cohort. Here are the costs,
 > capacity, demand evidence, deposit deadline and target profit. Tell me what would
 > make us pause or walk away, and which signals to check before we commit."
+
+For example, use it to assess a study schedule or a team process change as well as a
+commercial launch. A vague idea first needs a concrete choice and failure criteria.
+The former `business-premortem` invocation is replaced by `decision-premortem`.
 
 The memo follows five steps: autopsy, verdict, rebuild, adversary and tripwires. It
 separates facts from inferences, highlights the biggest hidden assumption, compares

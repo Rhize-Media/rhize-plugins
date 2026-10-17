@@ -217,3 +217,10 @@ to check what's tracked before you commit.
 For plugin retention across Claude and Codex, see [rhize-ops host inventory and keep
 decisions](rhize-ops/GUIDE.md#host-inventory-and-explicit-retention). To turn a known
 skill failure into a verified project refinement, use [skill-refine capture](rhize-context-manager/commands/skill-refine.md#capture--targeted-local-refinement-skill-forge-019).
+
+## Perplexity subscription research
+
+Install `perplexity-research@rhize-plugins` for Search/Research, cited reports and durable
+GET-only recovery on macOS. Start with its [setup](perplexity-research/README.md) and
+[usage guide](perplexity-research/GUIDE.md). Existing local prototype jobs remain valid;
+keep only one plugin identity active. Setup does not submit queries.

@@ -13,7 +13,6 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 NAME = "perplexity-research"
 MARKETPLACE = "perplexity-local"
-DESCRIPTION = "Local Perplexity subscription Search and Research with durable jobs and Keychain session setup."
 RUNTIME = ("perplexity_research.py", "perplexity_research_mcp.py", "perplexity_session_transfer.mjs")
 
 
@@ -29,33 +28,22 @@ def build(destination, permission_reference):
     destination.mkdir(mode=0o700)  # Refuse existing snapshots, including symlinks.
     try:
         plugin = destination / "plugins" / NAME
-        (plugin / "scripts").mkdir(parents=True, mode=0o700)
-        (plugin / "docs/research").mkdir(parents=True, mode=0o700)
-        (plugin / ".codex-plugin").mkdir(mode=0o700)
+        files = ["scripts/" + name for name in RUNTIME] + [
+            "scripts/launch-mcp.sh", "scripts/perplexity_config.py", "config/defaults.json", "config/schema.json", ".claude-plugin/plugin.json", ".codex-plugin/plugin.json",
+            ".mcp.json", "README.md", "GUIDE.md", "CHANGELOG.md", "setup/manifest.json",
+            "commands/setup.md", "skills/SOURCES.md", "skills/perplexity-research/SKILL.md",
+            "docs/perplexity-local-bridge.md", "docs/perplexity-pro-feasibility.md",
+            "docs/perplexity-upstream-LICENSE.txt",
+        ]
+        for name in files:
+            target = plugin / name
+            target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            shutil.copy2(ROOT / NAME / name, target)
         (destination / ".agents/plugins").mkdir(parents=True, mode=0o700)
-        for name in RUNTIME:
-            shutil.copyfile(ROOT / "scripts" / name, plugin / "scripts" / name)
-        for name in ("perplexity-local-bridge.md", "perplexity-pro-feasibility.md", "perplexity-upstream-LICENSE.txt"):
-            shutil.copyfile(ROOT / "docs/research" / name, plugin / "docs/research" / name)
-        (plugin / "README.md").write_text(
-            "# Perplexity Research\n\n" + DESCRIPTION + "\n\n"
-            "See [GUIDE.md](GUIDE.md) for setup, all eleven MCP tools, installation and limits.\n"
-            "Queries consume subscription allowance; no automatic retries or password login.\n")
-        (plugin / "GUIDE.md").write_text(
-            "# Usage guide\n\nSee the [complete bridge guide](docs/research/perplexity-local-bridge.md) "
-            "for installation, native session refresh, all MCP tools and verification limits.\n")
-        (plugin / "CHANGELOG.md").write_text(
-            "# Changelog\n\n## 0.1.0\n\nInitial local snapshot: Search/Research, durable jobs, "
-            "recovery, exports and native encrypted browser-to-Keychain setup. "
-            "Accepts Codex discovery progress metadata. Search thread reads request the answer "
-            "and explicit citation rows together while retaining strict citation validation. "
-            "Separate bounded thread/event/stream budgets support larger Research metadata; "
-            "oversized state writes preserve the prior job.\n")
-        manifest = {"name": NAME, "version": "0.1.0", "description": DESCRIPTION,
-                    "author": {"name": "Rhize Media"}, "mcpServers": {
-                        "perplexity_research": {"command": python, "cwd": ".",
-                            "args": ["-I", "scripts/perplexity_research_mcp.py",
-                                     "--permission-reference", str(reference)]}}}
+        manifest = json.loads((plugin / ".codex-plugin/plugin.json").read_text())
+        manifest["mcpServers"] = {"perplexity_research": {"command": python, "cwd": ".",
+            "args": ["-I", "scripts/perplexity_research_mcp.py",
+                     "--permission-reference", str(reference)]}}
         marketplace = {"name": MARKETPLACE, "interface": {"displayName": "Perplexity Local"},
                        "plugins": [{"name": NAME, "source": {"source": "local", "path": "./plugins/" + NAME},
                                     "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},

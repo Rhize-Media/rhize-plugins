@@ -1,7 +1,7 @@
 {
   "name": "rhize-ops",
-  "version": "0.32.0",
-  "description": "Rhize Media's internal operations toolkit — stress-tests business decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
+  "version": "0.33.0",
+  "description": "Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.",
   "author": {
     "name": "Rhize Media"
   },
@@ -18,8 +18,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Rhize Ops",
-    "shortDescription": "Business decisions, delegation and agent operations.",
-    "longDescription": "Stress-test business decisions with pre-mortems, prepare contextual handoffs, and coordinate inspectable agent workflows.",
+    "shortDescription": "Decisions, delegation and agent operations.",
+    "longDescription": "Stress-test decisions with pre-mortems, prepare contextual handoffs, and coordinate inspectable agent workflows.",
     "developerName": "Rhize Media",
     "category": "Developer Tools",
     "capabilities": [
@@ -28,7 +28,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Run a business pre-mortem before I commit to this plan.",
+      "Run a decision pre-mortem before I commit to this plan.",
       "Prepare a safe delegation handoff for this task.",
       "Assess whether this work should use parallel agents.",
       "Set up Rhize benchmark baselines and evaluation capture."

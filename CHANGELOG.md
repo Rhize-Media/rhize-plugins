@@ -34,6 +34,11 @@ point-in-time record.
 
 ### Added
 
+- Publish Perplexity Research as the twelfth Rhize plugin: portable MCP startup, native encrypted
+  session setup, durable Search/Research, follow-ups, explicit citations and GET-only report recovery.
+- Coordinate the Ops `decision-premortem` rename with Core onboarding/evaluation updates.
+
+- _2026-10-17_ version bump — **perplexity-research** 0.1.0 → 0.2.0 (minor); **rhize-core** 1.0.8 → 1.0.9 (patch); **rhize-ops** 0.32.0 → 0.33.0 (minor); marketplace 2.110.1 → 2.111.0.
 - _2026-10-17_ version bump — **rhize-core** 1.0.7 → 1.0.8 (patch); marketplace 2.110.0 → 2.110.1.
 - _2026-10-17_ version bump — **rhize-ops** 0.31.0 → 0.32.0 (minor); marketplace 2.109.0 → 2.110.0.
 - _2026-10-16_ version bump — **rhize-devflow** 2.28.0 → 2.29.0 (minor); marketplace 2.108.0 → 2.109.0.
