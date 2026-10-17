@@ -19,8 +19,11 @@
   condensed instructions, exact diff, shared consumers and protected-file boundaries.
   Fable's final text review found no release-blocking omissions in the condensed body;
   it did not establish behavioral compliance or replace the preserved partial results.
-  The first measured release check hit the wrapper's 300-second limit; direct required
-  release checks remain pending. Lesson: a plausible forward-test memo is not an all-pass
+  The first measured release check hit the wrapper's 300-second limit; the direct release
+  check passed 779 Dev Flow tests, seven impact-map contracts, map/setup freshness and
+  config lint. The script began before the feature commit, so committed plugin/version/
+  changelog coverage was checked separately with its discovery helpers: exactly Ops and
+  Core changed, both and the marketplace version increased. Lesson: a plausible forward-test memo is not an all-pass
   result; audit the actual numbers and preserve failures separately from instruction fixes.
 
 - 2026-10-17: Refactor-gate fix verified after the combined release (b158c26, Dev Flow 2.29.0). Gate files are byte-identical to ecbca244; gate, activation, config-scope and hook suites pass on b158c26 (243), and 3770067 differs only in STATE.md. The installed Claude Dev Flow 2.29.0 `refactor_gate.py` matches main; an isolated smoke test of the installed hooks blocked a heredoc source write, allowed `grep '>'`, and flagged a hidden write after the command. This settles the "installed cache is still 2.27.0" gap below; hooks load in sessions started after the update, and Codex PostToolUse behavior remains unverified.
