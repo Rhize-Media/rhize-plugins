@@ -619,3 +619,23 @@ pre-commitment test feasibility, while preserving all financial safeguards where
 
 Lesson: portable plugin packaging must preserve private state explicitly through configuration,
 while validating that same configuration at CLI, MCP and detached-worker boundaries.
+
+## Perplexity release review and local verification — 2026-10-17
+
+- Native Fable5.1 reviewed runtime, packaging and the accepted fixes in three completed
+  jobs. No remaining source blockers; review IDs/dispositions are recorded in
+  `docs/release/perplexity-marketplace-2.111.0.md`. Fable did not run tests itself.
+- Clean full repository suite at source `0896253`: 4,429 passed, 7 existing skips,
+  21 subtests passed (794.11 seconds). Explicit installed Node PATH resolved earlier
+  fixture trust failures without changing source, trust controls or tests.
+- Committed release gate passed: 780 Dev Flow tests, map/setup freshness, config lint
+  and version-bump coverage for all three changed plugins. Seven impact-map contracts
+  passed in the earlier run; strict manifests and generated docs also passed.
+- A native Codex candidate installation loaded the unchanged portable manifest and all
+  eleven MCP tools. Live health/models GETs, the same recovered report and export passed;
+  all twenty installed files matched source and all eight saved job hashes were unchanged.
+  No query or credential refresh occurred. Published installation and hosted CI remain
+  separate gates before retirement of the retained local development plugin.
+
+Lesson: fixture HOME changes can make a version-manager shim resolve or reject a different
+runtime; pin an already-installed executable in the test PATH, then rerun the unchanged suite.

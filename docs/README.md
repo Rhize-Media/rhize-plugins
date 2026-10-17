@@ -82,8 +82,11 @@ Version 0.2.0. Perplexity subscription Search and Research with durable local jo
 
 ## Cross-plugin references
 
+- [`release/perplexity-marketplace-2.111.0.md`](release/perplexity-marketplace-2.111.0.md) —
+  coordinated publication, independent Fable review, native MCP evidence and remaining limits.
+
 - [`../perplexity-research/docs/perplexity-local-bridge.md`](../perplexity-research/docs/perplexity-local-bridge.md) — marketplace
-  installed local Codex plugin, native session refresh, verified live Research MCP workflow,
+  package and local Codex installation, native session refresh, verified live Research MCP workflow,
   direct-chat follow-up/cancellation results, the verified Search citation fix, bounded large-report
   recovery, exports and installation limits.
 

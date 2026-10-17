@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - [rhize-cowork/CHANGELOG.md](./rhize-cowork/CHANGELOG.md)
 - [procedural-memory/CHANGELOG.md](./procedural-memory/CHANGELOG.md)
 - [rhize-outreach/CHANGELOG.md](./rhize-outreach/CHANGELOG.md)
+- [perplexity-research/CHANGELOG.md](./perplexity-research/CHANGELOG.md)
 
 Entries before 2026-09-03 live in
 [docs/release/CHANGELOG-history.md](./docs/release/CHANGELOG-history.md), preserved verbatim as a
