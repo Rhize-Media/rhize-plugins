@@ -32,7 +32,10 @@ import uuid
 ORIGIN = "https://www.perplexity.ai"
 KEYCHAIN_SERVICE = "rhize:perplexity-cookies"
 MAX_BYTES = 16 * 1024 * 1024
-MAX_EVENT = 512 * 1024
+MAX_JSON = 512 * 1024
+MAX_THREAD = 4 * 1024 * 1024
+MAX_EVENT = 4 * 1024 * 1024
+MAX_STREAM = 64 * 1024 * 1024
 ACTIVE = {"queued", "preflight", "submitting", "running"}
 THREAD_BLOCKS = ["answer_modes", "media_items", "inline_entity_cards", "place_widgets", "finance_widgets",
                  "news_widgets", "shopping_widgets", "search_result_widgets", "inline_images", "inline_assets",
@@ -87,10 +90,13 @@ def read_job(root, job_id):
 
 
 def save(root, job):
+    data = encoded(job)
+    if len(data) > MAX_BYTES:
+        raise BridgeError("state_too_large")
     fd, temporary = tempfile.mkstemp(dir=root, prefix=".write-")
     try:
         with os.fdopen(fd, "wb") as stream:
-            stream.write(encoded(job))
+            stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, root / (job["job_id"] + ".json"))
@@ -389,10 +395,10 @@ class WebClient:
             raise BridgeError("unexpected_response_or_challenge")
         return response
 
-    def get_json(self, path):
+    def get_json(self, path, *, max_bytes=MAX_JSON):
         with self.request(path) as response:
-            raw = response.read(MAX_EVENT + 1)
-        if len(raw) > MAX_EVENT:
+            raw = response.read(max_bytes + 1)
+        if len(raw) > max_bytes:
             raise BridgeError("response_too_large")
         return json.loads(raw)
 
@@ -422,7 +428,9 @@ def events(response):
             return
         size += len(line)
         total += len(line)
-        if size > MAX_EVENT or total > MAX_BYTES:
+        if size > MAX_EVENT:
+            raise BridgeError("sse_event_too_large")
+        if total > MAX_STREAM:
             raise BridgeError("stream_too_large")
         line = line.decode("utf-8").rstrip("\r\n")
         if not line:
@@ -560,7 +568,8 @@ def read_thread(client, backend, query_text, requested_model, mode="research", t
               "limit": "20", "offset": "0", "from_first": "false", "with_first_entry": "true",
               # Broad Research capabilities suppress ask_text in Search thread responses.
               "supported_block_use_cases": THREAD_BLOCKS if mode == "research" else ["answer_modes", "unified_assets"]}
-    response = client.get_json("/rest/thread/" + thread_id + "?" + urllib.parse.urlencode(params, doseq=True))
+    response = client.get_json("/rest/thread/" + thread_id + "?" + urllib.parse.urlencode(params, doseq=True),
+                               max_bytes=MAX_THREAD)
     entries = [entry for entry in response.get("entries", []) if entry.get("backend_uuid") == backend]
     if len(entries) != 1 or entries[0].get("query_str") != query_text:
         raise BridgeError("recovery_thread_or_query_mismatch")

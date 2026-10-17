@@ -12,7 +12,7 @@ installation. The review below is the historical
 pre-implementation assessment; its statements about no account access and held validation
 apply to that earlier phase, not the subsequent live proof.
 
-Latest validation (2026-10-17, client date): the Search compatibility failure is fixed.
+Earlier validation (2026-10-17, client date): the Search compatibility failure was fixed.
 The Research GET capability list omitted the Search answer while returning citation rows;
 Search now requests the minimal capabilities that return both. The original failed job
 recovered by GET, and one fresh direct-chat MCP Search completed with two explicitly numbered
@@ -20,6 +20,13 @@ citations, export and same-ID replay. All 109 focused tests and required reposit
 passed; the local plugin and documentation were rebuilt and installed. Earlier follow-up and
 local-cancellation proofs remain valid historical results; remote stop/refund and quota remain
 unknown. See the [Search fix acceptance](perplexity-local-bridge.md#search-citation-fix-verified--2026-10-17).
+
+Latest validation (2026-10-17, client date): separate bounded thread/event/stream budgets now
+handle the oversized Research metadata. Installed MCP GET-only recovery of the original job
+returned its 24,834-character report and 243 citations; result/export passed without another
+query or a new job ID. All 121 focused tests passed, including overflow refusals and preservation
+of prior saved state. See the [large-response acceptance](perplexity-local-bridge.md#large-research-response-recovered--2026-10-17).
+Larger SSE budgets were tested synthetically; factual/browser/quota verification remains separate.
 
 ## Original decision
 

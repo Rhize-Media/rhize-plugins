@@ -2,6 +2,26 @@
 
 ## Verified facts
 
+- 2026-10-17: Perplexity response-size fix installed and same Research report recovered through
+  actual chat MCP without submitting another query. Job 4f40bde9-478e-40cd-9377-96df324d6d87
+  is completed via GET; original identity/source hash and stream_too_large error preserved.
+  Result: RESEARCH/pplx_alpha, 24,834 report characters, 243 report citations, 3,274 summary
+  characters and 21 summary citations. MCP result/export and CLI formatter parity pass;
+  repeat recovery unchanged and no new job IDs. New CLI SHA begins 8e28ac6797f8.
+  Thread JSON and SSE event caps are 4 MiB; cumulative SSE 64 MiB; session/model JSON remains
+  512 KiB and state 16 MiB. Oversize state is refused before replacement; event overflow is
+  sse_event_too_large, total remains stream_too_large. Strict identity/citation/secret/deadline
+  checks remain, with no automatic retries/recovery. All 121 focused tests passed; four selected
+  regressions failed before fix. Cold self-review checked callers, byte boundaries, invalid
+  mappings and preservation. Final local 0.1.0 snapshot and docs installed, all ten hashes match,
+  plugin enabled and health ready; rollback retained. An unrelated required-suite test first
+  failed (test_source_bound_drift_and_unrelated_repository_rejected); isolated rerun passed and
+  the original saved fixture verified unchanged. Initial reason unavailable; no tests disabled.
+  Full required rerun passed: 534 Dev Flow tests, seven impact-map contracts and static/config/
+  setup checks. No unrelated source/test changes. Larger SSE budgets are synthetic-tested,
+  not a new live POST; factual/browser/quota checks
+  remain unverified. Workflow context and source-bound pilot observation unavailable.
+
 - 2026-10-17: Investigated oversized Research job 4f40bde9-478e-40cd-9377-96df324d6d87.
   Installed MCP recovery reproduces response_too_large after stream_too_large. GET uses the
   512 KiB SSE event limit for the entire thread response; measured response is 1,892,470 bytes.

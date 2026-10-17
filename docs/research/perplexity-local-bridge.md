@@ -1,5 +1,36 @@
 # Local Perplexity Search and Research bridge
 
+## Large Research response recovered — 2026-10-17
+
+Verified through the installed plugin in this chat (client date). Job
+`4f40bde9-478e-40cd-9377-96df324d6d87` failed with `stream_too_large`, then the old MCP
+recovery refused its 1,892,470-byte thread JSON as `response_too_large`. Most of that JSON
+was workflow/source metadata; the normalized result was 104,306 bytes. The fix separates
+[response and state budgets](#lifecycle-and-failure-semantics) instead of removing size limits.
+
+After local plugin `0.1.0` was rebuilt and installed, `research_recover` completed **the same
+job through GET only**, preserving its original request identity, source hash and prior error.
+No `research_submit` call was made and the local job-ID set did not change. The unchanged MCP
+adapter launched the updated sibling CLI in this chat without a reload.
+
+- Server result: `COMPLETED / RESEARCH / pplx_alpha` on the
+  [original thread](https://www.perplexity.ai/search/16578489-cb52-4973-9fdf-60586b5807e0).
+- Full report: **24,834 characters and 243 citations**; summary: 3,274 characters and 21
+  explicitly numbered citations. MCP result and Markdown export passed, with CLI export parity.
+- Recovery CLI SHA-256:
+  `8e28ac6797f8d5c68df82173b06c009c4214683180bda674fdd909dda4cba125`.
+  Original submission SHA and `stream_too_large` remain in durable metadata.
+- All **121 focused tests passed**. New tests reproduced failures before the fix and cover
+  >512 KiB thread recovery, repeated 2 MiB snapshots exceeding the old 16 MiB stream cap,
+  byte boundaries, multiline events/heartbeats, metadata-response refusal, invalid citations,
+  no recovery POST and preservation of saved state on oversized writes.
+
+Rollback snapshots are retained. The final installed documentation and runtime are hash-checked
+against the source snapshot. The larger SSE budgets are tested synthetically; no fresh live
+query was submitted to exercise them. This verifies retrieval and structural validation, not
+factual accuracy, browser parity or quota accounting. Responses above the finite caps still
+fail explicitly. The historical stream error cannot identify which old cap fired.
+
 ## Search citation fix verified — 2026-10-17
 
 Verified through this chat's installed MCP tools, using the client date. Search now requests
@@ -278,8 +309,22 @@ not protection against another program running as the same OS user.
 | `cancelled_local` | Cancellation stopped local work; remote cancellation is unconfirmed. |
 
 The deadline covers startup, preflight and streaming (default 600, maximum 1800 seconds). Each
-HTTP operation also has a 15-second socket timeout. Response events are capped at 512 KiB and
-total stream bytes at 16 MiB. Exceeding a bound is an explicit failure. Completion persists before
+HTTP operation also has a 15-second socket timeout. Size budgets are separate:
+
+| Payload | Maximum | Overflow error |
+| --- | --- | --- |
+| Session/model JSON | 512 KiB | `response_too_large` |
+| Thread GET JSON | 4 MiB | `response_too_large` |
+| Individual SSE event, including framing/comments | 4 MiB | `sse_event_too_large` |
+| Cumulative SSE bytes, including repeated snapshots/heartbeats | 64 MiB | `stream_too_large` |
+| Encoded local job state | 16 MiB | `state_too_large` |
+
+Thread metadata can be much larger than the normalized answer. JSON reads request at most
+their budget plus one byte to detect overflow; SSE counters include UTF-8 bytes and multiline
+events. State writes are size-checked before creating/replacing the saved file, preserving the
+prior readable job on refusal. These are finite caps, not unlimited-response support. An overflow
+never triggers an automatic query retry or marks a partial result completed. Use explicit
+same-job recovery when the remote report is available. Completion persists before
 the worker terminates its process group, which also stops blocked HTTP/Keychain children.
 
 `cancel` first records a request; poll status for its terminal result. Timeout, local cancellation

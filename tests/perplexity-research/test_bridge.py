@@ -122,8 +122,80 @@ def test_multiline_heartbeat_and_bounds(monkeypatch):
     raw = b':ping\n\nevent: message\ndata: {\ndata: "status":"PENDING"}\n\n'
     assert list(b.events(io.BytesIO(raw))) == [("message", '{\n"status":"PENDING"}')]
     monkeypatch.setattr(b, "MAX_EVENT", 10)
-    with pytest.raises(b.BridgeError, match="stream_too_large"):
+    with pytest.raises(b.BridgeError, match="sse_event_too_large"):
         list(b.events(io.BytesIO(b'data: ' + b'x' * 20)))
+
+
+def test_large_repeated_snapshots_remain_bounded(monkeypatch, payload):
+    payload["workflow_metadata"] = "x" * (2 * 1024 * 1024)
+    raw = wire(payload, end=False) * 9 + b'event: end_of_stream\ndata: {}\n\n'
+    assert len(raw) > 16 * 1024 * 1024
+    calls = network(monkeypatch, payload, raw=raw)
+    assert b.research("Public", emit)["answer"] == "Public answer [1]"
+    assert len([r for r in calls if r.data]) == 1
+
+
+@pytest.mark.parametrize("extra", [0, 1])
+def test_sse_event_byte_boundary(monkeypatch, extra):
+    raw = (b'data: ' + 'é'.encode() * 10 + b'\n') * 2 + b'\n'
+    monkeypatch.setattr(b, "MAX_EVENT", len(raw) - extra)
+    if extra:
+        with pytest.raises(b.BridgeError, match="sse_event_too_large"):
+            list(b.events(io.BytesIO(raw)))
+    else:
+        assert list(b.events(io.BytesIO(raw))) == [("message", "é" * 10 + "\n" + "é" * 10)]
+
+
+def test_sse_total_counts_heartbeats_and_multiline_events(monkeypatch):
+    raw = b':ping\n\ndata: a\ndata: b\n\n'
+    monkeypatch.setattr(b, "MAX_STREAM", len(raw))
+    assert list(b.events(io.BytesIO(raw))) == [("message", "a\nb")]
+    with pytest.raises(b.BridgeError, match="stream_too_large"):
+        list(b.events(io.BytesIO(raw + b':')))
+    monkeypatch.setattr(b, "MAX_EVENT", 5)
+    with pytest.raises(b.BridgeError, match="sse_event_too_large"):
+        list(b.events(io.BytesIO(b':ping\n')))
+
+
+@pytest.mark.parametrize("thread", [False, True])
+@pytest.mark.parametrize("extra", [0, 1])
+def test_json_response_byte_boundary(thread, extra):
+    limit = b.MAX_THREAD if thread else b.MAX_JSON
+    client = b.WebClient({})
+    response = Response(b'{}' + b' ' * (limit - 2 + extra), b.ORIGIN)
+    response.read = Mock(wraps=response.read)
+    client.request = Mock(return_value=response)
+    kwargs = {"max_bytes": limit} if thread else {}
+    if extra:
+        with pytest.raises(b.BridgeError, match="response_too_large"):
+            client.get_json("/fixture", **kwargs)
+    else:
+        assert client.get_json("/fixture", **kwargs) == {}
+    response.read.assert_called_once_with(limit + 1)
+    assert response.closed
+
+
+def test_metadata_json_keeps_small_budget():
+    client = b.WebClient({})
+    client.request = Mock(return_value=Response(b'{}' + b' ' * (512 * 1024), b.ORIGIN))
+    with pytest.raises(b.BridgeError, match="response_too_large"):
+        client.get_json("/api/auth/session")
+
+
+def test_oversized_state_preserves_previous_file(root, monkeypatch):
+    job = {"job_id": str(uuid.uuid4()), "status": "incomplete"}
+    b.save(root, job)
+    original = (root / (job["job_id"] + ".json")).read_bytes()
+    job["answer"] = "é" * 20
+    monkeypatch.setattr(b, "MAX_BYTES", len(b.encoded(job)) - 1)
+    with pytest.raises(b.BridgeError, match="state_too_large"):
+        b.save(root, job)
+    assert (root / (job["job_id"] + ".json")).read_bytes() == original
+    assert b.read_job(root, job["job_id"])["status"] == "incomplete"
+    assert not list(root.glob(".write-*"))
+    monkeypatch.setattr(b, "MAX_BYTES", len(b.encoded(job)))
+    b.save(root, job)
+    assert b.read_job(root, job["job_id"]) == job
 
 
 @pytest.mark.parametrize("tier,mode", [("free", "research"), ("unknown", "research"), ("pro", "search"), ("pro", "agentic_research")])
@@ -255,7 +327,7 @@ def test_search_thread_negotiates_answer_and_explicit_citation_rows(modern_paylo
     modern_payload["blocks"] = modern_payload["blocks"][:3]
     modern_payload["blocks"][0]["markdown_block"]["answer"] = f"Public answer [{marker}]"
 
-    def get_thread(path):
+    def get_thread(path, **kwargs):
         capabilities = urllib.parse.parse_qs(urllib.parse.urlsplit(path).query)["supported_block_use_cases"]
         # Broad Research capabilities omit ask_text on live Search thread reads.
         blocks = modern_payload["blocks"] if capabilities == ["answer_modes", "unified_assets"] else modern_payload["blocks"][1:]
@@ -498,6 +570,35 @@ def test_recovery_only_reads_exact_saved_thread(root, monkeypatch, modern_payloa
     client.get_json.assert_called_once()
     assert client.get_json.call_args.args[0].startswith("/rest/thread/" + job["partial"]["backend_uuid"] + "?")
     client.request.assert_not_called()
+
+
+@pytest.mark.parametrize("invalid_citation", [False, True])
+def test_large_thread_recovery_preserves_validation_without_post(root, monkeypatch, modern_payload, invalid_citation):
+    holders, launch = hold_launch()
+    job_id = str(uuid.uuid4())
+    b.submit(root, job_id, "Public", "a" * 64, 60, launch)
+    for fd in holders: os.close(fd)
+    job = b.read_job(root, job_id)
+    job.update(status="incomplete", submitted=True, requested_model="pplx_alpha",
+               error="stream_too_large", partial={"backend_uuid": modern_payload["backend_uuid"]})
+    b.save(root, job)
+    original = (root / (job_id + ".json")).read_bytes()
+    modern_payload["workflow_metadata"] = "x" * (2 * 1024 * 1024)
+    if invalid_citation:
+        modern_payload["blocks"][0]["markdown_block"]["answer"] = "Unmapped [99]"
+    calls = network(monkeypatch, modern_payload, thread=modern_payload)
+    if invalid_citation:
+        with pytest.raises(b.BridgeError, match="citation_mapping_unverified"):
+            b.recover(root, job_id)
+        assert (root / (job_id + ".json")).read_bytes() == original
+    else:
+        assert b.recover(root, job_id)["status"] == "completed"
+        saved = b.read_job(root, job_id)
+        assert saved["result"]["reports"][0]["markdown"] == "Full first [1], second [2]."
+        assert saved["recovery"]["prior_error"] == "stream_too_large"
+        assert saved["recovery"]["method"] == "GET"
+        assert b.recover(root, job_id)["status"] == "completed"
+    assert len(calls) == 1 and calls[0].data is None
 
 
 def hold_launch():

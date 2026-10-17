@@ -48,7 +48,9 @@ def build(destination, permission_reference):
             "# Changelog\n\n## 0.1.0\n\nInitial local snapshot: Search/Research, durable jobs, "
             "recovery, exports and native encrypted browser-to-Keychain setup. "
             "Accepts Codex discovery progress metadata. Search thread reads request the answer "
-            "and explicit citation rows together while retaining strict citation validation.\n")
+            "and explicit citation rows together while retaining strict citation validation. "
+            "Separate bounded thread/event/stream budgets support larger Research metadata; "
+            "oversized state writes preserve the prior job.\n")
         manifest = {"name": NAME, "version": "0.1.0", "description": DESCRIPTION,
                     "author": {"name": "Rhize Media"}, "mcpServers": {
                         "perplexity_research": {"command": python, "cwd": ".",
