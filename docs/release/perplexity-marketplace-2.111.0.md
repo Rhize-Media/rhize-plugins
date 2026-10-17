@@ -1,8 +1,9 @@
 # Perplexity and decision pre-mortem release evidence
 
-Candidate: marketplace **2.111.0**, Perplexity Research **0.2.0**, Ops **0.33.0**, Core **1.0.9**.
-Implementation checkpoints: `9312a60` and `0896253`. Publication and final installed verification
-are pending. Timestamps in this record use the local execution environment's UTC clock.
+Released: marketplace **2.111.0**, Perplexity Research **0.2.0**, Ops **0.33.0**, Core **1.0.9**.
+Implementation checkpoints: `9312a60` and `0896253`. [PR #57](https://github.com/Rhize-Media/rhize-plugins/pull/57)
+merged as `6b276baf77acf2afdee3e7807aa1aba73381f06a` on 2026-10-17; tag `v2.111.0` points to that
+commit. Published installation verification passed. Timestamps use the execution environment's UTC clock.
 
 ## Scope and portability
 
@@ -68,8 +69,35 @@ verification before removing the old local plugin. Native proof was from post-fi
   passed: the same recovered Research report, 24,834 full-report characters/243 citations and
   3,274 summary characters/21 citations. All eight saved job files retained identical SHA-256
   hashes. No query was submitted, no credentials refreshed and no job deleted. The temporary
-  candidate registration was removed after proof; the original working installation is retained
-  until the published replacement passes the same verification.
+  candidate registration was removed after proof; the original working installation was retained
+  until the published replacement passed the same verification below.
+
+## Published release and installed verification
+
+- Exact PR head `316b3d45f1de0146c56c246b1723ade845f75459` passed
+  [hosted validation](https://github.com/Rhize-Media/rhize-plugins/actions/runs/39060565801):
+  **4,431 passed, 8 skipped, 21 subtests** on Linux/Python 3.12, followed by all manifest,
+  config, doctor, generated-document and version gates. The security scan also passed.
+  These host-dependent totals are separate from the macOS local totals above.
+- Main merge `6b276ba` and automated tag `v2.111.0` were read back from GitHub. The configured
+  Git marketplace was refreshed from published main; native Codex installed Perplexity 0.2.0
+  and updated the existing Ops installation to 0.33.0. Core 1.0.9 is published; Core was not
+  previously installed on this host and was not added merely for this check.
+- A fresh native Codex host discovered `perplexity_research` owned by
+  `perplexity-research@rhize-plugins`: **11 tools, no discovery error**. Native skill discovery
+  found enabled `perplexity-research:perplexity-research` and `rhize-ops:decision-premortem`,
+  with no skill errors or active old `business-premortem`. The installed decision skill
+  matched source; all 20 installed Perplexity files matched the merged tree byte-for-byte.
+- Live MCP health returned ready/Pro with Research model `pplx_alpha`; models, jobs, result,
+  export and final jobs calls all succeeded. The same recovered report returned 24,834 full
+  characters/243 citations, with 3,274 summary characters/21 citations and 47,854 export
+  characters. All 8 saved job hashes remained identical before/after. **No query was submitted,
+  no session refreshed and no data migrated or deleted.**
+- After this proof, the old `perplexity-local` plugin and marketplace registration were removed.
+  The temporary candidate registration was also removed. Private configuration, Keychain session
+  and existing job files remain intact. A final readback confirmed the published plugin and Ops
+  enabled and the obsolete local plugin absent. This verifies a fresh native host; it does not
+  claim hot replacement of tools cached by an already-running chat.
 
 ## Limits
 
