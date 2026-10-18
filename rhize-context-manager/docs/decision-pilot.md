@@ -158,8 +158,9 @@ missing context from source-change holds, and Claude/Codex/unknown hosts. Arm A/
 and measured-check denominators remain explicit. `pilot_labels.py report.byCollectionSource`
 counts recorded policy-accepted and explicitly judged labels by originating digest. Those counts
 are label coverage, not current-source export readiness. Preserve reviewed old runtime pins to
-report/research their exact historical cohort; do not pool historical/current exports to meet
-the 200-label floor. A local daily operator may alternate frozen historical/current runtimes
+report/research their exact frozen historical cohort under its original gates. Current v3
+replay may rebuild accepted explicit labels with sealed snapshots through one envelope, recording
+each collection source and all skipped labels; this never upgrades frozen v2 export readiness. A local daily operator may alternate frozen historical/current runtimes
 under one existing schedule, lock and deadline while preserving unsuccessful run artifacts.
 
 ## Measure normal checks once
@@ -444,8 +445,10 @@ any `item.*` event other than `agent_message`, `reasoning` or `error` (a tool at
 object, kills the process group and fails the call. A turn that completes without an `agent_message` fails the call as
 `codex_answer_missing` and counts toward the failed-calls-in-a-row cap. `error` items are Codex-side warnings (the canary showed
 "Code Mode is unavailable because code-mode host is disabled", which our own lockdown causes, and transport
-fallbacks): they are recorded, at most five per call, 200 characters each and redacted, as `codexWarnings` in the call
-record and can never supply the answer. Top-level `error` events (reconnect notices) are counted as
+fallbacks): unexpected warnings are recorded, at most five per call, 200 characters each and redacted,
+as `codexWarnings` in the call record and run summary. Exact known startup messages caused by the
+intentional no-tools Code Mode lockdown are preserved separately as `codexLockdownNotices`; no
+feature is enabled to silence them. Neither category can supply the answer. Top-level `error` events (reconnect notices) are counted as
 `codexTransientErrors` and fail a call only when the turn then fails or never completes. Residual: Codex still lists the skills under `$HOME/.agents/skills`
 (names and descriptions, about 15K characters); an empty `HOME` for the Codex child would drop
 that catalog. Run `codex debug prompt-input` with the private home during the live canary to confirm
@@ -509,7 +512,41 @@ for the model providers after redaction of tokens, credentials, e-mail addresses
 
 ## Recurring research
 
-Use the repository's `evals/typed-decision/pilot_cycle.py --research-root PRIVATE_DIRECTORY`.
+Current `evals/typed-decision/pilot_cycle.py` uses the reviewed v3 workflow choice envelope.
+Development defaults to 30 explicit accepted taxonomy labels, with configurable bounds 20..10000;
+AI model-reviewed labels remain exploratory. It rebuilds cases only from validated sealed request
+snapshots, records source provenance and skips, and groups linked identities before stable tuning
+and promotion splits. Development requires ten independent groups and at most 20% group share.
+Candidate search sees tuning only. Legacy holdout metadata is checked for overlap; the locked
+holdout is never opened to reconstruct missing membership.
+
+The separate advise-v1 majority-baseline gate requires a reserved cohort of at least 30 independent
+promotion groups, answer coverage and per-class recall, paired superiority to the frozen tuning
+majority baseline, alpha spending and immutable attempt receipts. Critical decisions require the
+additional critical-case/zero-miss rules in the [reviewed design](../../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md).
+A pooled replay count is not a claim that each source has enough labels or that the gate passed.
+Historical v2 exports and their holds remain separate evidence.
+
+Use `pilot_cycle.py --research-root PRIVATE_DIRECTORY --shadow-only` for development when workflow
+execution must remain shadow. The flag is part of attempt/cache identity; it freezes a candidate
+for review and returns promotion held as `shadow_only`, without evaluating promotion, consuming a
+gate attempt or mutating the registry. It cannot demote an already active mode: changing modes
+requires the existing separate authorization and registry path. Omitting the flag retains the
+reviewed automatic gate behavior. Keep it enabled in every scheduled caller subject to a shadow-only
+policy. Source release, pinned runtime activation and native trust remain separate checks.
+
+The scoreboard keeps cumulative per-host counts and adds live observations since `laya-keepwarm.json`
+`startedAt` only when that state validates. It excludes pre-epoch/backfill/future rows, never changes
+records, and labels fewer than 20 calls as a small sample. These are observational rates, not a
+causal keep-warm recovery claim.
+
+### Frozen v2 research contract
+
+The following describes preserved v2 runtimes; it is not the current CLI contract. Use the frozen
+runtime for any authorized v2 operation. Historical source gates do not constrain or get cleared
+by v3 replay.
+
+Use the frozen repository's `evals/typed-decision/pilot_cycle.py --research-root PRIVATE_DIRECTORY`.
 The automatic CLI processes **v2 only** and requires at least **200 eligible, source-bound labels**
 whose basis the label policy accepts (human only by default). `--minimum-labels` may increase that
 floor, never lower it. Legacy `legacy_cycle`

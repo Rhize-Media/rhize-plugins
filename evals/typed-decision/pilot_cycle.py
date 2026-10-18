@@ -374,7 +374,7 @@ def demote_check(registry_root, registry, cfg, critical, check_sources, predict_
 
 
 def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, run=subprocess.run,
-          call=None, registry_root=None, registry=None):
+          call=None, registry_root=None, registry=None, shadow_only=False):
     """Automatic v3 development: replay -> stable tuning/promotion split -> bounded search on tuning only ->
     one advise-v1 baseline-gate attempt for the default wording on the promotion split -> registry mutation.
 
@@ -418,7 +418,7 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
         promoter = Path(__file__).with_name('typed_promotion.py')
         decoder = REPO / 'rhize-context-manager/scripts/pilot_routing.py'
         scripts = REPO / 'rhize-context-manager/scripts'
-        preflight_key = digest(json.dumps({'labels': labels, 'minimum': minimum, 'deadline': deadline,
+        preflight_key = digest(json.dumps({'labels': labels, 'minimum': minimum, 'deadline': deadline, 'shadowOnly': shadow_only,
             'labelPolicy': policy, 'boundInputSha256': bound_input_fingerprint(root, receipts),
             'sources': {str(path.relative_to(REPO)): digest(path.read_bytes()) if path.is_file() else None
                         for path in (evaluator, promoter, decoder, Path(__file__),
@@ -468,7 +468,7 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
         if any(not isinstance(row.get('collection_source_sha256'), str)
                or not re.fullmatch('[0-9a-f]{64}', row['collection_source_sha256']) for row in rows):
             return held('invalid_collection_source')
-        config = {'minimum': minimum, 'deadline': deadline, 'minimumGroups': MINIMUM_GROUPS,
+        config = {'minimum': minimum, 'deadline': deadline, 'shadowOnly': shadow_only, 'minimumGroups': MINIMUM_GROUPS,
                   'maximumGroupShare': MAXIMUM_GROUP_SHARE, 'normalization': NORMALIZATION,
                   'promotionShare': '1/3', 'labelSchema': pilot_labels.LABEL_SCHEMA,
                   'taxonomyVersion': pilot_labels.TAXONOMY_VERSION, 'acceptedBases': bases,
@@ -558,6 +558,10 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
                       'corpusSha256': digest(corpus_bytes), 'tuningCorpusSha256': manifest['corpus_sha256'],
                       'promotionSplitSha256': digest(promotion_path.read_bytes()),
                       'coverage': coverage, 'holdout': 'not_run', 'releaseEligible': False}
+            if shadow_only:
+                return finish({**result, 'status': 'review_required',
+                               'promotion': {'status': 'held', 'reason': 'shadow_only', 'earnedMode': 'shadow'},
+                               'wallMs': round((time.monotonic() - started) * 1000)})
             # Advise promotion: only the default wording (no overrides, no abstention) is deployable. The search
             # winner stays a review artifact; it never earns a mode.
             default = options[0]
@@ -595,9 +599,11 @@ def main():
     ap.add_argument('--research-root', type=Path, required=True)
     ap.add_argument('--minimum-labels', type=int, default=DEFAULT_MINIMUM)
     ap.add_argument('--deadline-seconds', type=int, default=180)
+    ap.add_argument('--shadow-only', action='store_true', help='search tuning cases without evaluating promotion or changing modes')
     args = ap.parse_args()
     try:
-        result = cycle(args.root, args.receipts, args.research_root, args.minimum_labels, args.deadline_seconds)
+        result = cycle(args.root, args.receipts, args.research_root, args.minimum_labels, args.deadline_seconds,
+                       shadow_only=args.shadow_only)
     except (OSError, ValueError, TypeError) as exc:
         try:
             check_bounds(args.minimum_labels, args.deadline_seconds)
