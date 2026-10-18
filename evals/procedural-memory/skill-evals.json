@@ -77,7 +77,12 @@
             "--run-id",
             "Never add `--approve-unreviewed`"
           ]
-        }
+        },
+        {"id": "reader-intent-brief", "patterns": ["reader question", "reader-focused-workflow.md", "before outlining"]},
+        {"id": "reader-title-and-answer", "patterns": ["task or question", "direct answer", "internal project name"]},
+        {"id": "clean-revision-copy", "patterns": ["rewrite the affected passage", "private editorial record", "necessary public correction"]},
+        {"id": "derivative-reader-focus", "patterns": ["derivative", "same reader intent", "platform"]},
+        {"id": "coordinator-editorial-gate", "patterns": ["every variant", "revise/hold", "graph.*schemas", "editorial-review.md", "validation-stage evidence", "partial/failed completion, never completed"]}
       ]
     }
   ],

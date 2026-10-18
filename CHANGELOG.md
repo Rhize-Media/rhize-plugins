@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-18_ version bump — **procedural-memory** 0.9.0 → 0.9.1 (patch); marketplace 2.111.1 → 2.111.2.
 - _2026-10-18_ version bump — **rhize-context-manager** 0.48.0 → 0.48.1 (patch); marketplace 2.111.0 → 2.111.1.
 - Publish Perplexity Research as the twelfth Rhize plugin: portable MCP startup, native encrypted
   session setup, durable Search/Research, follow-ups, explicit citations and GET-only report recovery.

@@ -6,6 +6,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-18_ Require reader-first briefs, task-based titles, direct answers and practical examples in the Content Engine. Add a bundled editorial workflow and coordinator review for articles and derivatives, clean revision copy, evidence limits and metadata alignment; preserve registry trust and publication boundaries.
+
+- _2026-10-18_ version bump — 0.9.0 → 0.9.1 (patch); marketplace 2.111.1 → 2.111.2.
 - _2026-10-02_ version bump — 0.8.0 → 0.9.0 (minor); marketplace 2.98.3 → 2.99.0.
 - _2026-09-30_ Expose Functionize recipe-review and read-only recipe-status, document adjacent-call mining and clean-subset eligibility, and add the explicit documentation-only recipe-stage alias to procedural-memory. Preserve raw runtime passthrough, command capability checks, human review/digest bindings and separate promotion/execution gates. Add deterministic refusal/dispatch coverage and synthetic native evaluation cases; no live recipe or model-routing result is claimed.
 - _2026-09-29_ version bump — 0.7.0 → 0.8.0 (minor); marketplace 2.92.1 → 2.93.0.
