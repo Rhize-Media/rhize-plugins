@@ -2204,7 +2204,7 @@ def run_events(cli, lines, sleep=False):
 
 def test_a_code_mode_warning_before_the_answer_is_recorded_not_fatal(cli):
     result = run_events(cli, SEQ_CODE_MODE)
-    assert result['answer'] == {'answers': []} and result['codexWarnings'] == [CODE_MODE]
+    assert result['answer'] == {'answers': []} and result['codexWarnings'] == [] and result['codexLockdownNotices'] == [CODE_MODE]
     assert result['codexTransientErrors'] == 0 and result['identitySource'] == 'explicit_cli_argument'
 
 
@@ -2267,6 +2267,7 @@ def test_codex_warnings_reach_the_call_record(cli, tmp_path):
     summary, _ = auto.execute(config_for(tmp_path), backend=backend, clock=Clock())
     record = json.loads(next(Path(summary['runDir'], 'calls').glob('*-codex.json')).read_text())
     assert record['codexWarnings'] == [FALLBACK] and record['codexTransientErrors'] == 2
+    assert FALLBACK in summary['warnings']
 
 
 # ---- round 4: extra pins on what a refresh may change ------------------------------------------------------
@@ -2388,3 +2389,33 @@ def test_workflow_summary_reports_failed_call_reasons(tmp_path):
             raise auto.LabelerError('claude_exit_1')
     summary, code = go(tmp_path, Failing())
     assert code == 3 and summary['callFailures'] == {'claude_exit_1': 1}
+
+
+def test_expected_lockdown_notice_is_preserved_in_the_call_record(cli, tmp_path):
+    backend, home, claude, codex = cli
+    make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    (home / 'codex-behavior').write_text('events')
+    (home / 'codex-events').write_text('\n'.join(SEQ_CODE_MODE) + '\n')
+    summary, _ = auto.execute(config_for(tmp_path), backend=backend, clock=Clock())
+    record = json.loads(next(Path(summary['runDir'], 'calls').glob('*-codex.json')).read_text())
+    assert record['codexWarnings'] == [] and record['codexLockdownNotices'] == [CODE_MODE]
+
+
+def test_similar_unexpected_code_mode_warning_is_not_suppressed(cli):
+    message = CODE_MODE + ' Additional unexpected failure.'
+    sequence = [error_item(message),
+                {'type': 'item.completed', 'item': {'id': 'm', 'type': 'agent_message', 'text': '{"answers":[]}'}},
+                {'type': 'turn.completed', 'usage': {}}]
+    result = run_events(cli, events(*sequence))
+    assert result['codexWarnings'] and result['codexLockdownNotices'] == []
+
+
+@pytest.mark.parametrize('notice', sorted(auto.CODEX_LOCKDOWN_NOTICES))
+def test_each_exact_known_lockdown_notice_is_information_only(notice):
+    output = '\n'.join(events(error_item(notice),
+        {'type': 'item.completed', 'item': {'id': 'm', 'type': 'agent_message', 'text': '{"answers":[]}'}},
+        {'type': 'turn.completed', 'usage': {}}))
+    answer, meta = auto.parse_native('codex', output, 'gpt-5.6-sol')
+    assert answer == {'answers': []} and meta['codexWarnings'] == []
+    assert meta['codexLockdownNotices'] == [notice]

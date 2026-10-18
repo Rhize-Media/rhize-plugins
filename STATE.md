@@ -662,3 +662,26 @@ runtime; pin an already-installed executable in the test PATH, then rerun the un
 
 Lesson: verify the published marketplace identity and installed source bytes, not just a
 locally pinned candidate; retrieve durable results without resubmitting user queries.
+
+
+## Laya scheduled findings remediation — 2026-10-18
+
+- The operator's v3/30-floor behavior is the released design, not an accidental floor regression.
+  Public pilot docs now distinguish current replay/promotion from frozen v2/200-label evidence.
+- Development callers can select `--shadow-only`: candidate search stays on tuning data, does
+  not evaluate the promotion set or enter the registry gate, and uses a distinct attempt identity.
+- Expected no-tools Code Mode notices are retained as informational call metadata; unexpected
+  warnings propagate to the terminal run summary. Tool and credential boundaries remain enforced.
+- Scoreboards preserve cumulative totals and show live observations since a validated keep-warm
+  epoch separately. Small samples and temporal association do not establish causal recovery.
+- Focused fixtures cover enough promotion cases to reach a gate while proving shadow-only never
+  enters it; they also cover notice preservation, unexpected warnings and epoch boundaries.
+- Validation: 2,317 affected tests passed, 5 existing skips, 3 subtests passed; the focused
+  warning/research/scoreboard suites also passed (254 tests, 1 existing skip). Release contracts also passed: 779 Dev Flow tests, 7 impact contracts, map/setup freshness
+  and strict plugin configuration lint; committed bump coverage is checked separately. Cold self-review found no protected-file
+  changes or source blockers; installed activation and natural recovery remain separate.
+- No natural performance recovery is claimed; residual timeouts require continued observation
+  and request-correlated evidence. No hook timeout/model/registry mode changed in this patch.
+
+Lesson: verify the released design before fixing a stale operator instruction; a shadow-only
+policy needs an executable boundary in every scheduled research caller.

@@ -386,8 +386,12 @@ freezes development candidates for review, and never promotes live behavior or r
 Richer labels use the versioned taxonomy importer, `scripts/pilot_labels.py`: family, phase,
 areas, risk stratum and routing choice, with `human_adjudicated` or `ai_model_reviewed` basis. A
 private, revocable label policy decides which bases research may use; the default is human only.
-The research cycle keeps the 200-label floor and adds per-route, per-family and risk-level coverage
-gates. Results that include model-reviewed labels are marked exploratory. See [taxonomy
+Current v3 research defaults to 30 explicit accepted labels (bounds 20..10000), replays sealed
+requests through one versioned envelope, and records collection-source provenance. Frozen v2
+runtimes retain their own 200-label and coverage gates. The majority-baseline promotion gate is
+separate from development search; `pilot_cycle.py --shadow-only` prepares a candidate without
+evaluating promotion, spending an attempt or changing a registry mode. Results that include
+model-reviewed labels are marked exploratory. See [taxonomy
 labels](docs/decision-pilot.md#versioned-taxonomy-labels).
 
 `scripts/pilot_autolabel.py` is the daily AI labeling step: two independent no-tools annotators
@@ -434,3 +438,14 @@ capture error codes and explicit event/task denominators. Labels report source p
 research still validates the exact collection source. Retain frozen runtimes for historical
 cohorts rather than pooling labels across releases. Capture and review readiness do not establish
 routing accuracy or task benefit.
+
+
+### Local development and operational diagnostics
+
+Keep scheduled workflow research in `--shadow-only` when execution must remain shadow. This does
+not change skill-fit's separately earned Claude cosign mode or Codex's shadow-only evidence.
+The scoreboard preserves cumulative host metrics and adds live counts since the validated
+keep-warm epoch; small samples and post-epoch rates do not prove causal recovery. It never resets
+counters. The AI labeler keeps exact known no-tools Code Mode startup notices as
+`codexLockdownNotices`; unexpected Codex warnings reach both the call record and run summary.
+Tools remain disabled, and auth write-back warnings still require operator attention.

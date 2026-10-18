@@ -350,3 +350,30 @@ def test_the_cli_shows_the_keepwarm_line(root, tmp_path):
     out = subprocess.run([sys.executable, str(CLI), 'render', '--root', str(root), '--now', NOW],
                          capture_output=True, text=True, timeout=120, env=env)
     assert out.returncode == 0 and '- keep-warm: last ping 60s ago, status ok, latency 41.5 ms' in out.stdout
+
+
+def test_epoch_metrics_keep_history_and_exclude_backfill_and_future_records(root):
+    rows = [make_record(1, status='timeout', latency=800.0), make_record(2),
+            codex(make_record(3, status='timeout', latency=800.0)),
+            make_record(4, basis='backfill'), make_record(5)]
+    for row, stamp in zip(rows, ['2026-10-12T07:59:00Z', '2026-10-12T08:00:00Z',
+                                '2026-10-12T09:00:00Z', '2026-10-12T10:00:00Z',
+                                '2026-10-12T12:01:00Z']):
+        row['ts'] = stamp
+        row['occurrenceKey'] = contract.occurrence_key(row['sessionHash'], row['promptHash'], stamp)
+    write_records(root, rows)
+    write_keepwarm(root, keepwarm())
+    data = scoreboard.build(root, NOW)
+    epoch = data['sinceKeepWarmStart']
+    assert epoch['startedAt'] == '2026-10-12T08:00:00Z'
+    assert epoch['hosts']['claude']['timeouts'] == {'calls': 1, 'timeouts': 0, 'share': 0.0}
+    assert epoch['hosts']['codex']['timeouts'] == {'calls': 1, 'timeouts': 1, 'share': 1.0}
+    assert data['hosts']['claude']['timeouts']['calls'] == 3
+    assert 'Since keep-warm epoch' in scoreboard.render_md(data)
+    assert 'not a causal recovery claim' in scoreboard.render_md(data)
+
+
+def test_epoch_metrics_are_unavailable_without_a_valid_epoch(root):
+    assert scoreboard.build(root, NOW)['sinceKeepWarmStart'] is None
+    write_keepwarm(root, keepwarm(startedAt='not-a-time'))
+    assert scoreboard.build(root, NOW)['sinceKeepWarmStart'] is None

@@ -247,6 +247,12 @@ def build(root, now=None) -> dict:
     table = cohorts.cohort_table(root)
     consumed = [row for row in table if row['status'] == 'consumed']
     stats = cohorts.summarize_records(recs)
+    warm = read_keepwarm(root, now)
+    epoch = None
+    if warm['state'] == 'present':
+        start, end = _timestamp(warm['startedAt']), locked_io.utc(now)
+        recent = [r for r in recs if r['basis'] == 'live' and start <= _timestamp(r['ts']) <= end]
+        epoch = {'startedAt': warm['startedAt'], 'hosts': host_breakdown(recent, outcomes)}
     return {
         'schema': SCHEMA, 'decision': DECISION, 'generatedAt': locked_io.iso(now),
         'mode': {'effective': mode, 'stateStatus': status, 'default': registry['decisions'][DECISION]['defaultMode'],
@@ -269,7 +275,8 @@ def build(root, now=None) -> dict:
         'laya': stats['laya'],
         'gateHosts': list(cohorts.GATE_HOSTS),
         'hosts': host_breakdown(recs, outcomes),
-        'keepWarm': read_keepwarm(root, now),
+        'keepWarm': warm,
+        'sinceKeepWarmStart': epoch,
         'advise': advise_rows(root, registry, state, status, labels, records.laya_revision(root)),
     }
 
@@ -353,6 +360,15 @@ def render_md(data: dict) -> str:
         prev = data['prevalence'][name]
         lines.append(f'- Disagreement prevalence among fired ({name}): {prev["disagreements"]}/{prev["fired"]} ({_pct(prev["share"])})')
     lines += render_hosts(data)
+    epoch = data['sinceKeepWarmStart']
+    if epoch is not None:
+        lines += ['', f'### Since keep-warm epoch {epoch["startedAt"]}',
+                  'Live observations only; not a causal recovery claim. Fewer than 20 calls is a small sample.']
+        for host, row in epoch['hosts'].items():
+            calls = row['timeouts']
+            if calls['calls']:
+                lines.append(f'- {host}: {_counts(row["layaStatuses"]["live"])}; '
+                             f'timeouts {calls["timeouts"]}/{calls["calls"]} ({_pct(calls["share"])})')
     lines += ['', '### Gate (frozen single-use cohorts)']
     if not data['cohorts']:
         lines.append('No cohort reserved yet.')

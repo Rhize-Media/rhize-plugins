@@ -894,6 +894,11 @@ def run_process(command, stdin, directory, timeout, env, guard=None):
 # fallback); it can never carry the answer. Anything else is a tool and ends the call.
 CODEX_ITEM_TYPES = frozenset({'agent_message', 'reasoning', 'error'})
 CODEX_ERROR_ITEM_KEYS = frozenset({'id', 'type', 'message'})
+CODEX_LOCKDOWN_NOTICES = frozenset({
+    'Code Mode is unavailable because code-mode host is disabled and cannot run tools.',
+    'Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; '
+    'enable `features.code_mode_host` and install `codex-code-mode-host`.',
+})
 MAX_CODEX_WARNINGS = 5
 MAX_STORED_OUTPUT = 20000                       # characters of sanitized CLI output kept in a call record
 
@@ -955,7 +960,7 @@ def parse_native(host, output, model):
         answer = value.get('structured_output') or value.get('result')
         source = 'native_model_usage'
     else:
-        answer, completed, warnings, transient = None, False, [], 0
+        answer, completed, warnings, notices, transient = None, False, [], [], 0
         for line in output.splitlines():
             if not line.strip():
                 continue
@@ -969,9 +974,10 @@ def parse_native(host, output, model):
                 item = value.get('item', {})
                 if not codex_item_allowed(item):
                     raise LabelerError('codex_attempted_a_tool_or_item')
-                if item.get('type') == 'error' and isinstance(item.get('message'), str) \
-                        and len(warnings) < MAX_CODEX_WARNINGS:
-                    warnings.append(sanitize(item['message'], 200)[0][:200])
+                if item.get('type') == 'error' and isinstance(item.get('message'), str):
+                    destination = notices if item['message'] in CODEX_LOCKDOWN_NOTICES else warnings
+                    if len(destination) < MAX_CODEX_WARNINGS:
+                        destination.append(sanitize(item['message'], 200)[0][:200])
                 if kind == 'item.completed' and item.get('type') == 'agent_message':
                     answer = item.get('text')
             if kind == 'turn.completed':
@@ -981,7 +987,7 @@ def parse_native(host, output, model):
         if answer is None:                          # a completed turn that never produced a message is a failed call
             raise LabelerError('codex_answer_missing')
         observed, source = model, 'explicit_cli_argument'
-        extra = {'codexWarnings': warnings, 'codexTransientErrors': transient}
+        extra = {'codexWarnings': warnings, 'codexLockdownNotices': notices, 'codexTransientErrors': transient}
     if isinstance(answer, str):
         answer = json.loads(answer)
     return answer, {'observedModel': observed, 'identitySource': source, 'usage': usage, **extra}
@@ -1085,6 +1091,7 @@ class CliBackend:
                                'a spent refresh token. Run `codex login status` (and `codex login` if it fails).')
                     self.warnings.append(warning)
                     print('WARNING: ' + warning, file=sys.stderr, flush=True)
+        self.warnings.extend(meta.get('codexWarnings', []))
         return {'answer': answer, 'raw': out, 'requestedModel': model, **meta}
 
 
@@ -1242,6 +1249,7 @@ class Run:
         write_json(self.run_dir / 'calls' / ('%03d-%s-%s.json' % (number, kind, host)),
                    {**record, 'observedModel': result.get('observedModel'), 'identitySource': result.get('identitySource'),
                     'usage': result.get('usage'), 'codexWarnings': result.get('codexWarnings'),
+                    'codexLockdownNotices': result.get('codexLockdownNotices'),
                     'codexTransientErrors': result.get('codexTransientErrors'), 'elapsedSeconds': round(self.clock() - began, 3),
                     'outputSha256': digest(result.get('raw') or canonical(result['answer'])),
                     'output': sanitize(result['raw'], MAX_STORED_OUTPUT)[0] if result.get('raw') else None})

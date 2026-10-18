@@ -731,3 +731,28 @@ def test_research_laya_call_keeps_response_validation(servers, mode, message):
     _, url = servers(mode)
     with pytest.raises(ValueError, match=message):
         research.local_call(url, LAYA_REQUEST)
+
+
+def test_shadow_only_search_never_evaluates_or_mutates_promotion(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(180)])
+    def forbidden(*args, **kwargs):
+        pytest.fail('shadow-only development must not enter the registry gate')
+    monkeypatch.setattr(cycle, 'advise_gate', forbidden)
+    result = run_cycle(tmp_path, shadow_only=True)
+    assert result['status'] == 'review_required' and result['releaseEligible'] is False
+    assert result['promotion'] == {'status': 'held', 'reason': 'shadow_only', 'earnedMode': 'shadow'}
+    assert result['config']['shadowOnly'] is True and result['holdout'] == 'not_run'
+    assert registry_state(tmp_path) is None and ledger_events(tmp_path) == []
+    assert run_cycle(tmp_path, shadow_only=True)['status'] == 'unchanged'
+
+
+def test_shadow_only_and_automatic_runs_do_not_share_cached_results(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(180)])
+    shadow = run_cycle(tmp_path, shadow_only=True)
+    calls = []
+    def gate(*args, **kwargs):
+        calls.append(True)
+        return {'status': 'held', 'reason': 'fixture', 'earnedMode': 'shadow'}
+    monkeypatch.setattr(cycle, 'advise_gate', gate)
+    automatic = run_cycle(tmp_path)
+    assert automatic['runId'] != shadow['runId'] and calls == [True]
