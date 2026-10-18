@@ -12,7 +12,7 @@ def test_all_skills_have_local_trigger_and_quality_coverage() -> None:
     result = json.loads(completed.stdout)
     assert result["skills"] == 3
     assert result["routing"]["precision"] == result["routing"]["recall"] == 1.0
-    assert result["quality_contracts"]["passed"] == result["quality_contracts"]["total"] == 9
+    assert result["quality_contracts"]["passed"] == result["quality_contracts"]["total"] == 14
 
 
 def test_functionize_agent_cases_are_schema_valid() -> None:

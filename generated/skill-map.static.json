@@ -4782,15 +4782,15 @@
       "treeHash": "e20fc9613dde0e9031f0277dbef882de3835c9e3ee3b525842fd73b8f29dfbc9"
     },
     {
-      "contentHash": "bc87e522087ad3447bfdff60fe3f6db66fc47fb16ccbed0c4e4b7bc5585ee108",
+      "contentHash": "ac03c69a9f5248f65aed3c388bd2b3f5788c072ba9d23532347fae99ab32e49b",
       "description": "Select and follow the established RHIZE Content Engine for writing, combining, regenerating, or revising resource articles and website/blog drafts. Use for \"our content engine protocol\", \"Rhize Media resource article\", or \"record the content benchmark\" before composing. Binds the requested local-draft or CMS-draft scope to the procedural registry; full public publishing is unsupported. This RHIZE workflow is distinct from ECC's content-engine.",
-      "fileCount": 2,
+      "fileCount": 3,
       "id": "skill:procedural-memory/rhize-content-engine",
       "kind": "skill",
       "name": "rhize-content-engine",
       "path": "procedural-memory/skills/rhize-content-engine/SKILL.md",
-      "totalBytes": 5410,
-      "treeHash": "adc23b3650424c5d8623dff9872df9ce4e6212cee534b742ae16299116d923e9"
+      "totalBytes": 15411,
+      "treeHash": "76565f8421c9a3c66359e4cba83e1f118d3ec52b77ffa06e86acf96612afc4b4"
     },
     {
       "contentHash": "a1493efef433d583945e38917d699941cad5a7b61ca9cda2fdcf7013ee7dcde6",

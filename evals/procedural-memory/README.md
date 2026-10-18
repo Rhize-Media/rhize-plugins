@@ -11,6 +11,9 @@ python3 procedural-memory/evals/validate-suite.py --eval-dir procedural-memory/e
 ```
 
 Every skill has a positive and at least two meaningful negatives. Static quality checks cover the
-registry digest/trust boundary and Functionize's compile-only proposal boundary. These checks do
+registry digest/trust boundary, Functionize's compile-only proposal boundary, and the Content Engine's
+reader brief, task title/direct answer, clean revision copy, derivative alignment and coordinator
+review evidence. The five reader-focus contracts fail on the prior skill and pass on the updated
+instructions; they do not judge generated prose or establish future compliance. These checks do
 not run an artifact, read real shell history, compile a proposal, or claim natural agent-trigger
 accuracy.

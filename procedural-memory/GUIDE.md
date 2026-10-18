@@ -186,6 +186,14 @@ capture. Full public publishing is unsupported. Changed graphs retain normal liv
 health and digest-bound approval gates. The authored `content-engine-local` graph is staged
 through `rhize-skill graph stage`; staging is not promotion or execution approval.
 
+The skill requires a reader brief before outlining: audience, natural-language question,
+practical outcome and evidence limits. Titles, opening answers, examples, SEO metadata and
+requested social derivatives must serve that question. Its bundled
+[reader-focused workflow](skills/rhize-content-engine/references/reader-focused-workflow.md)
+includes framing examples and a pass/revise/hold review before handoff. Editorial correction
+history stays in the private packet; material caveats and necessary disclosure remain visible.
+This coordinator gate applies to manual and graph outputs without altering frozen registry graphs.
+
 Context Manager records opportunities and explicit workflow decisions before composition.
 Failed/partial outcomes remain separate from successful article benchmarks. Future manual
 rows use `run bench-append --offline` through the launcher; never replay an existing legacy row

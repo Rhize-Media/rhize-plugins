@@ -2,6 +2,19 @@
 
 ## Verified facts
 
+- 2026-10-18: Content Engine 0.9.1 candidate makes reader intent explicit before outlining
+  and adds a required bundled workflow plus coordinator review for all article variants and
+  requested derivatives. Titles/metadata describe the reader's task; openings answer it;
+  revision history stays private while material caveats and necessary public disclosure remain.
+  Frozen registry graphs and approval records are unchanged. Five new static contracts fail
+  on the old skill and pass on the update; these prove instruction coverage, not future prose
+  quality. Fable 5.1 reviewed both revisions and confirmed the identified gaps resolved
+  (jobs 9ffcd932 and e9235f52); remaining notes are optional clarity only. Required release
+  contract passes 779 Dev Flow tests and seven impact contracts; strict root/all-plugin
+  manifests, config lint, doctor, generated map/setup and doc idempotence pass.
+  Broader suite and installed verification are tracked in the private release evidence.
+  Lesson: evidence audits belong in editorial records; public copy should help the reader act.
+
 - 2026-10-17: Perplexity response-size fix installed and same Research report recovered through
   actual chat MCP without submitting another query. Job 4f40bde9-478e-40cd-9377-96df324d6d87
   is completed via GET; original identity/source hash and stream_too_large error preserved.
