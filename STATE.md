@@ -68,6 +68,17 @@
   a rolling Python /3/ URL. Follow-up/cancellation not rerun. Workflow context capture and a
   source-bound pilot outcome observation remained unavailable; no acceptance was fabricated.
 
+- 2026-10-17: Local Laya serving now explicitly uses launchd Interactive scheduling for
+  native prompt latency. The model/checkpoint, 800 ms client deadline and decision modes
+  are unchanged; temporary timing instrumentation was removed after diagnosis. Fresh native
+  Codex execution verified the installed Context Manager 0.48.0 router at its current trust
+  index without bypass or approval-data edits. Claude 0.48.0 source was observed in natural
+  records. These establish loading/trust and bounded diagnostics; natural timeout recovery
+  remains unverified: the first normal-service probe retained a timeout. Jim then approved
+  reloading the existing keep-warm job with Interactive scheduling and archiving its complete
+  prior counter epoch. The 10-second cadence and activity gate are unchanged. Prior experiments,
+  failures, the archived epoch and notification state remain private.
+
 - 2026-10-17: Perplexity tools are active directly in this restarted chat. Live health/models
   passed. Three new IDs exercised standalone Search, a Search follow-up to the completed
   Research parent, and cancellation after Research entered running. Follow-up passed with
@@ -586,6 +597,15 @@ Lesson: keep concurrent Laya work isolated by branch and check planned decision 
 - Process lesson: an earlier advise worktree under `/private/tmp` was purged by macOS and its uncommitted S3 work was lost; recovery came from the committed S1/S2 branch. Long-lived worktrees now live under `~/dev-local/RHIZE/.worktrees/` and carry a `wip:` commit after every handback (global CLAUDE.md and Codex AGENTS.md carry the no-`/tmp` rule).
 - Released 2026-10-17: PR #56 merged to main as `b158c26` (after merging main's refactor-gate fix `ecbca24`). Final versions: Context Manager 0.48.0, Dev Flow 2.29.0, Ops 0.31.0, Project Launcher 1.15.0, Core 1.0.7, marketplace 2.109.0. PR #55 is closed (its commits are on main). Final review round (Dev Flow merge gate, security review, Codex) found S4 and gate-statistics gaps; all fixed before merge (spec §12) and Codex's re-review reported none blocking. Final full suite 4278 passed, 7 skipped, one unrelated load-timing flake (`test_skylos_evidence.py`) that passes alone; CI found one host-dependent test (`typed_selection` bound `call_laya` at import), fixed in `67496fc`.
 - Activated 2026-10-17: Claude and Codex hosts run the merged code (installed `typed_advice.py` hashes match main; marketplace clone at `b158c26`). The live registry validates under the new contract: skill fit keeps its earned `cosign`, every new decision reads `shadow`. The daily autolabel job now runs at 07:30 and 19:30 and its skill-fit loop also runs `choice_labels.py run` before the cycle and `pilot_cycle.py` (workflow fit) after it, with a 1200 s budget; the workflow labeler is repinned to a `b158c26` runtime. Dry runs of the labeler and cycle pass. Not yet observed: a natural advise record, label or cohort (none exist yet), and fresh native sessions on the new cache.
+## Daily learn harvest capture — October 15, 2026
+
+- The 2026-10-15 harvest completed strict `baseline_not_run` rendering with a fresh receipt;
+  Headroom remained approval-held, friction search returned index metadata without observation
+  details, and no queue entries or monitor watermark were changed.
+- Operational lesson: close each routine-phase step before issuing the next command. Shell
+  command lists continue after a failed `begin`, so keep each phase transition sequential and
+  verify its result before issuing source commands; otherwise a source helper can run outside
+  lifecycle capture.
 
 ## Decision pre-mortem rename — coordinated release slice
 
