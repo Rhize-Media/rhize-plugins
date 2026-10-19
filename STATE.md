@@ -2,6 +2,16 @@
 
 ## Verified facts
 
+- 2026-10-19: Procedural Memory Stop candidate scanner now recognizes session-bound
+  native Codex CommandExecution terminal status plus integer exit code. It surfaces
+  completed exit-0 results, rejects explicit failures, and holds missing, nonterminal,
+  conflicting, foreign-session or duplicate-identity evidence. Claude tool_result behavior
+  remains supported. Shared append/update locking and lossless status patches preserve
+  opaque/unrelated queue bytes and concurrent captures. Regression tests reproduce the
+  old parser failure and malformed-line loss; native installed automatic execution remains
+  a separate activation check. No registry approval, promotion, health or Laya mode change.
+  Lesson: an advisory hook's exit0 proves process liveness, not successful evidence parsing.
+
 - 2026-10-18: Content Engine 0.9.1 candidate makes reader intent explicit before outlining
   and adds a required bundled workflow plus coordinator review for all article variants and
   requested derivatives. Titles/metadata describe the reader's task; openings answer it;
