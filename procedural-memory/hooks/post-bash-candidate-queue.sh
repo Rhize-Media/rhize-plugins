@@ -19,8 +19,10 @@
 # an error: a 3-command probe (pass/fail/pass) in an isolated scratch
 # session produced exactly two PostToolUse events, for the two passing
 # commands — the failing one (exit 7) never reached this hook. So by the
-# time this script runs, the command has already succeeded; there is
-# nothing to check. This is a deviation from the original brief, which
+# time this script runs in Claude Code, the command has already succeeded.
+# Codex may deliver failed completions too: queued entries are candidates,
+# and Stop must validate their native terminal status and integer exit code.
+# This is a deviation from the original brief, which
 # assumed reading an exit code — see the plugin README's "What was wrong in
 # the brief" note.
 #
@@ -33,13 +35,10 @@
 # queue's SHAPE (id/ts/source/repo/pattern, status lifecycle,
 # one-JSON-object-per-line JSONL) but writes to its own file.
 #
-# APPEND SAFETY: a single `printf ... >>` is one write(2) syscall for a line
-# this short, which POSIX guarantees atomic on a local filesystem opened
-# O_APPEND — concurrent sessions interleave whole lines, never corrupt one.
-# flock(1) does not exist on macOS/BSD (it's a Linux util-linux tool), so
-# this is the portable equivalent — same reasoning
-# docs/mcp-secret-launcher.md already applies to prefer a portable mechanism
-# over a Linux-only one.
+# APPEND SAFETY: matching candidates pass their line to candidate_queue.py.
+# Its stdlib fcntl lock is shared with Stop's atomic status patch, so an
+# append cannot land on an inode Stop is about to replace. The common
+# non-matching path still forks no Python process.
 #
 # SUBPROCESS BUDGET — this is the section that actually determines latency.
 # `/bin/sh` on macOS is bash 3.2.57, and TWO facts about it shape everything
@@ -194,6 +193,7 @@ queue_dir="${QUEUE%/*}"
 [ -d "$queue_dir" ] || mkdir -p "$queue_dir"
 
 printf '{"id":"%s","ts":"%s","source":"post-bash-hook","repo":"%s","session_id":"%s","pattern":"%s","command":"%s","status":"pending"}\n' \
-    "$tool_use_id" "$ts" "$cwd" "$session_id" "$pattern" "$cmd_trunc" >> "$QUEUE"
+    "$tool_use_id" "$ts" "$cwd" "$session_id" "$pattern" "$cmd_trunc" \
+    | python3 "${0%/*}/candidate_queue.py" "$QUEUE"
 
 exit 0

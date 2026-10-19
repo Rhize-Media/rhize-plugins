@@ -14,7 +14,9 @@ that registry.
 
 Claude Code provides the four `/procedural-memory:*` registry commands and advisory session hooks.
 Claude Code and Codex share the `procedural-memory` and `functionize` natural-language skills through
-self-relative launchers; Codex does not claim Claude Code's slash-command or hook lifecycle.
+self-relative launchers. Slash commands remain Claude-specific; where Codex enables the native
+hooks, Stop also recognizes session-bound Codex command completion records. Hook enablement and
+trust remain host-controlled.
 
 ## When to reach for what
 
@@ -61,6 +63,11 @@ self-relative launchers; Codex does not claim Claude Code's slash-command or hoo
   *Example: "Verify n8n-safe-deploy — I think it self-quarantined."*
 
 ## The session automatically notices when you might have something to promote
+
+Stop confirms completion before surfacing a candidate. Codex needs a matching native session and
+an explicit terminal command exit code: success is surfaced, failure rejected, and missing or
+ambiguous evidence stays pending. Queue updates preserve malformed/unrelated lines and concurrent
+appends. Surfacing is advisory and never promotes or verifies a registry artifact.
 
 Functionize is not connected to this promotion nudge. Proposal compilation stops at its own output
 directory; the hooks do not register, trust, approve, promote, verify, or run it.

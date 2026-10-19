@@ -240,19 +240,30 @@ wrong in the brief" below for why that's correct, not a shortcut. Pure POSIX she
 `rhize-skill`/CLI invocation, no network. Real measured latency on this machine (macOS, `/bin/sh`
 = bash 3.2.57): **~6ms** for a non-matching command (the overwhelming majority of Bash calls —
 essentially the platform's fork/exec floor, since this hook adds zero extra subprocess forks on
-that path), **~15ms** for a matching command (one `grep`, one `date`), and a bounded ~120ms on a
+that path), historically **~15ms** for a matching command (before the shared Python queue lock), and ~120ms on a
 pathological ~1MB-stdout command (still fast, no hang — see the script's own "SUBPROCESS BUDGET"
-comment for why that distinction took real debugging to get right).
+comment for why that distinction took real debugging to get right). Matching candidates now also
+use a stdlib Python lock shared with Stop; those historical matching timings do not include it.
 
 **`session-end-scan.py`** (Stop) is the heavier half. It fast-exits immediately unless the queue
 has `pending` entries for the current `session_id` — most Stops in most sessions never touch a
 transcript read at all. When there are pending entries, it reads the transcript once, confirms
 each one's tool call really did complete without error (cross-referencing `tool_use_id` against
-the transcript's `tool_result.is_error`), flips matched entries to `surfaced`, and prints an
+the Claude transcript's `tool_result.is_error`, or Codex's session-bound
+`event_msg/item_completed/CommandExecution` terminal status and integer `exit_code`). A completed
+exit-0 command becomes `surfaced`; an explicit terminal failure becomes `rejected`. Missing,
+nonterminal, conflicting or foreign-session evidence stays pending. Duplicate queue identities
+are held. The scanner prints an
 advisory naming what passed its test/build command this session — plus any files the session
 wrote or edited — with a pointer to `/procedural-memory:promote`. It never says "verified"; that
 word is reserved for `/procedural-memory:verify`, the only thing that ever sets a real
 `health=ok`.
+
+Status updates and matching-command appends share a local lock. Stop patches only proven pending
+entries into the latest queue; malformed, blank, non-object and unrelated lines retain their exact
+bytes. Repeated scans do not repeat an already surfaced advisory. Candidate status is an observation,
+never registry approval, promotion or health verification. Hooks must be enabled/trusted by the host;
+already open sessions may retain a previous cache until reloaded.
 
 **`functionize-capture.py`** (PostToolUse, matcher `Bash`, `async: true`) runs alongside
 `post-bash-candidate-queue.sh` in the same matcher group but serves an unrelated purpose: it is
@@ -277,11 +288,10 @@ follows the same JSONL shape as `~/.claude/context-manager/refinement-queue.json
 queue is scoped to skill-refinement signals and triaged by `/skill-refine`, the wrong tool for
 "code that passed a test this session, maybe worth promoting to this registry."
 
-**Append safety.** A single `printf ... >>` is one `write(2)` syscall for a line this short,
-which POSIX guarantees atomic on a local filesystem opened `O_APPEND` — concurrent sessions
-interleave whole lines, never corrupt one. (`flock(1)` doesn't exist on macOS/BSD, so this is the
-portable equivalent, not a fallback.) Verified directly: 60 concurrent invocations against the
-same queue file produced exactly 60 valid, distinct JSON lines, zero corruption.
+**Append safety.** Matching capture calls append through `candidate_queue.py`, using the same
+stdlib `fcntl` lock file as Stop's atomic update. Stop re-reads the latest queue under that lock
+before patching statuses, so cooperative concurrent appends are retained. Reload older sessions
+to load the matching writer and scanner versions together. The non-matching path stays shell-only.
 
 **What is recorded, and what is redacted.** Each queue line stores the matched `pattern`, the
 Bash command (redacted, then truncated to 300 characters), the `cwd` (rewritten `~`-relative

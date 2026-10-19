@@ -21,13 +21,11 @@ session_id, exit immediately.
 QUEUE FILE: see post-bash-candidate-queue.sh's header for why this is the
 plugin's own file, not rhize-context-manager's refinement-queue.jsonl.
 
-STATUS LIFECYCLE: pending -> surfaced (confirmed non-error, reported to the
-user) | pending -> stale (candidate's tool_use_id not found in the
-transcript at all — never touched again automatically). Rewritten
-atomically via temp-file + os.replace, matching the append tier's use of a
-single write(2) rather than in-place edits — a torn rewrite here would be
-exactly the "queue that silently drops candidates" failure this project
-keeps hitting.
+STATUS LIFECYCLE: pending -> surfaced (confirmed success) | rejected
+(confirmed failure). Missing, ambiguous and nonterminal evidence stays pending.
+Claude tool_result and session-bound Codex CommandExecution completions are
+recognized. Atomic status patches share the append lock and preserve opaque
+or unrelated queue lines byte-for-byte.
 
 Always exits 0 — advisory only, never blocks Stop.
 """
@@ -38,6 +36,9 @@ import json
 import os
 import sys
 import tempfile
+from collections import Counter
+
+from candidate_queue import queue_lock
 
 
 def default_queue_path() -> str:
@@ -56,7 +57,9 @@ def read_queue(path: str) -> list[dict]:
                 if not line:
                     continue
                 try:
-                    entries.append(json.loads(line))
+                    entry = json.loads(line)
+                    if isinstance(entry, dict):
+                        entries.append(entry)
                 except Exception:
                     # A malformed line (e.g. the Tier-1 hook's documented
                     # quote-escaping edge case) is skipped, never fatal —
@@ -67,14 +70,50 @@ def read_queue(path: str) -> list[dict]:
     return entries
 
 
-def write_queue_atomic(path: str, entries: list[dict]) -> None:
+def write_queue_atomic(path: str, entries: list[dict]) -> set:
+    """Patch proven statuses into the latest queue; preserve all other bytes."""
+    with queue_lock(path):
+        return _write_queue_atomic(path, entries)
+
+
+def _write_queue_atomic(path, entries):
+    with open(path, 'rb') as stream:
+        lines = stream.readlines()
+
+    def parse(raw):
+        try:
+            value = json.loads(raw)
+            return value if isinstance(value, dict) else {}
+        except (ValueError, UnicodeError):
+            return {}
+
+    def key(entry):
+        values = entry.get('id'), entry.get('session_id')
+        return values if all(isinstance(v, str) and v for v in values) else None
+
+    parsed = [parse(line) for line in lines]
+    counts = Counter(key(entry) for entry in parsed)
+    desired = {key(entry): entry for entry in entries if entry.get('status') in ('surfaced', 'rejected')}
+    applied = set()
+    for i, entry in enumerate(parsed):
+        identity = key(entry)
+        target = desired.get(identity)
+        if (identity is None or counts[identity] != 1 or target is None
+                or entry.get('status') != 'pending'):
+            continue
+        replacement = {**entry, 'status': target['status']}
+        if replacement != target:
+            continue  # another writer changed this candidate after the scan
+        lines[i] = (json.dumps(replacement) + '\n').encode('utf-8')
+        applied.add(identity)
+    if not applied:
+        return applied
     directory = os.path.dirname(path) or "."
     os.makedirs(directory, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".candidate-queue-", suffix=".tmp")
     try:
-        with os.fdopen(fd, "w") as f:
-            for entry in entries:
-                f.write(json.dumps(entry) + "\n")
+        with os.fdopen(fd, "wb") as f:
+            f.writelines(lines)
         os.replace(tmp_path, path)
     except Exception:
         try:
@@ -82,9 +121,10 @@ def write_queue_atomic(path: str, entries: list[dict]) -> None:
         except OSError:
             pass
         raise
+    return applied
 
 
-def scan_transcript(transcript_path: str, wanted_tool_use_ids: set[str]) -> tuple[dict[str, bool], set[str]]:
+def scan_transcript(transcript_path: str, wanted_tool_use_ids: set[str], session_id=None) -> tuple[dict[str, bool], set[str]]:
     """Returns (tool_use_id -> is_error, set of Write/Edit file paths touched
     this session) by reading the transcript once. Only bothers building the
     is_error map for ids we actually care about (the pending candidates'
@@ -92,6 +132,17 @@ def scan_transcript(transcript_path: str, wanted_tool_use_ids: set[str]) -> tupl
     """
     is_error_by_id: dict[str, bool] = {}
     files_touched: set[str] = set()
+    native_session = None
+    conflicts = set()
+
+    def record_result(identity, is_error):
+        if identity not in wanted_tool_use_ids or identity in conflicts:
+            return
+        if identity in is_error_by_id and is_error_by_id[identity] != is_error:
+            conflicts.add(identity)
+            is_error_by_id.pop(identity)
+        else:
+            is_error_by_id[identity] = is_error
 
     try:
         with open(transcript_path, "r", errors="ignore") as f:
@@ -104,7 +155,24 @@ def scan_transcript(transcript_path: str, wanted_tool_use_ids: set[str]) -> tupl
                 except Exception:
                     continue
 
+                if not isinstance(record, dict):
+                    continue
+                payload = record.get('payload')
+                if record.get('type') == 'session_meta' and isinstance(payload, dict):
+                    native_session = payload.get('id')
+                if (record.get('type') == 'event_msg' and isinstance(payload, dict)
+                        and payload.get('type') == 'item_completed'
+                        and session_id and native_session == session_id
+                        and payload.get('thread_id') == session_id):
+                    item = payload.get('item')
+                    if isinstance(item, dict) and item.get('type') == 'CommandExecution':
+                        code = item.get('exit_code')
+                        if item.get('status') in ('completed', 'failed') and type(code) is int:
+                            record_result(item.get('id'), item['status'] == 'failed' or code != 0)
+
                 message = record.get("message") or {}
+                if not isinstance(message, dict):
+                    continue
                 content = message.get("content")
                 if not isinstance(content, list):
                     continue
@@ -115,14 +183,15 @@ def scan_transcript(transcript_path: str, wanted_tool_use_ids: set[str]) -> tupl
                     block_type = block.get("type")
 
                     if block_type == "tool_use" and block.get("name") in ("Write", "Edit", "MultiEdit"):
-                        path = (block.get("input") or {}).get("file_path")
-                        if path:
+                        inputs = block.get('input')
+                        path = inputs.get('file_path') if isinstance(inputs, dict) else None
+                        if isinstance(path, str) and path:
                             files_touched.add(path)
 
                     if block_type == "tool_result":
                         tool_use_id = block.get("tool_use_id")
                         if tool_use_id and tool_use_id in wanted_tool_use_ids:
-                            is_error_by_id[tool_use_id] = bool(block.get("is_error"))
+                            record_result(tool_use_id, bool(block.get("is_error")))
     except FileNotFoundError:
         pass
 
@@ -135,6 +204,8 @@ def main() -> None:
     except Exception:
         sys.exit(0)
 
+    if not isinstance(payload, dict):
+        return
     session_id = payload.get("session_id")
     transcript_path = payload.get("transcript_path")
     if not session_id or not transcript_path:
@@ -153,7 +224,7 @@ def main() -> None:
         sys.exit(0)  # fast exit — nothing to scan the transcript for
 
     wanted_ids = {e.get("id") for e in pending_this_session if e.get("id")}
-    is_error_by_id, files_touched = scan_transcript(transcript_path, wanted_ids)
+    is_error_by_id, files_touched = scan_transcript(transcript_path, wanted_ids, session_id)
 
     surfaced = []
     changed = False
@@ -168,16 +239,15 @@ def main() -> None:
             continue
         changed = True
         if is_error_by_id[entry_id]:
-            # Shouldn't happen (Tier 1 only fires on success — see its
-            # header), but defensive: don't surface something the
-            # transcript itself says errored.
+            # Codex can queue a failed command; transcript evidence wins.
             entry["status"] = "rejected"
         else:
             entry["status"] = "surfaced"
             surfaced.append(entry)
 
     if changed:
-        write_queue_atomic(queue_path, entries)
+        applied = write_queue_atomic(queue_path, entries)
+        surfaced = [e for e in surfaced if (e.get('id'), e.get('session_id')) in applied]
 
     if not surfaced:
         sys.exit(0)
@@ -205,5 +275,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, ValueError, TypeError):
+        pass  # advisory Stop failures leave candidates for a later retry
     sys.exit(0)
