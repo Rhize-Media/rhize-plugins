@@ -2,6 +2,17 @@
 
 ## Verified facts
 
+- 2026-10-22: Decision benchmark measurement candidate versions critical misses consistently
+  across generic choice/Noul and workflow routing: abstentions are unresolved critical decisions,
+  with separate wrong-answer/abstention/false-negative diagnostics and unsafe actions unknown.
+  Search does not mix prior metric definitions. Development deadline replay retains every
+  attempt and shares the loopback identity/timeout boundary; grouped menu rotations preserve
+  order identity and independent task groups. Class/reliability diagnostics, tuning-frozen
+  majority comparison and task-cluster intervals remain descriptive. Optional cost/exposure
+  packets are digest-bound and missing values stay null. Synthetic regressions reproduced the
+  former accounting discrepancy before the fix; no live model, holdout, mode or runtime change.
+  Lesson: a valid response, a timely correct decision, and an accepted task need separate metrics.
+
 - 2026-10-19: Procedural Memory Stop candidate scanner now recognizes session-bound
   native Codex CommandExecution terminal status plus integer exit code. It surfaces
   completed exit-0 results, rejects explicit failures, and holds missing, nonterminal,

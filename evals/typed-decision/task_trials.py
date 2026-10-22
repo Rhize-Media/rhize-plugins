@@ -10,9 +10,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
+import random
 import re
 import sqlite3
+from collections import Counter, defaultdict
 from statistics import mean
 from pathlib import Path
 from uuid import uuid4
@@ -51,6 +54,9 @@ def database(path: Path) -> sqlite3.Connection:
         host_limit_sha256 TEXT, recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(task_hash, fixture_hash, arm)
     )""")
+    connection.execute("""CREATE TABLE IF NOT EXISTS run_telemetry (
+        run_id TEXT PRIMARY KEY REFERENCES runs(run_id), packet_json TEXT NOT NULL,
+        evidence_sha256 TEXT NOT NULL)""")
     connection.commit()
     return connection
 
@@ -134,9 +140,30 @@ def outcome_from_file(path: Path, declared: str) -> tuple[dict, str]:
     return value, digest
 
 
+def telemetry_from_file(path: Path | None) -> tuple[dict | None, str | None]:
+    if path is None:
+        return None, None
+    digest = file_hash(path)
+    value = json.loads(path.read_text())
+    numeric = {'local_inference_ms', 'local_forward_passes', 'provider_cost_usd', 'review_cost_usd', 'local_cost_usd'}
+    if (not isinstance(value, dict) or set(value) != numeric | {'schema', 'advice_exposure', 'advice_following'}
+            or value['schema'] != 'rhize-task-telemetry-v1'
+            or not isinstance(value['advice_exposure'], str) or not isinstance(value['advice_following'], str)
+            or value['advice_exposure'] not in {'shown', 'holdback', 'not_shown', 'unknown'}
+            or value['advice_following'] not in {'followed', 'overrode', 'unknown'}
+            or (value['advice_exposure'] != 'shown' and value['advice_following'] != 'unknown')):
+        raise ValueError('invalid task telemetry schema or exposure')
+    for key in numeric:
+        item = value[key]
+        if item is not None and (type(item) not in (int, float) or not math.isfinite(item) or item < 0
+                                 or (key == 'local_forward_passes' and type(item) is not int)):
+            raise ValueError('invalid task telemetry metric')
+    return value, digest
+
+
 def finish(db: sqlite3.Connection, run_id: str, arm: str, status: str, task_hash: str | None,
            fixture_hash: str | None, usage_file: Path | None, usage_reason: str | None,
-           outcome: str, outcome_evidence: Path, wall_ms: int | None) -> dict:
+           outcome: str, outcome_evidence: Path, wall_ms: int | None, *, telemetry_file: Path | None = None) -> dict:
     if arm not in ARMS or status not in {"completed", "failed", "incomplete"}:
         raise ValueError("invalid arm or terminal status")
     if outcome not in {"accepted", "rejected", "undetermined"}:
@@ -144,6 +171,7 @@ def finish(db: sqlite3.Connection, run_id: str, arm: str, status: str, task_hash
     if wall_ms is not None and (type(wall_ms) is not int or wall_ms < 0):
         raise ValueError("wall time must be nonnegative")
     outcome_packet, outcome_hash = outcome_from_file(outcome_evidence, outcome)
+    telemetry, telemetry_hash = telemetry_from_file(telemetry_file)
     usage, usage_hash = usage_from_file(usage_file)
     complete_usage = usage is not None and type(usage["input_tokens"]) is int and type(usage["output_tokens"]) is int
     if not complete_usage and (not usage_reason or not re.fullmatch(r"[a-z][a-z0-9_]{2,63}", usage_reason)):
@@ -184,6 +212,9 @@ def finish(db: sqlite3.Connection, run_id: str, arm: str, status: str, task_hash
             int(outcome_packet["independent_review_passed"]),
             outcome_packet["critical_failure_count"], outcome_packet["rework_count"],
             outcome_packet["rubric_sha256"], run_id))
+        if telemetry is not None:
+            db.execute('INSERT INTO run_telemetry VALUES (?, ?, ?)',
+                       (run_id, json.dumps(telemetry, sort_keys=True), telemetry_hash))
         db.commit()
     except Exception:
         db.rollback()
@@ -192,6 +223,51 @@ def finish(db: sqlite3.Connection, run_id: str, arm: str, status: str, task_hash
             "usageState": "reported" if complete_usage else "missing", "usedTokens": used,
             "budgetUsedOrReserved": budget_used(db), "remainingTokens": max(0, CAP - budget_used(db)),
             "capOverrun": budget_used(db) > CAP}
+
+
+def paired_uncertainty(pairs) -> dict:
+    tasks = defaultdict(list)
+    for arms in pairs:
+        a, b = arms['A_control'], arms['B_treatment']
+        tasks[a['task_hash']].append({'qualityScore': b['quality_score'] - a['quality_score'],
+                                     'codingTokens': b['used_tokens'] - a['used_tokens'],
+                                     'wallMs': b['wall_ms'] - a['wall_ms']})
+    groups = [{key: mean(v[key] for v in values) for key in values[0]} for _, values in sorted(tasks.items())]
+    result = {'independentTasks': len(groups), 'method': 'task-cluster percentile bootstrap; equal task weighting',
+              'resamples': 1000, 'seed': 0, 'intervals95': None,
+              'claimScope': 'descriptive complete matched pairs; small samples do not establish benefit'}
+    if len(groups) < 2:
+        return {**result, 'reason': 'too_few_independent_tasks'}
+    rng = random.Random(0)
+    draws = [rng.choices(groups, k=len(groups)) for _ in range(1000)]
+    intervals = {}
+    for key in groups[0]:
+        values = sorted(mean(row[key] for row in draw) for draw in draws)
+        intervals[key] = [values[24], values[974]]
+    return {**result, 'point': {key: mean(g[key] for g in groups) for key in groups[0]}, 'intervals95': intervals}
+
+
+def arm_summary(rows, telemetry) -> dict:
+    packets = [telemetry.get(row['run_id']) for row in rows]
+    def known(values):
+        return sum(values) if values and all(v is not None for v in values) else None
+    costs = known([known([p['provider_cost_usd'], p['review_cost_usd'], p['local_cost_usd']])
+                   if p else None for p in packets])
+    accepted = sum(row['outcome'] == 'accepted' for row in rows)
+    return {'runs': len(rows), 'statuses': dict(Counter(row['status'] for row in rows)),
+            'outcomes': dict(Counter(row['outcome'] or 'pending' for row in rows)),
+            'criticalFailures': known([r['critical_failure_count'] for r in rows]),
+            'rework': known([r['rework_count'] for r in rows]),
+            'codingTokens': known([r['used_tokens'] for r in rows]),
+            'cacheReadTokens': known([r['cache_read_tokens'] for r in rows]),
+            'wallMs': known([r['wall_ms'] for r in rows]), 'telemetryMissing': sum(p is None for p in packets),
+            'adviceExposure': dict(Counter(p['advice_exposure'] if p else 'unknown' for p in packets)),
+            'adviceFollowing': dict(Counter(p['advice_following'] if p else 'unknown' for p in packets)),
+            'localInferenceMs': known([p['local_inference_ms'] if p else None for p in packets]),
+            'localForwardPasses': known([p['local_forward_passes'] if p else None for p in packets]),
+            'recordedCostUsd': costs,
+            'recordedCostPerAcceptedTaskUsd': costs / accepted if costs is not None and accepted else None,
+            'costBasis': 'operator-reported disjoint provider/review/local marginal costs; missing stays null'}
 
 
 def report(db: sqlite3.Connection) -> dict:
@@ -210,6 +286,7 @@ def report(db: sqlite3.Connection) -> dict:
                 and evaluable(arms["B_treatment"])
                 and arms["A_control"]["rubric_sha256"] == arms["B_treatment"]["rubric_sha256"]]
     singles = [row for row in rows if row["arm"] in {"A_single", "B_single"} and evaluable(row)]
+    telemetry = {r['run_id']: json.loads(r['packet_json']) for r in db.execute('SELECT * FROM run_telemetry')}
     return {"schema": "rhize-typed-task-trials-v1", "controlCap": CAP,
             "budgetUsedOrReserved": used, "remainingTokens": max(0, CAP - used),
             "capOverrun": used > CAP,
@@ -222,6 +299,9 @@ def report(db: sqlite3.Connection) -> dict:
                 "codingTokens": mean(arms["B_treatment"]["used_tokens"] - arms["A_control"]["used_tokens"] for arms in eligible),
                 "wallMs": mean(arms["B_treatment"]["wall_ms"] - arms["A_control"]["wall_ms"] for arms in eligible),
             } if eligible else None),
+            "pairedUncertainty": paired_uncertainty(eligible),
+            "byArm": {arm: arm_summary([r for r in rows if r['arm'] == arm], telemetry)
+                      for arm in sorted({r['arm'] for r in rows})},
             "singleExecutionGroups": sum(bool({"A_single", "B_single"} & arms.keys()) for arms in matched.values()),
             "evaluableSingleRuns": len(singles),
             "claimScope": "operator-reported task outcomes and usage; no independent quality attestation"}
@@ -247,6 +327,7 @@ def main() -> int:
     final.add_argument("--outcome", choices=("accepted", "rejected", "undetermined"), required=True)
     final.add_argument("--outcome-evidence", type=Path, required=True)
     final.add_argument("--wall-ms", type=int)
+    final.add_argument("--telemetry-file", type=Path, help="optional source-bound cost/exposure packet; unknown values stay null")
     commands.add_parser("report")
     args = parser.parse_args()
     try:
@@ -257,7 +338,7 @@ def main() -> int:
             elif args.command == "finalize":
                 value = finish(db, args.run_id, args.arm, args.status, args.task_hash,
                                args.fixture_hash, args.usage_file, args.usage_unavailable_reason,
-                               args.outcome, args.outcome_evidence, args.wall_ms)
+                               args.outcome, args.outcome_evidence, args.wall_ms, telemetry_file=args.telemetry_file)
             else:
                 value = report(db)
         print(json.dumps(value, sort_keys=True))

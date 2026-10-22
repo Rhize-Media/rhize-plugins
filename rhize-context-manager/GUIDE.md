@@ -350,6 +350,15 @@ specific shadow flags in [the pilot matrix](../docs/typed-decision-layer.md); th
 incumbent selector, ACL and protected context remain authoritative. Use private
 receipts and adjudicated decisions before calling a routing hit an improvement.
 
+For development comparisons use the [typed benchmark guide](../evals/typed-decision/README.md).
+Critical abstentions and wrong decisions are separate counters under versioned metric semantics;
+they do not prove an unsafe action occurred. Check class/label/group support and the frozen
+tuning-majority comparator beside recorded Arm A. `operational.py run` accepts the actual caller
+deadline and pinned runtime evidence, keeps every failure in its denominator, and measures the
+shared loopback client rather than native-host scheduling. `menu-panel` preserves menu-order
+identity and connected groups. Keep these replays off locked holdout/promotion data. Task-trial
+intervals cluster fixture variants by task; unknown costs, exposure and acceptance stay unknown.
+
 Skill fit is different: the skill router's Laya co-sign is governed by the earned-authority
 registry (`catalog/decision-registry.json`, state under `~/.local/share/rhize/typed-decisions/`),
 not an environment flag. It ships in `shadow` (the router's output is unchanged; one private

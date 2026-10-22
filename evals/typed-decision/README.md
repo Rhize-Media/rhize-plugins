@@ -40,11 +40,86 @@ The ledger rejects a candidate never kept on development data and a second holdo
 
 ## Task outcome trials and control budget
 
+### Versioned decision diagnostics and operational deadlines
+
+New research results declare `metrics_schema: rhize-typed-research-metrics-v2`. A critical
+miss means a wrong or unresolved critical decision, including an abstention, for choice and
+Noul alike. `critical_abstentions`, `critical_wrong_answers` and Noul
+`critical_false_negatives` remain separate; `unsafe_actions` is null because inference does
+not establish an executed action. Historical receipts retain their original definitions.
+Search ranks only keeps with current metric semantics; a current holdout needs a matching
+current keep, and any historical holdout use still blocks another use of that corpus.
+
+Reports include per-decision/question/candidate-count confusion, class support, recall,
+macro-F1, balanced accuracy, label bases and independent group counts. Reliability bins,
+ECE and fixed coverage/error slices are descriptive uncalibrated diagnostics, not a fitted
+threshold or an automation gate. Choice Brier is averaged across candidates; Noul is a
+scalar squared error. Compare like candidate counts and question types. V2 relevance keeps
+its Brier/calibration diagnostics unavailable. The majority comparator is frozen from the
+training split and reused from the matching keep on holdout. Recorded Arm A remains a
+separate comparator; missing incumbent predictions remain unavailable.
+
+`operational.py` is a separate development replay using the same literal-loopback transport,
+identity check and decoder. Supply the real caller budget: for example 800 ms for skill fit;
+do not replace a surface's actual budget with the research runner's 20-second allowance.
+
+```sh
+python3 evals/typed-decision/operational.py run --cases PRIVATE_DEVELOPMENT.jsonl \
+  --candidate PRIVATE_CANDIDATE.json --deadline-ms 800 --condition warm \
+  --runtime-evidence PRIVATE_RUNTIME.json --output PRIVATE_NEW_REPORT.json
+python3 evals/typed-decision/operational.py menu-panel --cases PRIVATE_CHOICE_CASES.jsonl \
+  --output PRIVATE_NEW_ORDER_PANEL.jsonl
+```
+
+The candidate file is one JSON object using the existing candidate contract. Runtime evidence
+is a bounded JSON object recording checkpoint/source hashes, hardware, dtype, thread/queue
+settings and collection conditions; the report binds its bytes, not the truth of the operator's
+assertions. No missing or different checkpoint is silently substituted. Runs are sequential,
+at most 2,400 requests, with no retries. New output files are private and never overwrite a
+prior result. Do not give this CLI locked holdout or promotion cases; it has no gate authority.
+
+Every attempted case stays in the denominator. Reports distinguish `ok`, `late`, `timeout`,
+`invalid`, `busy` and `unavailable`; deadline yield requires all of a case's questions to be
+correct before the deadline. Critical unresolved/late cases remain missed decisions, not
+observed unsafe actions. Latency percentiles use valid in-budget client calls, including
+abstained calls, with n disclosed; timeout elapsed time is censored and remains separate.
+Timing includes the shared client's health probe and response handling, but excludes native
+host scheduling and evaluator grading. A replay is not a native-host latency measurement.
+Separate cold/warm and concurrent field observations rather than pooling their populations.
+
+The order panel rotates the *same* request/menu without changing gold labels or original
+group IDs. Explicit `candidate_orders` survive canonical JSON and enter request identity.
+Keep all related variants in one split and count their group once for inference. Order
+disagreement compares successfully answered variants with the same state/questions/labels.
+Curate additional candidate-count, distractor, missing-correct-choice/none and exclusion cases
+with reviewed labels; the tool does not invent labels when menu semantics change. Use the
+existing review queue for underrepresented independent groups, not repeated model calls as n.
+
+### Complete-task uncertainty and optional cost evidence
+
 Use `task_trials.py` with a private SQLite path. Hash the frozen task and fixture externally and use the same hashes for both arms. Before each duplicate control, write current host token-limit evidence to an owner-only file and call `reserve-control --task-hash <sha256> --fixture-hash <sha256> --limit-tokens <maximum> --host-limit-evidence <file>`. The reservation checks the global 1,000,000-token allowance under a SQLite write lock. The host must actually enforce that maximum during the run; the ledger cannot interrupt an agent. If the host lacks a per-run limit, do not launch that duplicate control.
 
 Finalize the reserved ID with `finalize --run-id <id> --arm A_control --status completed|failed|incomplete --usage-file <file> --outcome accepted|rejected|undetermined --outcome-evidence <file> --wall-ms <milliseconds>`. The usage JSON records `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`, and `reasoning_tokens`; nullable ancillary counts stay null. Missing input/output usage requires `--usage-unavailable-reason` and charges the full reservation. Report any host limit overrun instead of masking it. Finalize B treatments and single-execution randomized A/B tasks with their own IDs and the same task/fixture hashes.
 
 The private outcome evidence is a JSON object with exactly `schema: "rhize-typed-task-outcome-v1"`, `outcome` matching the CLI, `quality_score` from 0 to 100 or null, Boolean `required_checks_passed` and `independent_review_passed`, nonnegative integer `critical_failure_count` and `rework_count`, and the frozen `rubric_sha256`. An `accepted` outcome requires scored quality, passed checks and independent review, and zero critical failures. Freeze the rubric before running either arm and preserve the underlying review packet separately. `report` distinguishes assigned from evaluable pairs; only completed runs with reported input/output tokens, quality, wall time, a determinate outcome and the same rubric contribute to the paired B-minus-A mean deltas. The ledger stores hashes and compact scores, not prompts or source code. Its outcomes are operator-reported and need independent acceptance evidence.
+
+The additive `pairedUncertainty` report clusters by task hash, averages fixture variants within
+each task, then uses 1,000 fixed-seed task-bootstrap resamples for descriptive 95% intervals.
+Fewer than two independent tasks leaves intervals null. The existing fixture-pair means are
+preserved and explicitly differ from the new equal-task weighting. Small samples remain a pilot,
+not a powered benefit result. Per-arm summaries retain failed/pending/unknown outcomes and rework.
+
+`finalize --telemetry-file PRIVATE_TELEMETRY.json` optionally records a separate digest-bound
+`rhize-task-telemetry-v1` packet in the same transaction. It has exactly `schema`,
+`advice_exposure` (`shown|holdback|not_shown|unknown`), `advice_following`
+(`followed|overrode|unknown`), and `local_inference_ms`, `local_forward_passes`,
+`provider_cost_usd`, `review_cost_usd`, `local_cost_usd`. Numeric values are nonnegative finite
+numbers or explicit null; forward passes are integers. Following/override requires shown advice.
+Dollar fields must describe disjoint provider, review/label and local marginal costs; preserve
+their underlying measured/estimated basis privately. Missing telemetry/cost/cache usage stays
+null, not free. Recorded cost per accepted task includes costs of all arm attempts and requires
+complete cost fields plus at least one independently accepted outcome. No new experiment,
+human acceptance, or decision-mode change follows from a report.
 
 Run a small replayable 4–6-pair pilot with identical rubric and frozen fixtures, then use randomized single-execution tasks on the real project. Predeclare quality, time and token analyses; count all fallbacks and missing data. Keep the duplicate-control total below the user's 1,000,000 incremental coding-agent token ceiling.
 
