@@ -368,6 +368,19 @@ Skill-router suggestions can be co-signed by the local Laya server under the ear
 
 The [typed decision pilot](../docs/typed-decision-layer.md) also scores bounded skill and workflow shortlists, governed graph query results, and source-bound retention candidates. All scores remain private shadow evidence; existing selectors and protected context continue to decide.
 
+The [development benchmark](../evals/typed-decision/README.md) versions critical-decision
+accounting, reports class support and uncalibrated reliability by candidate count, and freezes
+its majority comparator on tuning data. Separate deadline replay retains late/timeout/busy/invalid
+attempts; grouped menu rotations test order sensitivity without inventing independent samples.
+Task-trial reports add task-cluster uncertainty and optional digest-bound cost/exposure evidence.
+These measurements do not change a live deadline, registry mode, credential policy or acceptance.
+
+Compression scores now identify their heuristic basis and leave semantic fidelity unverified;
+an exact structured-field helper checks supplied frozen constraints separately from prose scores.
+Workflow reports expose latest execution/validation/capture statuses and bounded terminal reasons,
+with malformed receipts excluded before aggregation. Worker-packet conformance tests preserve
+explicit constraints, failure evidence and source identity while excluding unrelated context.
+
 ## Laya advise mode
 
 The registry (`catalog/decision-registry.json`) now holds nine decisions and a fourth mode, `advise`: a labelled,

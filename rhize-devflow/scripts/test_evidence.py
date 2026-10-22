@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -17,7 +19,7 @@ from typing import Any
 
 SCHEMA_VERSION = "rhize-test-evidence-v1"
 RUN_SPEC_VERSION = "rhize-test-evidence-run-v1"
-RUNNER_VERSION = "1.1.0"
+RUNNER_VERSION = "1.2.0"
 VERDICTS = {
     "oracle_supported", "killed", "survived_mutation", "oracle_missing", "artifact_contract",
     "not_applicable", "mutation_unavailable", "mutation_unavailable_dirty_state", "stale_packet",
@@ -145,8 +147,28 @@ def package_script(repo: Path, name: str) -> str:
 
 
 def run_process(_command: list[str], _cwd: Path, _timeout: int) -> int:
-    """Reserved adapter boundary; direct ambient process execution is disabled."""
-    raise EvidenceError("test execution unavailable: no trusted sandbox adapter is configured")
+    """Host test execution is forbidden; use the isolated Docker adapter."""
+    raise EvidenceError("ambient host test execution is forbidden")
+
+
+def sandbox_adapter():
+    spec = importlib.util.spec_from_file_location("rhize_test_sandbox", Path(__file__).with_name("test_sandbox.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def invocation_text(repo: Path, invocation: dict) -> str:
+    if not isinstance(invocation["source"], str):
+        raise EvidenceError("test invocation source must be a string")
+    if invocation["source"] == "package_script":
+        return package_script(repo, invocation["name"])
+    if invocation["source"] not in {"python_unittest", "python_pytest"}:
+        raise EvidenceError("test invocation must come from package_script or a declared Python test file")
+    target = resolve_file(repo, invocation["name"], "Python test")
+    if target.suffix != ".py" or repository_relative(repo, target) != invocation["name"] or any(c in invocation["name"] for c in '*?[]:'):
+        raise EvidenceError("Python invocation must name a canonical .py test file")
+    return json.dumps({key: invocation[key] for key in ("source", "name")}, sort_keys=True) + "\n" + file_digest(target)
 
 
 def validate_spec(raw: Any, repo: Path) -> dict[str, Any]:
@@ -178,9 +200,9 @@ def validate_spec(raw: Any, repo: Path) -> dict[str, Any]:
     if oracle["kind"] not in ORACLES_BY_CONTRACT[spec["contract_class"]]:
         raise EvidenceError("oracle kind does not match the contract class")
     invocation = exact(spec["test_invocation"], {"source", "name"}, "test_invocation")
-    if invocation["source"] != "package_script":
-        raise EvidenceError("test invocation must come from package_script")
-    package_script(repo, invocation["name"])
+    invocation_text(repo, invocation)
+    if invocation["source"] != "package_script" and invocation["name"] not in spec["test_files"]:
+        raise EvidenceError("Python invocation must be listed in test_files")
     if isinstance(spec["timeout_seconds"], bool) or not isinstance(spec["timeout_seconds"], int) or not 1 <= spec["timeout_seconds"] <= 1800:
         raise EvidenceError("timeout_seconds must be 1..1800")
     if not isinstance(spec["base_sha"], str) or run_git(repo, "rev-parse", "--verify", spec["base_sha"]).returncode:
@@ -211,6 +233,8 @@ def validate_spec(raw: Any, repo: Path) -> dict[str, Any]:
                 raise EvidenceError(f"mutation.{field} must be bounded text")
         if not mutation["search"] or target.read_text(encoding="utf-8").count(mutation["search"]) != 1:
             raise EvidenceError("mutation search must match exactly once")
+        if mutation["search"] == mutation["replace"]:
+            raise EvidenceError("mutation replacement must change source bytes")
     return spec
 
 
@@ -249,14 +273,15 @@ def base_packet(
             "state_after_fingerprint": None,
         },
         "invocation": {
-            "source": "package_script",
+            "source": spec["test_invocation"]["source"],
             "name": spec["test_invocation"]["name"],
-            "script_digest": digest_text(package_script(repo, spec["test_invocation"]["name"])),
+            "script_digest": digest_text(invocation_text(repo, spec["test_invocation"])),
         },
         "lifecycle": {"clean_before": clean_before, "isolated": False, "lease_acquired": False, "clean_after": False, "final_clean_rerun": False},
         "verdict": verdict,
         "baseline_test_exit_code": None, "mutation_test_exit_code": None, "final_test_exit_code": None,
         "cleanup": {"status": "not_started", "human_recovery_required": False},
+        "sandbox": None,
     }
 
 
@@ -292,10 +317,13 @@ def read_json_file(path: Path, label: str) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def run_evidence(repo: Path, spec: dict[str, Any], output: Path, lease_root: Path) -> dict[str, Any]:
+def run_evidence(repo: Path, spec: dict[str, Any], output: Path, lease_root: Path, sandbox_image: str | None = None) -> dict[str, Any]:
+    spec = validate_spec(spec, repo)
     output = output.absolute()
     lease_root = lease_root.absolute()
     reject_symlink_components(output, "output")
+    if output.exists():
+        raise EvidenceError("output already exists")
     reject_symlink_components(lease_root, "lease root")
     if is_within(output, repo) or is_within(lease_root, repo):
         raise EvidenceError("packet output and lease root must stay outside the target repository")
@@ -310,22 +338,74 @@ def run_evidence(repo: Path, spec: dict[str, Any], output: Path, lease_root: Pat
     if not clean:
         write_packet(output, packet)
         return packet
-    final_fingerprint, final_clean = working_fingerprint(repo)
+    adapter = None
+    if sandbox_image is not None:
+        adapter = sandbox_adapter()
+        ensure_private_dir(lease_root)
+        info = lease_root.stat()
+        if info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise EvidenceError("lease directory must be private and caller-owned")
+        descriptor = os.open(lease_root / (digest_text(str(repo.resolve())) + ".lock"), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        try:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                packet["lifecycle"]["lease_acquired"] = True
+                # Preflight receipt storage before executing any candidate code.
+                adapter.private_root()
+                source_policy = adapter.policy_hash()
+                result = adapter.execute(repo, spec, sandbox_image, run_git)
+                if source_policy != adapter.policy_hash():
+                    raise adapter.SandboxUnavailable("producer or adapter changed during execution")
+                packet["lifecycle"].update(isolated=True, lease_acquired=True)
+                packet["baseline_test_exit_code"] = result["baseline"]
+                packet["mutation_test_exit_code"] = result["mutant"]
+                packet["final_test_exit_code"] = result["final"]
+                packet["lifecycle"]["final_clean_rerun"] = result["final"] == 0
+                packet["verdict"] = "mutation_unavailable"
+                if result["baseline"] == 0 and result["final"] == 0:
+                    if spec["mutation"] is not None:
+                        packet["mutation"].update(state_before_fingerprint=result["before"], state_after_fingerprint=result["after"])
+                        assertion_failure = spec["test_invocation"]["source"] in {"python_unittest", "python_pytest"} and result["mutant"] == adapter.ASSERTION_FAILURE and result["before"] != result["after"]
+                        packet["verdict"] = "killed" if assertion_failure else "survived_mutation" if result["mutant"] == 0 else "mutation_unavailable"
+                    else:
+                        packet["verdict"] = {"independent": "oracle_supported", "artifact": "artifact_contract", "missing": "oracle_missing", "not_applicable": "not_applicable"}[spec["oracle"]["kind"]]
+            except (adapter.SandboxUnavailable, BlockingIOError):
+                # No adapter success means no execution-backed verdict, even after partial work.
+                packet["verdict"] = "mutation_unavailable"
+            except adapter.CleanupFailed as exc:
+                packet["verdict"] = "cleanup_failed"
+                container = re.search(r"rhize-test-evidence-[0-9a-f]{32}", str(exc))
+                packet["cleanup"] = {"status": "failed", "human_recovery_required": True,
+                                     "resource": container[0] if container else "docker_client"}
+        finally:
+            os.close(descriptor)
+    try:
+        final_fingerprint, final_clean = working_fingerprint(repo)
+    except (EvidenceError, OSError):
+        if packet["verdict"] != "cleanup_failed":
+            raise
+        packet["repository"]["final_working_tree_fingerprint"] = None
+        write_packet(output, packet)
+        return packet
     packet["repository"]["final_working_tree_fingerprint"] = final_fingerprint
-    packet["cleanup"] = {"status": "ok", "human_recovery_required": False}
+    if packet["verdict"] != "cleanup_failed":
+        packet["cleanup"] = {"status": "ok", "human_recovery_required": False}
     packet["lifecycle"]["clean_after"] = final_clean
     if final_fingerprint != initial_fingerprint:
-        packet["verdict"] = "stale_packet"
+        if packet["verdict"] != "cleanup_failed":
+            packet["verdict"] = "stale_packet"
+    if adapter is not None and packet["verdict"] in EXECUTION_CLAIM_VERDICTS:
+        packet["sandbox"] = adapter.record(packet, sandbox_image)
     write_packet(output, packet)
     return packet
 
 
 def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
     top = {"schema_version", "runner_version", "generated_at", "repository", "contract", "mutation", "invocation", "lifecycle", "verdict", "baseline_test_exit_code", "mutation_test_exit_code", "final_test_exit_code", "cleanup"}
-    packet = exact(raw, top, "packet")
+    packet = exact(raw, top | ({"sandbox"} if isinstance(raw, dict) and "sandbox" in raw else set()), "packet")
     if (
         packet["schema_version"] != SCHEMA_VERSION
-        or packet["runner_version"] != RUNNER_VERSION
+        or packet["runner_version"] not in {"1.1.0", RUNNER_VERSION}
         or not isinstance(packet["verdict"], str)
         or packet["verdict"] not in VERDICTS
     ):
@@ -405,18 +485,20 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
                 raise EvidenceError(f"packet.mutation.{field} must be sha256 or null")
     invocation = exact(packet["invocation"], {"source", "name", "script_digest"}, "invocation")
     if (
-        invocation["source"] != "package_script"
-        or not isinstance(invocation["name"], str)
-        or not SAFE_SCRIPT.fullmatch(invocation["name"])
+        not isinstance(invocation["name"], str)
         or not is_hex_digest(invocation["script_digest"], 64)
     ):
         raise EvidenceError("invalid packet invocation")
-    if digest_text(package_script(repo, invocation["name"])) != invocation["script_digest"]:
+    if invocation["source"] != "package_script" and invocation["name"] not in bound_paths["test_files"]:
+        raise EvidenceError("Python invocation must be listed in test_files")
+    if digest_text(invocation_text(repo, invocation)) != invocation["script_digest"]:
         raise EvidenceError("packet test invocation has drifted")
     lifecycle = exact(packet["lifecycle"], {"clean_before", "isolated", "lease_acquired", "clean_after", "final_clean_rerun"}, "lifecycle")
     if any(not isinstance(lifecycle[key], bool) for key in lifecycle):
         raise EvidenceError("lifecycle values must be booleans")
-    cleanup = exact(packet["cleanup"], {"status", "human_recovery_required"}, "cleanup")
+    cleanup = exact(packet["cleanup"], {"status", "human_recovery_required"} | ({"resource"} if isinstance(packet["cleanup"], dict) and "resource" in packet["cleanup"] else set()), "cleanup")
+    if "resource" in cleanup and (cleanup["status"] != "failed" or not isinstance(cleanup["resource"], str) or not re.fullmatch(r"docker_client|rhize-test-evidence-[0-9a-f]{32}", cleanup["resource"])):
+        raise EvidenceError("invalid cleanup resource")
     if (
         not isinstance(cleanup["status"], str)
         or cleanup["status"] not in {"ok", "failed", "not_started"}
@@ -428,7 +510,22 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
             raise EvidenceError(f"{field} must be an integer or null")
     verdict = packet["verdict"]
     if verdict in EXECUTION_CLAIM_VERDICTS:
-        raise EvidenceError("execution-backed verdicts require a trusted sandbox adapter")
+        if packet["runner_version"] != RUNNER_VERSION:
+            raise EvidenceError("execution-backed verdicts require a trusted sandbox adapter")
+        adapter = sandbox_adapter()
+        try:
+            adapter.verify(packet)
+        except (OSError, ValueError) as exc:
+            raise EvidenceError("execution-backed verdicts require a trusted sandbox adapter receipt") from exc
+        if (not all(lifecycle.values()) or cleanup != {"status": "ok", "human_recovery_required": False}
+                or packet["baseline_test_exit_code"] != 0 or packet["final_test_exit_code"] != 0):
+            raise EvidenceError("execution-backed verdict has inconsistent lifecycle evidence")
+        if verdict == "killed" and (packet["mutation"] is None or packet["mutation_test_exit_code"] != adapter.ASSERTION_FAILURE or invocation["source"] not in {"python_unittest", "python_pytest"} or packet["mutation"]["state_before_fingerprint"] == packet["mutation"]["state_after_fingerprint"]):
+            raise EvidenceError("killed requires a changed mutant and classified Python assertion failure")
+        if verdict == "oracle_supported" and (packet["mutation"] is not None or oracle["kind"] != "independent"):
+            raise EvidenceError("oracle_supported requires an independent oracle without mutation")
+        if verdict == "artifact_contract" and (contract["class"] != "artifact" or packet["mutation"] is not None):
+            raise EvidenceError("artifact_contract requires a nonmutation artifact contract")
     clean_nonmutation = (
         packet["mutation"] is None
         and lifecycle["clean_before"]
@@ -475,6 +572,8 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
         review_verdict = "FAIL_REQUIRES_HUMAN"
     elif stale:
         review_verdict = "stale_packet"
+    elif verdict in {"killed", "oracle_supported", "artifact_contract"}:
+        review_verdict = "supported"
     else:
         review_verdict = "unsupported"
     return {"valid": True, "packet_verdict": packet["verdict"], "review_verdict": review_verdict, "stale": stale}
@@ -519,6 +618,7 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("--spec", type=Path, required=True)
     run.add_argument("--output", type=Path, default=None)
     run.add_argument("--lease-root", type=Path, default=Path.home() / ".rhize/test-evidence/leases")
+    run.add_argument("--sandbox-image", help="opt in with an existing local Docker sha256 image ID; never pulled")
     validate = sub.add_parser("validate")
     validate.add_argument("--repo", type=Path, required=True)
     validate.add_argument("--packet", type=Path, required=True)
@@ -536,7 +636,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "run":
             spec = validate_spec(read_json_file(args.spec, "spec"), repo)
             output_path = resolve_output_path(args.output, repo)
-            result = run_evidence(repo, spec, output_path, args.lease_root)
+            result = run_evidence(repo, spec, output_path, args.lease_root, args.sandbox_image)
         else:
             result = validate_packet(read_json_file(args.packet, "packet"), repo)
         print(json.dumps(result, indent=2, sort_keys=True))

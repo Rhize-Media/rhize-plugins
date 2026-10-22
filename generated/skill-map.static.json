@@ -4818,16 +4818,16 @@
       "treeHash": "93f473d1747a5140d430b537651dfd3d05bf8665c81dddae8780fe6cc10f3600"
     },
     {
-      "contentHash": "c3cc449ec77371c880eef9d6ca7cf5a078524b9ab032fb65dc8b02bfadc7ffe5",
-      "contentHashNormalized": "49199bc51bfde24d7d5dc535f2473ddf984794d3f57af12a5ab6db1c83c129c7",
+      "contentHash": "681d3602631ab11e6113c9a309c89e6709b4aa20d907941d0dcfad1c54f3b645",
+      "contentHashNormalized": "488af592c8caa69dc1e71866140bfc57839a7b5b8baa87d42e0d8c93331aaf45",
       "description": "This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task optimization, or durable handoff summaries that preserve decisions, files, risks, and next actions.",
       "fileCount": 3,
       "id": "skill:rhize-context-manager/context-compression",
       "kind": "skill",
       "name": "context-compression",
       "path": "rhize-context-manager/skills/context-compression/SKILL.md",
-      "totalBytes": 57506,
-      "treeHash": "2ccbbcf691fee032cbb469c8b568269ee93a3a8f790d9dda3f32d36279dc0b16"
+      "totalBytes": 59045,
+      "treeHash": "1743e92330bfd007f46946ee2349e3d302fd66bb5b779a6a7380fb6b11d4d043"
     },
     {
       "contentHash": "b1318638f8106efa097e56e7ac7cc4835f8fe614d45dd63a773eff8028f2e1dd",
@@ -5127,15 +5127,15 @@
       "treeHash": "2ff430378e54f84b8142778350a9d55f2265c4780749f81326b8d2c325ac3287"
     },
     {
-      "contentHash": "5929934c3f32999178d6798e6c6f41de81e78536603497340cfc8784859650cf",
-      "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, including an explicit unavailable status while trusted test execution is not implemented. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
+      "contentHash": "117fbe231b15bcf00c311e9fe1bdde1b4b40b70b43839a6fc6b8644584c6bb97",
+      "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, with opt-in local Docker execution or an explicit unavailable status. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
       "fileCount": 2,
       "id": "skill:rhize-devflow/test-evidence",
       "kind": "skill",
       "name": "test-evidence",
       "path": "rhize-devflow/skills/test-evidence/SKILL.md",
-      "totalBytes": 3126,
-      "treeHash": "07dc1a4fd0e99e1419fa4f7a989445d4483404936a6aeb16ca246f2e104f815e"
+      "totalBytes": 3127,
+      "treeHash": "7eab9eb510c0fe182a5ea78e004cf561a0222dd0971d43a4ebe4dd45fc40f27a"
     },
     {
       "contentHash": "f4a3f1ee01a5c43510a24260dd5d937422447ef24aac1da31270e151837442bf",

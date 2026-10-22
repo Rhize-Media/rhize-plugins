@@ -151,9 +151,14 @@ actually protects behavior. It does not activate for cache/data mutation consist
 
 **What it knows:** How to tell whether a test actually protects behavior — versus just an artifact
 or today's implementation — and how to bind that judgment to the exact commit and files it was
-made against; see [`docs/test-evidence.md`](./docs/test-evidence.md) for the full contract. It
-doesn't run the test suite itself yet: it tells you plainly that live execution isn't available
-rather than fake-passing, until a trusted sandbox for that ships.
+made against; see [`docs/test-evidence.md`](./docs/test-evidence.md) for the full contract.
+Without an explicitly selected usable local Docker image by sha256, execution remains unsupported.
+The opt-in Python lane loads only the declared test file in a read-only snapshot, without network
+or host credentials, and verifies container removal. Actual test-method assertion failures are
+distinct from collection/import/setup errors and zero-test runs. Package-script oracles can run
+in the sandbox, but their failures cannot establish a killed mutant. Host execution is forbidden.
+Receipts bind writer and adapter bytes plus the
+packet, but do not attest against a malicious writer with the same user privileges.
 
 **Example prompt:** "These new tests claim to prevent the query-key regression. Classify the
 contract and produce test evidence before review."
@@ -370,10 +375,12 @@ merge, deploy, migration, or external-write authority. A verified no-op is a suc
 **Usage:** `/rhize-devflow:test-evidence` with one to three explicit regression claims and a local
 run-spec boundary. Run it before `/review`, never from inside review.
 
-The command classifies each claim and digest-binds an approved `test`/`test:*` package-script
-declaration without executing it. It refuses dirty or protected targets, and binds its check to
-the exact commit and files at hand. It reports plainly that live execution isn't available yet
-rather than fake-passing, since that trusted sandbox hasn't shipped — see
+The command classifies each claim and digest-binds its invocation. An explicitly selected local
+Docker image enables an isolated package-script oracle or exact-file Python test before review.
+Only the Python harness classifies assertion failures for mutation evidence.
+Dirty/protected/stale inputs, unavailable isolation, setup errors,
+empty suites or unverified cleanup cannot support a regression claim. No host execution,
+image pull or authority change occurs. See
 [`docs/test-evidence.md`](./docs/test-evidence.md) for the full lifecycle and verdict contract.
 
 **Example:** "Run test evidence for the exact cache-key bug these two tests claim to prevent."

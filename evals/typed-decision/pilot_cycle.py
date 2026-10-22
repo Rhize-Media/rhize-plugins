@@ -68,7 +68,7 @@ def legacy_cycle(root, receipts, research_root, minimum=200, deadline=180, run=s
         except BlockingIOError:
             return {'status': 'held', 'reason': 'inference_busy'}
         evaluator = Path(__file__).with_name('research.py')
-        evaluator_hash = digest(evaluator.read_bytes())
+        evaluator_hash = digest(evaluator.read_bytes() + evaluator.with_name('measurement.py').read_bytes())
         key = digest(json.dumps({'labels': labels, 'candidates': legacy_candidates(), 'evaluator': evaluator_hash,
                                  'coordinator': digest(Path(__file__).read_bytes())}, sort_keys=True))
         run_dir = research_root / key
@@ -104,7 +104,7 @@ def legacy_cycle(root, receipts, research_root, minimum=200, deadline=180, run=s
             completed = run(command, capture_output=True, text=True, timeout=deadline)
             if completed.returncode:
                 return finish({**state, 'status': 'failed', 'reason': 'evaluator_failed', 'exitCode': completed.returncode})
-            if digest(evaluator.read_bytes()) != evaluator_hash:
+            if digest(evaluator.read_bytes() + evaluator.with_name('measurement.py').read_bytes()) != evaluator_hash:
                 raise ValueError('evaluator changed during search')
             ledger = module.read_ledger(run_dir / 'ledger.jsonl')
             kept = [row for row in ledger if row['status'] == 'keep']
@@ -421,7 +421,7 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
         preflight_key = digest(json.dumps({'labels': labels, 'minimum': minimum, 'deadline': deadline, 'shadowOnly': shadow_only,
             'labelPolicy': policy, 'boundInputSha256': bound_input_fingerprint(root, receipts),
             'sources': {str(path.relative_to(REPO)): digest(path.read_bytes()) if path.is_file() else None
-                        for path in (evaluator, promoter, decoder, Path(__file__),
+                        for path in (evaluator, evaluator.with_name('measurement.py'), promoter, decoder, Path(__file__),
                                      *(scripts / name for name in (
                                          'decision_pilot.py', 'decision_pilot_v2.py', 'pilot_labels.py',
                                          'typed_advice.py', 'typed_decisions/advise_ledger.py',
@@ -476,6 +476,7 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
                   'labelPolicySha256': digest(json.dumps(policy, sort_keys=True))}
         used_bases = dict(sorted(Counter(row.get('label_basis', 'human_adjudicated') for row in rows).items()))
         versions = {'evaluator': digest(evaluator.read_bytes()), 'scorer': digest(decoder.read_bytes()),
+                    'measurement': digest(evaluator.with_name('measurement.py').read_bytes()),
                     'promotion': digest(promoter.read_bytes()), 'coordinator': digest(Path(__file__).read_bytes())}
         legacy_sha = legacy_manifest_fingerprint(research_root)
         sources_sha = source_pool_digest(rows)
@@ -504,6 +505,7 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
             return value
         def check_sources():
             if (digest(evaluator.read_bytes()) != versions['evaluator'] or digest(decoder.read_bytes()) != versions['scorer']
+                    or digest(evaluator.with_name('measurement.py').read_bytes()) != versions['measurement']
                     or digest(promoter.read_bytes()) != versions['promotion']):
                 raise ValueError('evaluator_or_scorer_changed')
         try:

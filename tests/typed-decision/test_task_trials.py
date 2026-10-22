@@ -146,3 +146,51 @@ def test_accepted_outcome_requires_review_and_quality(tmp_path):
     _, outcome = files(tmp_path, quality=None)
     with pytest.raises(ValueError, match="accepted outcome"):
         trials.outcome_from_file(outcome, "accepted")
+
+
+def test_task_cluster_intervals_and_optional_costs_do_not_inflate_fixture_variants(tmp_path):
+    host, outcome = files(tmp_path)
+    usage = tmp_path / "usage.json"
+    usage.write_text(json.dumps({"input_tokens": 120, "output_tokens": 30,
+                                 "cache_read_tokens": None, "cache_write_tokens": None,
+                                 "reasoning_tokens": None}))
+    telemetry = tmp_path / "telemetry.json"
+    telemetry.write_text(json.dumps({"schema": "rhize-task-telemetry-v1", "advice_exposure": "shown",
+                                    "advice_following": "followed", "local_inference_ms": 10,
+                                    "local_forward_passes": 1, "provider_cost_usd": 2,
+                                    "review_cost_usd": 1, "local_cost_usd": .5}))
+    db = trials.database(tmp_path / "trial.sqlite3")
+    try:
+        for index, (task, fixture) in enumerate([("a", "d"), ("a", "e"), ("b", "f")]):
+            control = trials.reserve_control(db, task * 64, fixture * 64, 500, host)
+            trials.finish(db, control["runId"], "A_control", "completed", None, None,
+                          usage, None, "accepted", outcome, 1000)
+            trials.finish(db, f"b-{index}", "B_treatment", "completed", task * 64, fixture * 64,
+                          usage, None, "accepted", outcome, 900, telemetry_file=telemetry)
+            report = trials.report(db)
+            if index == 1:
+                assert report["pairedUncertainty"]["independentTasks"] == 1
+                assert report["pairedUncertainty"]["intervals95"] is None
+        report = trials.report(db)
+        assert report["pairedUncertainty"]["independentTasks"] == 2
+        assert report["pairedUncertainty"]["intervals95"]["wallMs"] == [-100, -100]
+        treatment = report["byArm"]["B_treatment"]
+        assert treatment["adviceExposure"] == {"shown": 3}
+        assert treatment["adviceFollowing"] == {"followed": 3}
+        assert treatment["recordedCostPerAcceptedTaskUsd"] == 3.5
+        assert report["byArm"]["A_control"]["recordedCostPerAcceptedTaskUsd"] is None
+        assert report["byArm"]["A_control"]["telemetryMissing"] == 3
+    finally:
+        db.close()
+
+
+@pytest.mark.parametrize("value", [float("nan"), -1, True, "free"])
+def test_cost_telemetry_rejects_nonfinite_negative_and_non_numeric_values(tmp_path, value):
+    path = tmp_path / "telemetry.json"
+    packet = {"schema": "rhize-task-telemetry-v1", "advice_exposure": "unknown",
+              "advice_following": "unknown", "local_inference_ms": None,
+              "local_forward_passes": None, "provider_cost_usd": value,
+              "review_cost_usd": None, "local_cost_usd": None}
+    path.write_text(json.dumps(packet))
+    with pytest.raises(ValueError):
+        trials.telemetry_from_file(path)

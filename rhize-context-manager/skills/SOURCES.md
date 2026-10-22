@@ -50,6 +50,7 @@ One entry per external-skill ingestion decision.
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for context-compression`
 - **Upstream baseline:** sha256:c4111db0514e24f69dbcc8f3fe434a057f69cdb8e8d13994791fa8a26aecf9f2 (recorded 2026-08-10)
+- **Rhize customization (2026-10-22):** Label local compression scores as lexical heuristics with semantic fidelity unverified; add an exact frozen-scalar constraint helper and adversarial fixtures. Preserve the historical upstream baseline, existing extends relation, protected retention anchors and authority boundaries.
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.136)
 
 ## context-optimization — 2026-07-20

@@ -56,6 +56,16 @@ Jim approved the advisory tier on 2026-10-11 and extended it on 2026-10-16 so th
 
 ## Measurement
 
+Development results use versioned critical-decision accounting: critical abstentions are unresolved
+decisions and are reported separately from wrong answers; observed unsafe actions remain unknown.
+The existing evaluator adds per-class/candidate-count diagnostics and a training-frozen majority
+comparator. A separate development-only operational CLI uses the same loopback transport with the
+actual caller deadline, retaining late/timeout/invalid/busy/unavailable attempts. Grouped menu
+rotations isolate ordering from menu semantics; cardinality/missing-choice cases need curated gold
+labels. Task-trial reports add task-cluster intervals and optional digest-bound cost/exposure
+packets. See [commands and evidence limits](../evals/typed-decision/README.md). No replay or diagnostic
+changes a runtime deadline, mode, promotion rule, credential hard deny or human acceptance.
+
 Use [the fixed research evaluator](../evals/typed-decision/README.md) for decision accuracy and calibration. Build at least 200 human-adjudicated cases per decision type (registry decisions use the earned-authority gate above instead), with at least 50 in the locked 25% holdout; include safety and authorization strata. Keep candidate search separate from one-shot holdout. Evaluate each accepted task for correctness, required checks, review outcome, wall time, coding-agent input/output tokens, local Laya usage and latency, fallbacks, and abstentions. An unavailable usage field is missing evidence, not zero.
 
 Run 4–6 replayable paired tasks as a pilot only after fixing the rubric and environment. Then favor single-execution randomized tasks in the upcoming project so normal delivery does not double its token cost. Reserve every duplicate Arm A control with `evals/typed-decision/task_trials.py`; its 1,000,000-token ceiling covers incremental coding-agent tokens for duplicate controls, and the host must enforce the per-run limit. Stop new paired controls when the ledger cannot reserve them. Local research inference is reported separately. A candidate needs the predeclared quality and safety bounds plus independent review before promotion; current synthetic checks do not satisfy that gate.
