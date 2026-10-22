@@ -26,6 +26,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-22_ version bump — 0.48.1 → 0.49.0 (minor); marketplace 2.111.3 → 2.112.0.
+- _2026-10-22_ Expose compression heuristic/semantic limits and exact structured constraint checks; validate workflow receipts before aggregating latest stage and terminal-reason counts; add source/constraint/failure-preserving worker-packet fixtures. Preserve retention and decision authority.
 - _2026-10-22_ Version critical-decision accounting and preserve historical metric semantics; add deadline-aware development replay, grouped menu-order panels, class/reliability and tuning-baseline diagnostics, and task-cluster uncertainty with optional digest-bound cost/exposure evidence. Preserve live authority, deadlines, holdout guards and duplicate-control budgets.
 - _2026-10-18_ Add development-only workflow research (`--shadow-only`) that cannot evaluate promotion or mutate modes; preserve expected no-tools Code Mode notices separately and propagate unexpected warnings; report post-keep-warm live metrics without replacing cumulative evidence. Correct current v3 versus frozen v2 pilot documentation.
 - _2026-10-18_ version bump — 0.48.0 → 0.48.1 (patch); marketplace 2.111.0 → 2.111.1.

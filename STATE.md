@@ -13,6 +13,19 @@
   former accounting discrepancy before the fix; no live model, holdout, mode or runtime change.
   Lesson: a valid response, a timely correct decision, and an accepted task need separate metrics.
 
+- 2026-10-22: Architecture lane integrated as a candidate: compression reports declare heuristic
+  scoring and provide exact frozen-scalar checks; workflow reports validate before aggregating
+  latest stage/terminal statuses; worker-packet fixtures preserve constraints and source/failure
+  identity. The opt-in Docker evidence lane executes declared Python test files or package-script
+  oracles from a read-only snapshot with no network/ambient credentials and verified cleanup. Writer/adapter
+  hashes bind local receipts; actual assertion failures differ from import/setup/empty-suite
+  failures. Package-script failures cannot establish killed mutants; unavailable isolation remains
+  unsupported. Independent review corrected those distinctions before six live acceptance cases
+  passed and all 14 containers
+  were removed. No runtime mode, credential, approval or protected-file policy changed.
+  Verification environment lesson: use Python with the declared YAML/test dependencies. A
+  Python without PyYAML produced a misleading dangling skill-map tag, not a missing catalog node.
+
 - 2026-10-19: Procedural Memory Stop candidate scanner now recognizes session-bound
   native Codex CommandExecution terminal status plus integer exit code. It surfaces
   completed exit-0 results, rejects explicit failures, and holds missing, nonterminal,

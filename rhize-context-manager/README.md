@@ -375,6 +375,12 @@ attempts; grouped menu rotations test order sensitivity without inventing indepe
 Task-trial reports add task-cluster uncertainty and optional digest-bound cost/exposure evidence.
 These measurements do not change a live deadline, registry mode, credential policy or acceptance.
 
+Compression scores now identify their heuristic basis and leave semantic fidelity unverified;
+an exact structured-field helper checks supplied frozen constraints separately from prose scores.
+Workflow reports expose latest execution/validation/capture statuses and bounded terminal reasons,
+with malformed receipts excluded before aggregation. Worker-packet conformance tests preserve
+explicit constraints, failure evidence and source identity while excluding unrelated context.
+
 ## Laya advise mode
 
 The registry (`catalog/decision-registry.json`) now holds nine decisions and a fourth mode, `advise`: a labelled,

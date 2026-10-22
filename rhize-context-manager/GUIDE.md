@@ -359,6 +359,12 @@ shared loopback client rather than native-host scheduling. `menu-panel` preserve
 identity and connected groups. Keep these replays off locked holdout/promotion data. Task-trial
 intervals cluster fixture variants by task; unknown costs, exposure and acceptance stay unknown.
 
+`workflow_selection.py report` includes latest stage-status and terminal-reason counts without
+echoing private evidence text. Invalid receipts do not partially update valid aggregates. The
+compression evaluator's `scoring_basis: heuristic` and `semantic_verified: false` apply even to
+high scores. Use `check_structured_constraints` only to compare separately supplied frozen scalar
+fields; exact equality does not establish natural-language instruction following or permission.
+
 Skill fit is different: the skill router's Laya co-sign is governed by the earned-authority
 registry (`catalog/decision-registry.json`, state under `~/.local/share/rhize/typed-decisions/`),
 not an environment flag. It ships in `shadow` (the router's output is unchanged; one private
