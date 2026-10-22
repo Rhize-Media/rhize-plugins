@@ -72,6 +72,27 @@ def test_snapshot_head_symlinks_and_limits(repo):
         b.snapshot("task", args)
 
 
+@pytest.mark.parametrize("restriction", ["review only", "no provider calls", "no credential access", "keep Arm A authoritative", "shadow only"])
+def test_projected_worker_packet_preserves_explicit_constraints_and_failure(repo, restriction):
+    args = b.validate_request("task", {
+        **task_request(repo),
+        "prompt": f"Objective: correct addition. Done: mathematical sum. Scope: math.py. Constraint: {restriction}.",
+        "evidence": "Latest failure: add(2,3) returned -1; acceptance is pending.",
+    }, "claude")
+    before = b.snapshot("task", args)
+    (repo / "unrelated.log").write_text("irrelevant-upstream-sentinel")
+    assert b.snapshot("task", args) == before
+    assert restriction in before["prompt"]
+    assert "acceptance is pending" in before["evidence"]
+    assert before["expected_head"] == args["expected_head"]
+    assert set(before["files"]) == {"math.py", "new.py"}
+    (repo / "math.py").write_text("def add(a, b): return a + b\n")
+    after = b.snapshot("task", args)
+    assert after["files"] != before["files"]
+    assert after["prompt"] == before["prompt"] and after["evidence"] == before["evidence"]
+    assert "irrelevant-upstream-sentinel" not in b.canonical(after)
+
+
 @pytest.mark.parametrize("before,after", [("old", "new"), ("old\n", "new"), (None, "new"), (None, ""), ("old", "")])
 def test_patch_applies_and_source_unchanged(tmp_path, before, after):
     root = tmp_path.resolve()

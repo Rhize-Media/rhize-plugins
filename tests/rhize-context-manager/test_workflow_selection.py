@@ -147,6 +147,7 @@ def test_trivial_request_is_unclassified_until_explicit_skip(tmp_path):
 def test_stage_binding_and_missing_report(tmp_path):
     from workflow_selection import report
     assert report(tmp_path/'missing')['counts'] is None
+    assert report(tmp_path/'missing')['latestStageStatuses'] is None
     v,_=opportunity({'prompt':'Draft an article','session_id':'binding'},'codex',tmp_path,{})
     decide(tmp_path,SimpleNamespace(id=v['opportunityId'],decision='reuse',workflow='rhize-content-engine',variant='local-draft',reason='existing_workflow',run_id='run1',source_sha256='b'*64))
     evidence=tmp_path/'evidence';evidence.write_text('actual evidence')
@@ -154,6 +155,37 @@ def test_stage_binding_and_missing_report(tmp_path):
         record(tmp_path,SimpleNamespace(id=v['opportunityId'],event='execution',status='passed',evidence=str(evidence),run_id='other',source_sha256='b'*64))
     with pytest.raises(ValueError,match='explicit skip'):
         finish(tmp_path,SimpleNamespace(id=v['opportunityId'],status='skipped'))
+
+
+def test_report_counts_latest_failures_and_safe_terminal_reasons(tmp_path):
+    from workflow_selection import report
+    for index, status in enumerate(('failed', 'partial', 'unavailable', 'passed')):
+        value, _ = opportunity({'prompt': 'review private-client', 'session_id': str(index)}, 'codex', tmp_path, {})
+        value['events'] = [{'event': 'execution', 'status': 'failed'}, {'event': 'execution', 'status': status}]
+        value['terminalStatus'] = 'failed' if status == 'failed' else None
+        value['outcomeReason'] = 'private-client /secret/path' if index == 0 else None
+        (tmp_path / (value['opportunityId'] + '.json')).write_text(json.dumps(value))
+    value, _ = opportunity({'prompt': 'unfinished', 'session_id': 'pending'}, 'codex', tmp_path, {})
+    value['events'] = [{'event': 'capture', 'status': 'skipped'}]
+    (tmp_path / (value['opportunityId'] + '.json')).write_text(json.dumps(value))
+    (tmp_path / 'malformed.json').write_text('{')
+    for index, bad in enumerate(({'events': [{'event': 'execution', 'status': ['failed']}]},
+                                 {'events': [{'event': 'execution', 'status': 'invented'}]},
+                                 {'terminalStatus': {'status': 'failed'}})):
+        (tmp_path / f'invalid-{index}.json').write_text(json.dumps({**value, **bad}))
+    summary = report(tmp_path)
+    assert summary['counts']['opportunities'] == 5
+    assert summary['counts']['invalid'] == 4
+    assert summary['counts']['executed'] == 1
+    assert summary['latestStageStatuses']['execution'] == dict(passed=1, failed=1, partial=1, unavailable=1, skipped=0, missing=1)
+    assert summary['latestStageStatuses']['capture']['skipped'] == 1
+    assert summary['latestStageStatuses']['validation']['missing'] == 5
+    assert summary['terminalStatuses']['failed'] == 1
+    assert summary['terminalStatuses']['unfinished'] == 4
+    assert summary['terminalReasons']['unknown'] == 1
+    assert sum(summary['terminalStatuses'].values()) == sum(summary['opportunitiesByHost'].values()) == summary['counts']['opportunities']
+    assert all(sum(row.values()) == summary['counts']['opportunities'] for row in summary['latestStageStatuses'].values())
+    assert 'private-client' not in json.dumps(summary) and '/secret/path' not in json.dumps(summary)
 
 
 def test_optin_router_preserves_other_advice_and_deduplicates_checkpoint(tmp_path):

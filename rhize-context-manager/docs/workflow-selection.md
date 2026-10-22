@@ -100,6 +100,14 @@ Use `python3 scripts/workflow_selection.py` from the installed Context Manager p
 - `finish --id ID --status completed`
 - `report` summarizes opportunities, selected workflows and separately evidenced stages.
 
+The report also includes `latestStageStatuses` for execution/validation/capture (`passed`, `failed`,
+`partial`, `unavailable`, `skipped`, `missing`), plus `terminalStatuses` and `terminalReasons`.
+Only the latest event per stage counts; historical failures remain in their original receipts.
+Terminal reasons use the existing approved enum, `not_recorded` or `unknown`; arbitrary reason
+prose and evidence paths are never echoed. Reasons describe the terminal outcome, not an inferred
+cause for an individual stage. Missing receipt roots return null for these counts. These remain
+operator-reported lifecycle observations, separate from native process facts and task acceptance.
+
 Decisions also support `adapt`, `no_match`, `unavailable`, `candidate` and `skip`, with explicit reasons.
 Use `skip --reason simple_or_nonworkflow_task` without a workflow/variant for a simple request.
 Candidates require observed repeatable steps with defined inputs/outputs and validation; they do

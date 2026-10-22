@@ -2,8 +2,8 @@
 name: test-evidence
 description: >-
   Classify changed regression tests as behavior, artifact, or structural contracts and produce or
-  validate fail-closed, state-bound evidence metadata, including an explicit unavailable status
-  while trusted test execution is not implemented. Use before review
+  validate fail-closed, state-bound evidence metadata, with opt-in local Docker execution or an
+  explicit unavailable status. Use before review
   when tests changed, a change claims regression coverage, or someone asks whether a test actually
   protects behavior. Do not route data/cache mutation consistency requests here.
 metadata:
@@ -31,14 +31,14 @@ explicit claims and invoke the runner to bind the claim to repository state. It 
 effectful canonical targets, every `.env*` form, symlink paths/parents, prose-derived commands, and
 unapproved script names. It must never mutate or restore the user's live checkout.
 
-The current runner has no trusted sandbox adapter and therefore never executes a package script or
-calls its ambient process-runner boundary. It emits `execution_unavailable` for a clean checkout (or
-`mutation_unavailable_dirty_state` for a dirty one), and `/review` must treat the packet as
-unsupported. A declared oracle or artifact rationale cannot be promoted into `oracle_supported` or
-`artifact_contract` without real sandbox execution. A future adapter must explicitly isolate
-filesystem, network, secrets, processes, timeouts, and cleanup before execution-backed verdicts can
-return. A stored legacy `cleanup_failed` returns `FAIL_REQUIRES_HUMAN`; review still performs no
-restoration. Packets stay local and are never copied verbatim into Jira.
+Default execution remains unavailable. Explicit `--sandbox-image` with an existing full local
+Docker image ID opts into the isolated adapter described in the contract; never pull an image or
+install dependencies automatically. Use only trusted local Docker/image inputs. Python invocations
+name an exact declared `.py` test file; no shell text is accepted. The adapter never runs host tests,
+inherits candidate credentials, permits network, or mounts a writable host tree. Supported claims
+require observed baseline/mutant/restored results and a private source-bound receipt. A declared
+oracle alone is insufficient. Legacy execution claims remain unsupported; `cleanup_failed` returns `FAIL_REQUIRES_HUMAN`.
+Review never executes, restores or retries. Keep packets and receipts local.
 
 This skill is distinct from `data-mutation-consistency` and `/mutation-check`, which inspect cache,
 CMS, and data-write consistency rather than mutation testing.
@@ -46,4 +46,4 @@ CMS, and data-write consistency rather than mutation testing.
 Optional [Skylos static evidence](../../docs/skylos-evidence.md) may flag assertion weakening or a
 missing changed test. These are advisory candidates: an unrelated changed test can satisfy the
 upstream heuristic. Record the governing invariant and independent oracle yourself. Scanner results
-do not execute tests and cannot change this skill's `execution_unavailable` status.
+do not execute tests and cannot upgrade an unsupported execution status.

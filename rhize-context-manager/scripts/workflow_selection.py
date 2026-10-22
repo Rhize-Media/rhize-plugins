@@ -446,31 +446,59 @@ def report(root):
     counts = {'opportunities': 0, 'eligible': 0, 'recommended': 0, 'selected': 0,
               'decided': 0, 'executed': 0, 'validated': 0, 'captured': 0, 'unfinished': 0, 'invalid': 0, 'fallbackIdentity': 0, 'unclassified': 0}
     by_host = {}
+    stages = {stage: {status: 0 for status in ('passed', 'failed', 'partial', 'unavailable', 'skipped', 'missing')}
+              for stage in ('execution', 'validation', 'capture')}
+    terminal = {status: 0 for status in ('completed', 'failed', 'partial', 'unavailable', 'skipped', 'unfinished')}
+    reasons = {reason: 0 for reason in ('gate_failed', 'transport_failed', 'capability_missing', 'operator_stopped', 'no_suitable_workflow', 'not_recorded', 'unknown')}
     by_decision = {k: 0 for k in ('reuse', 'adapt', 'no_match', 'unavailable', 'candidate', 'skip')}
     paths = sorted(root.glob('*.json'))
     for path in paths[:10000]:
         try:
             value = read_json(path)
             if value.get('schemaVersion') != SCHEMA: raise ValueError('unknown receipt')
+            host = value['host']
+            eligible = value['classification']['eligible']
+            selection = value['selection']
+            if host not in ('claude', 'codex', 'unknown') or eligible is not None and type(eligible) is not bool:
+                raise ValueError('unknown host/classification')
+            if selection is not None and (selection['decision'] not in by_decision or any(selection[k] is not None and not isinstance(selection[k], str) for k in ('workflow', 'variant'))):
+                raise ValueError('unknown selection')
+            if not isinstance(value['events'], list):
+                raise ValueError('invalid event list')
+            latest = {}
+            for event in value['events']:
+                stage, status = event['event'], event['status']
+                if not isinstance(stage, str) or stage not in stages or not isinstance(status, str) or status not in stages[stage]:
+                    raise ValueError('unknown stage/status')
+                latest[stage] = status
+            terminal_status = 'unfinished' if value['terminalStatus'] is None else value['terminalStatus']
+            if not isinstance(terminal_status, str) or terminal_status not in terminal:
+                raise ValueError('unknown terminal status')
+            # Validate the complete counted row before changing any denominator.
             counts['opportunities'] += 1
             counts['fallbackIdentity'] += value.get('identityMode') == 'prompt-fallback'
             counts['unclassified'] += value['classification']['eligible'] is None
             counts['eligible'] += value['classification']['eligible'] is True
             counts['recommended'] += bool(value.get('references'))
-            selection = value['selection']
             counts['decided'] += selection is not None
             if selection is not None:
                 by_decision[selection['decision']] += 1
                 counts['selected'] += selection['decision'] in {'reuse', 'adapt'} and bool(selection['workflow'] and selection['variant'])
-            latest = {e['event']:e['status'] for e in value['events']}
+            for stage in stages:
+                stages[stage][latest.get(stage, 'missing')] += 1
+            terminal[terminal_status] += 1
+            if terminal_status in ('failed', 'partial', 'unavailable'):
+                reason = value.get('outcomeReason')
+                reasons[reason if isinstance(reason, str) and reason in reasons else 'not_recorded' if reason is None else 'unknown'] += 1
             passed = {stage for stage,status in latest.items() if status == 'passed'}
             for stage, key in [('execution','executed'), ('validation','validated'), ('capture','captured')]:
                 counts[key] += stage in passed
             counts['unfinished'] += value['terminalStatus'] is None
-            by_host[value['host']] = by_host.get(value['host'], 0) + 1
+            by_host[host] = by_host.get(host, 0) + 1
         except (ValueError, KeyError, TypeError, OSError):
             counts['invalid'] += 1
     return {'schemaVersion': SCHEMA, 'status': 'available' if root.is_dir() else 'unavailable', 'reason': 'receipt_inventory' if root.is_dir() else 'receipt_root_missing', 'counts': counts if root.is_dir() else None, 'opportunitiesByHost': by_host, 'decisions': by_decision,
+            'latestStageStatuses': stages if root.is_dir() else None, 'terminalStatuses': terminal if root.is_dir() else None, 'terminalReasons': reasons if root.is_dir() else None,
             'truncated': len(paths) > 10000, 'claimScope': 'observations and operator-reported evidence; no causal benefit'}
 
 
