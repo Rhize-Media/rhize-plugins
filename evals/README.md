@@ -31,6 +31,7 @@ evals/
 ├── skill-forge/           # External SkillForge safety/evolve integration harness
 ├── parallel-agent-skills/ # Rhize routing + isolated guide-comparison protocols
 ├── typed-decision/        # Local Laya candidate research with locked holdout
+├── test-evidence/         # Opt-in isolated Docker evidence acceptance
 └── results/               # Auto-generated benchmark reports
 ```
 
@@ -293,6 +294,16 @@ validation and locked holdout files, then evaluates bounded candidate batches wi
 recorded Arm A comparisons and a one-time holdout gate. It makes no coding-agent
 calls and does not claim task benefit from synthetic fixtures. See
 [its data contract and commands](typed-decision/README.md).
+
+### test-evidence
+
+Exercises the real Docker adapter's assertion classification, oracle execution, isolation,
+timeout cleanup and packet validation against disposable Git fixtures. Run
+`python3 evals/test-evidence/run_acceptance.py --image FULL_LOCAL_PYTHON_SHA256`
+with an existing full `sha256:` image ID; optional `--node-image FULL_LOCAL_NODE_SHA256`
+also checks the package-script oracle. It pulls no images and calls no provider. Temporary
+fixtures and containers are removed, with a compact JSON result on stdout. This establishes
+adapter acceptance, not the quality of an arbitrary regression test or its chosen invariant.
 
 ### procedural-engineering
 

@@ -25,6 +25,8 @@
   were removed. No runtime mode, credential, approval or protected-file policy changed.
   Verification environment lesson: use Python with the declared YAML/test dependencies. A
   Python without PyYAML produced a misleading dangling skill-map tag, not a missing catalog node.
+  Register every new suite directory in evals/README.md; the full-suite index contract caught
+  the initially omitted Docker acceptance entry.
 
 - 2026-10-19: Procedural Memory Stop candidate scanner now recognizes session-bound
   native Codex CommandExecution terminal status plus integer exit code. It surfaces
