@@ -201,6 +201,13 @@ review, no critical failures, the frozen rubric and matching `rework`. Invocatio
 checks and exit 0 never establish acceptance. The lab checks supplied evidence consistency;
 it does not authenticate a reviewer or independently grade their work.
 
+Explicit accepted/rejected evidence is a `rhize-benefit-acceptance-v1` JSON object with exactly
+`schema`, `case`, `arm`, `protocol_sha256`, `artifact_sha256` (null if no artifact), `outcome`,
+`reviewer`, UTC `recorded_at`, and declared `basis` (`human|independent_model|fixture`). These
+must match the exact run and artifact; the answer cannot predate the run or lie in the future.
+Reports separate those bases. This is consistency checking of an explicit supplied answer,
+not authentication of a human reviewer; fixture acceptance never establishes real benefit.
+
 Run `wall_ms` and each `tax_ms` component (`prepare`, `schedule`, `queue`, `health`, `forward`,
 `decode`, `record`, `task`) are finite nonnegative measurements or null. Components must be
 disjoint and their known sum cannot exceed wall time. Do not double count a request envelope

@@ -192,7 +192,7 @@ def runs(value, frozen, root):
     if not isinstance(value, list) or len(value) > 10000:
         raise ValueError('invalid run count')
     cases = {c['id']: c for c in frozen['cases']}
-    seen = set()
+    seen, acceptance_bases = set(), {}
     for row in value:
         exact(row, 'id case arm protocol_sha256 observed_at status selected proposed confidence '
                    'exposure following artifact checks acceptance rework correction wall_ms tax_ms '
@@ -229,6 +229,17 @@ def runs(value, frozen, root):
             name(acceptance['reviewer'])
             if not present:
                 raise ValueError('explicit acceptance needs reviewer evidence')
+            answer = read(root / acceptance['evidence']['path'])
+            exact(answer, 'schema case arm protocol_sha256 artifact_sha256 outcome reviewer recorded_at basis')
+            expected_artifact = row['artifact']['sha256'] if row['artifact'] else None
+            if (answer['schema'] != 'rhize-benefit-acceptance-v1' or answer['case'] != row['case']
+                    or answer['arm'] != row['arm'] or answer['protocol_sha256'] != row['protocol_sha256']
+                    or answer['artifact_sha256'] != expected_artifact or answer['outcome'] != acceptance['value']
+                    or answer['reviewer'] != acceptance['reviewer']
+                    or answer['basis'] not in ('human', 'independent_model', 'fixture')
+                    or not observed <= timestamp(answer['recorded_at']) <= datetime.now(timezone.utc)):
+                raise ValueError('acceptance evidence identity mismatch')
+            acceptance_bases[row['id']] = answer['basis']
         elif acceptance['reviewer'] is not None or present:
             raise ValueError('unknown acceptance cannot carry an adjudication')
         if acceptance['value'] == 'accepted' and (row['status'] != 'completed' or row['artifact'] is None or row['checks'] is None):
@@ -263,6 +274,7 @@ def runs(value, frozen, root):
                 raise ValueError('policy probabilities must sum to one')
             if row['policy_evidence'] is None:
                 raise ValueError('propensities need logging/target policy evidence')
+    return acceptance_bases
 
 
 def policy_value(rows):
@@ -291,7 +303,7 @@ def audit(packet, root):
         raise ValueError('unsupported development bundle')
     frozen = packet['protocol']
     cases = protocol(frozen, root)
-    runs(packet['runs'], frozen, root)
+    acceptance_bases = runs(packet['runs'], frozen, root)
     rows = packet['runs']
     by_arm, review_queue, grouped = {}, {}, defaultdict(list)
     for arm in frozen['arms']:
@@ -303,6 +315,7 @@ def audit(packet, root):
         by_arm[arm] = {'attempts': len(selected), 'statuses': dict(Counter(r['status'] for r in selected)),
                        'missing_cases': len(set(cases) - {r['case'] for r in selected}),
                        'acceptance': dict(Counter(r['acceptance']['value'] for r in selected)),
+                       'acceptance_bases': dict(Counter(acceptance_bases[r['id']] for r in selected if r['id'] in acceptance_bases)),
                        'exposure': dict(Counter(r['exposure'] for r in selected)),
                        'following': dict(Counter(r['following'] for r in selected)),
                        'wall_ms': wall_total, 'unattributed_ms': residual,

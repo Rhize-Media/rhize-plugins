@@ -17,8 +17,10 @@
   one group, challenge pools remain separate, and missing cases cannot improve paired means.
   Context gaps are separate from regret/correction review candidates. Judge/cache checks
   and logged-policy diagnostics make no causal, verified-blindness or permission claim.
-  The 29 synthetic contract tests pass, including the CLI freeze/audit round trip and
-  retroactive-freeze refusal. These are not real task labels or accepted-task benefit.
+  The 36 synthetic contract tests pass, including the CLI freeze/audit round trip,
+  retroactive-freeze refusal and foreign acceptance rejection. Acceptance answers bind the
+  exact case/arm/protocol/artifact and distinguish declared human/model/fixture bases;
+  consistency checks do not authenticate a reviewer. These are not real task labels or benefit.
   Requested Fable review job d6d85993-322e-42e2-aed2-dd7307e8cfdd failed with first-party
   weekly usage exhaustion (no model usage or opinion); merge/push remains held for review.
   Lesson: a frozen input digest alone does not establish prospective collection; preserve

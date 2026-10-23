@@ -87,6 +87,18 @@ def rebind(value):
         row['protocol_sha256'] = lab.digest(value['protocol'])
 
 
+def acceptance(row, tmp_path):
+    answer = {'schema': 'rhize-benefit-acceptance-v1', 'case': row['case'], 'arm': row['arm'],
+              'protocol_sha256': row['protocol_sha256'], 'artifact_sha256': row['artifact']['sha256'],
+              'outcome': 'accepted', 'reviewer': 'synthetic-independent',
+              'recorded_at': datetime.now(timezone.utc).isoformat(), 'basis': 'fixture'}
+    path = tmp_path / 'acceptance.json'
+    path.write_text(json.dumps(answer))
+    row['acceptance'] = {'value': 'accepted', 'reviewer': answer['reviewer'],
+                         'evidence': {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}}
+    return answer, path
+
+
 def test_complete_fixture_and_private_report(tmp_path):
     value = packet(tmp_path)
     result = lab.audit(value, tmp_path)
@@ -134,8 +146,7 @@ def test_invalid_run_evidence_fails_closed(tmp_path, field, bad):
 def test_acceptance_is_not_inferred_and_requires_existing_outcome_gates(tmp_path):
     value = packet(tmp_path)
     row = value['runs'][0]
-    ref = row['checks']
-    row['acceptance'] = {'value': 'accepted', 'reviewer': 'independent', 'evidence': ref}
+    acceptance(row, tmp_path)
     with pytest.raises(ValueError, match='outcome contract'):
         lab.audit(value, tmp_path)
     outcome = {'schema': 'rhize-typed-task-outcome-v1', 'outcome': 'accepted', 'quality_score': 90,
@@ -151,6 +162,21 @@ def test_acceptance_is_not_inferred_and_requires_existing_outcome_gates(tmp_path
     path.write_text(json.dumps(outcome))
     row['outcome']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
     assert lab.audit(value, tmp_path)['by_arm']['incumbent']['acceptance']['accepted'] == 1
+    assert lab.audit(value, tmp_path)['by_arm']['incumbent']['acceptance_bases'] == {'fixture': 1}
+
+
+@pytest.mark.parametrize('field,bad', [('case', 'other'), ('arm', 'rules'), ('protocol_sha256', 'c' * 64),
+                                     ('artifact_sha256', 'c' * 64), ('reviewer', 'other'), ('outcome', 'rejected'),
+                                     ('recorded_at', '2999-01-01T00:00:00Z')])
+def test_foreign_or_stale_acceptance_is_rejected(tmp_path, field, bad):
+    value = packet(tmp_path)
+    row = value['runs'][0]
+    answer, path = acceptance(row, tmp_path)
+    answer[field] = bad
+    path.write_text(json.dumps(answer))
+    row['acceptance']['evidence']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match='identity mismatch'):
+        lab.audit(value, tmp_path)
 
 
 def test_review_menu_and_group_drift_are_rejected(tmp_path):
