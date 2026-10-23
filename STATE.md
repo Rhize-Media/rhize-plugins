@@ -14,6 +14,14 @@
   distinct from a persistent permission denial. All 338 affected-module tests now pass;
   final broad qualification remains pending.
 
+- 2026-10-23: Fresh qualification also exposed a synthetic Node/Python parity fixture
+  blocked in stdin readall until its enclosing 300-second test deadline. A one-second
+  native stack sample confirmed input wait; a bounded standalone control passed, so no
+  validator defect is inferred. The fixture now reuses its existing temporary JSON writer
+  and passes an explicit file to the same Python validators, with a 30-second child bound.
+  Live decision registry code and state remain unchanged. Preserve the original timeout
+  separately from any later passing qualification; do not count a narrow rerun as full proof.
+
 - 2026-10-23: The interpreter-symlink regression fixture now creates a disposable venv
   and exposes the runner's installed site-packages without pip or network access. The old
   bare temporary link lost pyvenv.cfg and venv-only cryptography; the unchanged snapshot

@@ -293,7 +293,7 @@ function pythonVerdicts(registries, states) {
     'import sys, json',
     'sys.path.insert(0, "rhize-context-manager/scripts")',
     'from typed_decisions import contract',
-    'doc = json.load(sys.stdin)',
+    'with open(sys.argv[1], encoding="utf-8") as stream: doc = json.load(stream)',
     'def ok(fn):',
     '    try:',
     '        fn(); return True',
@@ -303,7 +303,9 @@ function pythonVerdicts(registries, states) {
     'print(json.dumps({"registries": [ok(lambda r=r: contract.validate_registry(r)) for r in doc["registries"]],',
     '                  "states": [ok(lambda s=s: contract.validate_state(s, base)) for s in doc["states"]]}))',
   ].join('\n');
-  const run = spawnSync('python3', ['-c', code], { cwd: REPO, input: JSON.stringify({ base: baseRegistry, registries, states }), encoding: 'utf8' });
+  const input = write('python-verdicts.json', { base: baseRegistry, registries, states });
+  const run = spawnSync('python3', ['-c', code, input], { cwd: REPO, encoding: 'utf8', timeout: 30000 });
+  assert.ifError(run.error);
   assert.strictEqual(run.status, 0, run.stderr);
   return JSON.parse(run.stdout);
 }
