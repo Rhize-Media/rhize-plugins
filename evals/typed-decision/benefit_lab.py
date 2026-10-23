@@ -57,6 +57,11 @@ def timestamp(value):
     return result
 
 
+def brief_complete(case):
+    brief = case['brief']
+    return all(brief[key].strip() for key in ('intent', 'artifact', 'stage', 'constraints')) and not brief['missing_fact'].strip()
+
+
 def read(path):
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 4 * 1024 * 1024:
         raise ValueError('input must be a bounded regular file')
@@ -183,7 +188,7 @@ def protocol(value, root):
         elif (parent is None or parent['variant'] != 'original'
               or any(case[k] != parent[k] for k in ('group_sha256', 'task_sha256', 'fixture_sha256', 'session_sha256'))):
             raise ValueError('variant must retain original task/group binding')
-        if case['variant'] == 'order' and (case['actions'] != parent['actions'] or case['brief'] != parent['brief']):
+        if case['variant'] == 'order' and any(case[k] != parent[k] for k in ('actions', 'brief', 'context_sha256', 'prompt_sha256', 'rubric_sha256')):
             raise ValueError('order variant changed semantics')
     return indexed
 
@@ -306,6 +311,9 @@ def audit(packet, root):
     acceptance_bases = runs(packet['runs'], frozen, root)
     rows = packet['runs']
     by_arm, review_queue, grouped = {}, {}, defaultdict(list)
+    diagnostics = [{'case_sha256': digest(c['id']), 'group_sha256': c['group_sha256'],
+                    'pool': c['pool'], 'context_complete': False, 'reasons': ['context_gap'], 'priority': None}
+                   for c in cases.values() if not brief_complete(c)]
     for arm in frozen['arms']:
         selected = [r for r in rows if r['arm'] == arm]
         wall = [r['wall_ms'] for r in selected]
@@ -334,10 +342,10 @@ def audit(packet, root):
             reasons = [key for key, condition in (('correction', row['correction'] is not None), ('rework', row['rework']),
                        ('overrode', row['following'] == 'overrode'), ('regret', regret is not None and regret > 0),
                        ('unresolved_action', row['selected'] is None), ('nonterminal_or_failed', row['status'] != 'completed')) if condition]
-            complete = all(case['brief'][key].strip() for key in ('intent', 'artifact', 'stage', 'constraints')) and not case['brief']['missing_fact'].strip()
-            if reasons or not complete:
+            complete = brief_complete(case)
+            if reasons and complete:
                 item = {'case_sha256': digest(case['id']), 'group_sha256': case['group_sha256'],
-                        'pool': case['pool'], 'context_complete': complete, 'reasons': reasons or ['context_gap'],
+                        'pool': case['pool'], 'context_complete': complete, 'reasons': reasons,
                         'priority': regret * (1 - row['confidence']) if complete and regret is not None and row['confidence'] is not None else None}
                 key = (case['pool'], case['group_sha256'])
                 previous = review_queue.get(key)
@@ -396,7 +404,8 @@ def audit(packet, root):
                  and cache['policy_sha256'] == frozen['arms'][cache['arm']]['policy_sha256']
                  and cache['question_sha256'] == frozen['arms'][cache['arm']]['question_sha256']
                  and cache['fixture_sha256'] == case['fixture_sha256']
-                 and cache['context_sha256'] == case['context_sha256'] and cache['menu_sha256'] == digest(case['actions']))
+                 and cache['context_sha256'] == case['context_sha256']
+                 and cache['menu_sha256'] == digest({'actions': case['actions'], 'action_order': case['action_order']}))
         if not evidence(root, cache['evidence']):
             raise ValueError('cache evidence required')
         cache_report.append({'case_sha256': digest(cache['case']), 'binding_valid': valid,
@@ -407,14 +416,14 @@ def audit(packet, root):
         menus.append({'case_sha256': digest(case['id']), 'duplicate_descriptions': len(descriptions) - len(set(descriptions)),
                       'acceptable_actions': sum(a['utility'] > 0 for a in case['actions'].values()),
                       'variant': case['variant'], 'pool': case['pool'],
-                      'context_complete': all(case['brief'][k].strip() for k in ('intent', 'artifact', 'stage', 'constraints')) and not case['brief']['missing_fact'].strip()})
+                      'context_complete': brief_complete(case)})
     return {'schema': 'rhize-benefit-report-v1', 'protocol_sha256': digest(frozen), 'bundle_sha256': digest(packet),
             'basis': 'operator_supplied_development_evidence', 'live_authority': 'unchanged',
             'native_binding_verified': False, 'prospective_chronology_basis': 'operator_supplied_timestamps',
             'cases': len(cases), 'independent_groups': len({c['group_sha256'] for c in cases.values()}),
             'by_arm': by_arm, 'judged_action_utility': utility,
-            'review_candidates': sorted((r for r in review_queue.values() if r['context_complete']), key=lambda r: (r['priority'] is None, -(r['priority'] or 0), r['case_sha256'])),
-            'context_diagnostics': [r for r in review_queue.values() if not r['context_complete']],
+            'review_candidates': sorted(review_queue.values(), key=lambda r: (r['priority'] is None, -(r['priority'] or 0), r['case_sha256'])),
+            'context_diagnostics': diagnostics,
             'menus_and_context': menus, 'cache_bindings': cache_report,
             'judge_audit': {'anchors': len(anchors), 'disagreements': sum(a['expected'] != a['observed'] for a in anchors),
                             'false_accepts': sum(not a['expected'] and a['observed'] for a in anchors),

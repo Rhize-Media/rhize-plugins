@@ -39,9 +39,9 @@ def packet(tmp_path):
             for key, mode in [('incumbent', 'baseline'), ('rules', 'rules'), ('laya_shadow', 'shadow'), ('advice', 'advice')]}
     for key, arm in arms.items():
         for field in ('policy', 'question'):
-            ref = source('SYNTHETIC ' + key + ': ' + field + '\n', key + '-' + field + '.txt')
-            arm[field + '_evidence'] = ref
-            arm[field + '_sha256'] = ref['sha256']
+            arm_ref = source('SYNTHETIC ' + key + ': ' + field + '\n', key + '-' + field + '.txt')
+            arm[field + '_evidence'] = arm_ref
+            arm[field + '_sha256'] = arm_ref['sha256']
     cases = []
     for identity, intent in [('import', 'Read interpreter/dependency metadata for ModuleNotFoundError'),
                               ('assertion', 'Read the named failing test and traceback for AssertionError')]:
@@ -101,6 +101,7 @@ def acceptance(row, tmp_path):
 
 def test_complete_fixture_and_private_report(tmp_path):
     value = packet(tmp_path)
+    assert all(c['review']['evidence']['path'] == 'synthetic-evidence.txt' for c in value['protocol']['cases'])
     result = lab.audit(value, tmp_path)
     assert result['independent_groups'] == 2
     assert result['by_arm']['advice']['acceptance'] == {'undetermined': 2}
@@ -240,7 +241,8 @@ def test_judge_errors_and_exact_cache_invalidation(tmp_path):
     cache = {'case': case['id'], 'arm': 'rules', 'source_sha256': value['protocol']['source_sha256'],
              'policy_sha256': value['protocol']['arms']['rules']['policy_sha256'],
              'question_sha256': value['protocol']['arms']['rules']['question_sha256'], 'fixture_sha256': case['fixture_sha256'],
-             'context_sha256': case['context_sha256'], 'menu_sha256': lab.digest(case['actions']), 'evidence': ref}
+             'context_sha256': case['context_sha256'],
+             'menu_sha256': lab.digest({'actions': case['actions'], 'action_order': case['action_order']}), 'evidence': ref}
     value['cache_bindings'] = [cache]
     result = lab.audit(value, tmp_path)
     assert result['judge_audit']['false_accepts'] == 1 and not result['judge_audit']['verified_blindness']
@@ -249,6 +251,10 @@ def test_judge_errors_and_exact_cache_invalidation(tmp_path):
         changed = deepcopy(value)
         changed['cache_bindings'][0][key] = 'f' * 64
         assert not lab.audit(changed, tmp_path)['cache_bindings'][0]['binding_valid']
+    changed = deepcopy(value)
+    changed['protocol']['cases'][0]['action_order'].reverse()
+    rebind(changed)
+    assert not lab.audit(changed, tmp_path)['cache_bindings'][0]['binding_valid']
 
 
 def test_offline_policy_support_and_reward_evidence(tmp_path):
@@ -372,3 +378,30 @@ def test_source_input_and_arm_byte_drift_cannot_be_declared_away(tmp_path):
     rebind(value)
     with pytest.raises(ValueError, match='input bytes'):
         lab.audit(value, tmp_path)
+
+
+@pytest.mark.parametrize('field', ['context', 'prompt', 'rubric'])
+def test_order_only_variant_cannot_change_input_semantics(tmp_path, field):
+    value = packet(tmp_path)
+    variant = deepcopy(value['protocol']['cases'][0])
+    variant.update(id='rotation', pool='challenge', variant='order', parent='import')
+    path = tmp_path / 'changed-input.txt'
+    path.write_text('Synthetic changed input')
+    variant['inputs'][field] = {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    variant[field + '_sha256'] = variant['inputs'][field]['sha256']
+    value['protocol']['cases'].append(variant)
+    rebind(value)
+    with pytest.raises(ValueError, match='changed semantics'):
+        lab.audit(value, tmp_path)
+
+
+def test_missing_context_sibling_is_not_hidden_by_review_group_deduplication(tmp_path):
+    value = packet(tmp_path)
+    first, second = value['protocol']['cases']
+    second['group_sha256'] = first['group_sha256']
+    second['brief']['missing_fact'] = 'Synthetic missing task constraint'
+    rebind(value)
+    result = lab.audit(value, tmp_path)
+    assert len(result['review_candidates']) == 1
+    assert len(result['context_diagnostics']) == 1
+    assert result['context_diagnostics'][0]['case_sha256'] == lab.digest(second['id'])

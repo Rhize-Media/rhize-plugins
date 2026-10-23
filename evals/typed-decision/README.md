@@ -173,7 +173,7 @@ The `rhize-benefit-protocol-v1` object freezes:
   experimental answer key; existing taxonomy labels and gate scoring remain unchanged.
 - `pool` (`representative|challenge`), `variant` (`original|order|distractor|paraphrase|urgency|
   no_correct_action`) and original `parent`. Variants retain task/fixture/session/group
-  identity. Order-only variants preserve menu and brief semantics. A named review binds
+  identity. Order-only variants preserve menu, brief, context, prompt and rubric semantics. A named review binds
   the SHA-256 of the exact case excluding its `review` field, with underlying review evidence.
   Semantic edits require a newly reviewed case; there is no automatic label propagation.
 
@@ -226,7 +226,8 @@ propensities. This is an offline descriptive diagnostic with no causal or deploy
 `judge_anchors` bind an artifact, independent expected and observed Boolean judgments,
 reviewer evidence and preserved blinding evidence. Reports count false accepts and all
 disagreements but do not claim verified blindness. `cache_bindings` check exact source,
-policy, question, context, fixture and menu hashes with evidence. A valid binding proves
+policy, question, context, fixture and menu hashes with evidence. The menu hash covers
+`{"actions": ..., "action_order": ...}` so order changes invalidate a cache binding. A valid binding proves
 invalidation behavior only; it never authorizes reuse, supplies permission or establishes a win.
 
 Reports retain every status, missing expected case, unknown outcome and incomplete timing.
@@ -237,7 +238,8 @@ missing variants cannot silently improve a mean. Representative and challenge po
 separate. Use the existing task ledger for accepted-task quality/time/token uncertainty;
 action utility alone is not that outcome. Review candidates are at most one representative
 per pool/group, ranked by judged regret times uncertainty, with correction/override/rework
-signals preserved. Context gaps occupy a separate diagnostic list and never receive a review
+signals preserved. Every case with a context gap occupies a separate diagnostic list, including
+missing-context siblings of eligible cases in the same group, and never receives a review
 priority. This deterministic selection is not a random population accuracy sample.
 
 Implementation coverage of the development plan:

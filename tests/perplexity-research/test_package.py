@@ -201,7 +201,14 @@ def test_config_rejects_unsafe_files(tmp_path, monkeypatch, kind):
 
 def test_snapshot_keeps_selected_interpreter_symlink(tmp_path, monkeypatch):
     import sys
-    runtime = tmp_path / 'venv-python'
+    import sysconfig
+    import venv
+    environment = tmp_path / 'venv'
+    venv.EnvBuilder(with_pip=False).create(environment)
+    site_packages = environment / 'lib' / f'python{sys.version_info.major}.{sys.version_info.minor}' / 'site-packages'
+    # A bare temporary interpreter link loses the runner's venv-only dependencies.
+    (site_packages / 'test-runner.pth').write_text(sysconfig.get_path('purelib') + '\n')
+    runtime = environment / 'bin' / 'selected-python'
     runtime.symlink_to(sys.executable)
     monkeypatch.setattr(package.sys, 'executable', str(runtime))
     reference = tmp_path / 'reference'

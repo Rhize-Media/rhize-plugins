@@ -2,6 +2,18 @@
 
 ## Verified facts
 
+- 2026-10-23: The interpreter-symlink regression fixture now creates a disposable venv
+  and exposes the runner's installed site-packages without pip or network access. The old
+  bare temporary link lost pyvenv.cfg and venv-only cryptography; the unchanged snapshot
+  builder correctly refused it. All 27 package tests pass with the real isolated import.
+  Local review also reproduced and fixed order-only variants accepting changed input
+  semantics, cache identity omitting menu order, and group deduplication hiding a sibling's
+  context gap. The combined package/lab check passes 67 tests (40 lab contracts). Source
+  merge does not update installed caches or remove hook paths. Jim explicitly authorized
+  local review instead of Fable for this release; no Fable request was retried.
+  Lesson: a symlink's Python environment is part of the fixture, and missing-case
+  diagnostics must survive independent-group representative selection.
+
 - 2026-10-23: PR53 review exposed a pre-existing authentication cleanup race: auth_worker saved a
   terminal session before unlinking payload.json, so polling could observe failed while cleanup was
   pending. The isolated fix unlinks before terminal publication and always closes the worker fd;
@@ -22,7 +34,8 @@
   exact case/arm/protocol/artifact and distinguish declared human/model/fixture bases;
   consistency checks do not authenticate a reviewer. These are not real task labels or benefit.
   Requested Fable review job d6d85993-322e-42e2-aed2-dd7307e8cfdd failed with first-party
-  weekly usage exhaustion (no model usage or opinion); merge/push remains held for review.
+  weekly usage exhaustion (no model usage or opinion); Jim subsequently authorized local
+  review instead for this release, with full-suite verification required before publication.
   Lesson: a frozen input digest alone does not establish prospective collection; preserve
   the freeze timestamp and reject earlier trials, while disclosing operator chronology.
 
