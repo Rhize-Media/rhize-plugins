@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Synchronize the real forked-cleanup test fixture before its unchanged .5-second deadline, exercise delayed startup deterministically, and retain a separate direct startup-bound check. Production sandbox behavior and deadlines remain unchanged.
+
 - Block recognizable installed Rhize updates inside native sessions; compare per-session package metadata before/after tools and stop once on drift. Shell-resident missing-file checks deny tools and end Stop handling without a continuation loop. Preserve existing credential/refactor failures and require closed-host updates with normal trust review; arbitrary external updaters remain outside containment.
 
 - _2026-10-23_ version bump — 2.30.1 → 2.30.2 (patch); marketplace 2.112.3 → 2.112.4.
