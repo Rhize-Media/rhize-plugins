@@ -2,6 +2,18 @@
 
 ## Verified facts
 
+- 2026-10-23: Full-suite qualification exposed three platform failures beyond the original
+  interpreter fixture: a one-second real RSA startup wait, macOS nonblocking pipe EAGAIN
+  treated as a fatal labeler launch failure, and EPERM when signaling an unreaped process
+  group. The latter reproduced in 30/30 disposable children; 500 reaped adapter controls
+  passed. Regressions reproduced both pipe readiness races and cleanup failure before fixes.
+  The transport now retries EAGAIN within its existing deadline; Skylos reaps an exited
+  leader and retries the same group once, retaining fail-closed persistent denial. The auth
+  fixture gives real RSA startup ten bounded seconds. No live labeler, cache update or hook
+  removal was used. Lesson: selector readiness is advisory, and macOS zombie signaling is
+  distinct from a persistent permission denial. All 338 affected-module tests now pass;
+  final broad qualification remains pending.
+
 - 2026-10-23: The interpreter-symlink regression fixture now creates a disposable venv
   and exposes the runner's installed site-packages without pip or network access. The old
   bare temporary link lost pyvenv.cfg and venv-only cryptography; the unchanged snapshot

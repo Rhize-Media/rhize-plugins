@@ -219,6 +219,28 @@ def test_devflow_default_and_explicit_consumer(repo, tmp_path):
     assert not json.loads(rejected.stdout)["skylos"]["accepted"]
 
 
+def test_cleanup_reaps_exited_leader_before_retrying_group(tmp_path, monkeypatch):
+    from unittest.mock import Mock
+    process = Mock(pid=12345, returncode=None)
+    def poll():
+        if attempts:
+            process.returncode = 0
+        return process.returncode
+    process.poll.side_effect = poll
+    monkeypatch.setattr(scanner.subprocess, 'Popen', lambda *a, **k: process)
+    attempts = []
+    def zombie_group(pid, sig):
+        attempts.append(pid)
+        if process.returncode is None:
+            raise PermissionError('exited leader not reaped')
+        raise ProcessLookupError('reaped group is gone')
+    monkeypatch.setattr(scanner.os, 'killpg', zombie_group)
+    with pytest.raises(scanner.Unavailable, match='^timeout$'):
+        scanner.run_bounded(['fixture-child'], cwd=tmp_path, env=scanner.environment(tmp_path), timeout=0)
+    assert len(attempts) == 2
+    process.wait.assert_called_once_with()
+
+
 def test_cleanup_denial_fails_closed(tmp_path, monkeypatch):
     def deny(*_):
         raise PermissionError("denied")

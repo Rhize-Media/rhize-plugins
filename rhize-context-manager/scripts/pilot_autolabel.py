@@ -859,13 +859,18 @@ def run_process(command, stdin, directory, timeout, env, guard=None):
                     if event == selectors.EVENT_WRITE:
                         try:
                             offset += os.write(stream.fileno(), stdin[offset:offset + 8192])
+                        except BlockingIOError:
+                            continue
                         except BrokenPipeError:
                             offset = len(stdin)
                         if offset == len(stdin):
                             select.unregister(stream)
                             stream.close()
                     else:
-                        chunk = os.read(stream.fileno(), 65536)
+                        try:
+                            chunk = os.read(stream.fileno(), 65536)
+                        except BlockingIOError:
+                            continue
                         if not chunk:
                             select.unregister(stream)
                             stream.close()

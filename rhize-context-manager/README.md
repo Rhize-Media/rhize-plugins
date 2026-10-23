@@ -432,6 +432,8 @@ restarts and overlong first segments before backtracking during diagnostic searc
 regex timing limits remain unchanged. Known residual: Codex still receives the names and descriptions of the skills under
 `$HOME/.agents/skills` (about 15K characters). The definitions it embeds are in
 [workflow-taxonomy.md](docs/workflow-taxonomy.md). See [daily AI labeling](docs/decision-pilot.md#daily-ai-labeling).
+The subprocess transport retries temporary nonblocking pipe backpressure within the existing
+deadline, preserving partial writes, stream guards and output limits.
 
 Failed model calls retain bounded, redacted stdout/stderr in private `call-*/failure.json` receipts. Both labelers report `callFailures` by error tag; skill-fit archives only these receipts under `skill-fit/labeling/failed/` before removing transient CLI files. A fresh successful probe does not erase an earlier failure or establish label acceptance.
 

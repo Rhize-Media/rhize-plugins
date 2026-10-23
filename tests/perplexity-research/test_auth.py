@@ -28,7 +28,9 @@ def worker(tmp_path, store, lifetime=3):
     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     thread = threading.Thread(target=b.auth_worker, args=(root, fd), kwargs={'store': store, 'lifetime': lifetime})
     thread.start()
-    for _ in range(100):
+    # Real RSA generation can take more than one second on a busy host.
+    deadline = time.monotonic() + 10
+    while thread.is_alive() and time.monotonic() < deadline:
         if (root / 'session.json').exists():
             return root, thread, b.auth_status(root)
         time.sleep(.01)

@@ -97,6 +97,8 @@ An explicitly supplied [Skylos report](docs/skylos-evidence.md) adds bounded, so
 findings to `devflow.py evidence --skylos-report`. It requires a separately provisioned pinned
 runtime and a working macOS sandbox. It is advisory, has no automatic hook or installation, and
 never replaces tests or review. Unsupported execution is reported as unavailable.
+On macOS, cleanup reaps an exited leader and retries its process group once; a persistent
+signal denial still makes evidence unavailable.
 
 ## Product boundary
 
