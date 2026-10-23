@@ -61,6 +61,7 @@ Restart the host after installation or manifest/adapter updates. Ask to connect 
 session: the plugin provides an encrypted local handoff to the configured `keychainService` in Keychain.
 Cookies must never pass through chat, MCP arguments, source or logs. A sign-in challenge requires
 the ordinary browser UI. Then call `research_health`; authentication tests never submit queries.
+Terminal authentication status is published only after the temporary encrypted transfer payload is removed.
 
 ## Using and maintaining the plugin
 

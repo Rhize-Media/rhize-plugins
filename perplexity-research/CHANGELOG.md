@@ -4,6 +4,16 @@
 
 ### Added
 
+- _2026-10-23_ version bump — 0.2.0 → 0.2.1 (patch); marketplace 2.112.0 → 2.112.1.
+
+### Fixed
+
+- Remove the temporary encrypted authentication payload before publishing stored/failed status,
+  including interrupted-worker recovery; close the worker lock even when cleanup fails.
+  Deterministic save-boundary tests reproduce the prior publication race.
+
+### Added
+
 - _2026-10-17_ version bump — 0.1.0 → 0.2.0 (minor); marketplace 2.110.1 → 2.111.0.
 - Publish the previously local-only bridge as a self-contained Rhize marketplace plugin for
   Codex and Claude Code, with portable startup, private interpreter selection and setup guidance.
