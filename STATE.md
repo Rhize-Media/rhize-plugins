@@ -9,6 +9,21 @@
   all three old paths (stored, failed, interrupted) before the change. No live auth, query, Keychain
   write or installed-plugin update occurred. Lesson: terminal status must follow cleanup it promises.
 
+- 2026-10-23: Development-only `benefit_lab.py` candidate freezes separately preserved
+  prospective protocols and audits bounded private task evidence without executing tasks,
+  importing labels or changing live authority. Byte references bind inputs, policies, menus,
+  rubrics, outcomes and mandatory controls; explicit acceptance reuses the existing outcome
+  gates. Unknown timing and unattributed wall time remain visible. Related cases stay in
+  one group, challenge pools remain separate, and missing cases cannot improve paired means.
+  Context gaps are separate from regret/correction review candidates. Judge/cache checks
+  and logged-policy diagnostics make no causal, verified-blindness or permission claim.
+  The 29 synthetic contract tests pass, including the CLI freeze/audit round trip and
+  retroactive-freeze refusal. These are not real task labels or accepted-task benefit.
+  Requested Fable review job d6d85993-322e-42e2-aed2-dd7307e8cfdd failed with first-party
+  weekly usage exhaustion (no model usage or opinion); merge/push remains held for review.
+  Lesson: a frozen input digest alone does not establish prospective collection; preserve
+  the freeze timestamp and reject earlier trials, while disclosing operator chronology.
+
 - 2026-10-22: Decision benchmark measurement candidate versions critical misses consistently
   across generic choice/Noul and workflow routing: abstentions are unresolved critical decisions,
   with separate wrong-answer/abstention/false-negative diagnostics and unsafe actions unknown.
