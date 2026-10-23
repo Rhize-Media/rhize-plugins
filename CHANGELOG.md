@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-23_ version bump — **perplexity-research** 0.2.0 → 0.2.1 (patch); marketplace 2.112.0 → 2.112.1.
 - _2026-10-22_ version bump — **rhize-context-manager** 0.48.1 → 0.49.0 (minor); **rhize-devflow** 2.29.0 → 2.30.0 (minor); marketplace 2.111.3 → 2.112.0.
 - _2026-10-22_ Add honest compression/constraint evidence, validated workflow failure-stage reporting and an opt-in isolated Python test-evidence lane with source-bound receipts, strict assertion classification and cleanup verification. Preserve existing authority and unsupported fallbacks.
 - _2026-10-22_ Improve decision benchmark measurement: consistent critical-decision accounting, deadline-aware failure denominators, grouped menu-order identity, descriptive class/calibration diagnostics, tuning-frozen majority comparison, and task-cluster/cost reporting. No live model, registry or credential policy change.

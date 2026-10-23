@@ -84,6 +84,39 @@ def encrypt(descriptor, cookies):
         'iv': encode(iv), 'ciphertext': encode(AESGCM(key).encrypt(iv, json.dumps(cookies).encode(), descriptor['transfer_id'].encode()))}
 
 
+@pytest.mark.parametrize('status', ['stored', 'failed'])
+def test_terminal_auth_state_is_published_after_payload_cleanup(tmp_path, monkeypatch, status):
+    observations = []
+    save = b.save
+    def observe_save(root, state):
+        if state['status'] in {'stored', 'failed'}:
+            observations.append((state['status'], (root / 'payload.json').exists()))
+        save(root, state)
+    monkeypatch.setattr(b, 'save', observe_save)
+    root, thread, descriptor = worker(tmp_path, Mock())
+    payload = encrypt(descriptor, {'__Secure-next-auth.session-token': SECRET}) if status == 'stored' else {}
+    temporary = root / 'fixture'
+    temporary.write_text(json.dumps(payload)); temporary.chmod(0o600)
+    temporary.rename(root / 'payload.json')
+    thread.join(5)
+    assert not thread.is_alive()
+    assert observations == [(status, False)]
+
+
+def test_interrupted_auth_state_is_published_after_payload_cleanup(tmp_path, monkeypatch):
+    root = b.private_root(tmp_path.resolve() / 'auth')
+    b.save(root, {'job_id': 'session', 'status': 'waiting'})
+    (root / 'payload.json').write_text('{}')
+    observations = []
+    save = b.save
+    def observe_save(root, state):
+        observations.append((root / 'payload.json').exists())
+        save(root, state)
+    monkeypatch.setattr(b, 'save', observe_save)
+    assert b.auth_status(root)['error'] == 'auth_worker_interrupted'
+    assert observations == [False]
+
+
 @pytest.mark.parametrize('failure', ['tamper', 'identity', 'cookies', 'permissions'])
 def test_invalid_payload_never_reaches_keychain(tmp_path, failure):
     store = Mock()

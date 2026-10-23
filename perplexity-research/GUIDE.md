@@ -17,6 +17,7 @@ see [README.md](README.md). Private JSON selects the runtime, state location, au
 
 `research_jobs` lists saved job summaries. `research_auth_start` and `research_auth_status` support
 user-requested session refresh; they never accept raw cookies or submit an authentication query.
+The terminal `stored`/`failed` state guarantees the temporary encrypted payload has been removed.
 A host that cannot provide scoped CDP access cannot complete native session transfer; report that
 limitation rather than extracting credentials another way.
 

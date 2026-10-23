@@ -32,7 +32,7 @@ For Codex CLI, use `codex plugin marketplace add https://github.com/Rhize-Media/
 | [rhize-cowork](./rhize-cowork) | 0.2.3 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
 | [procedural-memory](./procedural-memory) | 0.9.2 | 3 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 | [rhize-outreach](./rhize-outreach) | 0.4.0 | 7 | Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates. | [README](./rhize-outreach/README.md) · [GUIDE](./rhize-outreach/GUIDE.md) |
-| [perplexity-research](./perplexity-research) | 0.2.0 | 1 | Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS. | [README](./perplexity-research/README.md) · [GUIDE](./perplexity-research/GUIDE.md) |
+| [perplexity-research](./perplexity-research) | 0.2.1 | 1 | Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS. | [README](./perplexity-research/README.md) · [GUIDE](./perplexity-research/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
 **Why rhize-core is the hub:** it hosts `/rhize-core:setup`, the one wizard that reads every other

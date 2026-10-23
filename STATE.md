@@ -2,6 +2,13 @@
 
 ## Verified facts
 
+- 2026-10-23: PR53 review exposed a pre-existing authentication cleanup race: auth_worker saved a
+  terminal session before unlinking payload.json, so polling could observe failed while cleanup was
+  pending. The isolated fix unlinks before terminal publication and always closes the worker fd;
+  interrupted-worker recovery follows the same ordering. Synthetic save-boundary tests reproduced
+  all three old paths (stored, failed, interrupted) before the change. No live auth, query, Keychain
+  write or installed-plugin update occurred. Lesson: terminal status must follow cleanup it promises.
+
 - 2026-10-22: Decision benchmark measurement candidate versions critical misses consistently
   across generic choice/Noul and workflow routing: abstentions are unresolved critical decisions,
   with separate wrong-answer/abstention/false-negative diagnostics and unsafe actions unknown.

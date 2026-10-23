@@ -75,7 +75,7 @@ Version 0.4.0. Find local businesses with concrete website and search opportunit
 
 ### perplexity-research
 
-Version 0.2.0. Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS.
+Version 0.2.1. Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS.
 
 [README](../perplexity-research/README.md) · [GUIDE](../perplexity-research/GUIDE.md) · [1 skill](../generated/SKILL-CATALOG.md#perplexity-research)
 <!-- SKILL-MAP:END -->

@@ -291,8 +291,8 @@ def auth_status(root):
     state = read_job(root, "session")
     if state["status"] in {"starting", "waiting"} and not worker_live(root, "session"):
         state = {"job_id": "session", "status": "failed", "error": "auth_worker_interrupted"}
-        save(root, state)
         (root / "payload.json").unlink(missing_ok=True)
+        save(root, state)
     return state
 
 
@@ -329,6 +329,7 @@ def auth_start(root):
 
 def auth_worker(root, fd, *, store=store_cookies, lifetime=300):
     payload_path = root / "payload.json"
+    terminal = None
     try:
         hashes, serialization, padding, rsa, AESGCM = auth_crypto()
         key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -355,13 +356,17 @@ def auth_worker(root, fd, *, store=store_cookies, lifetime=300):
                                                         algorithm=hashes.SHA256(), label=None))
         cookies = json.loads(AESGCM(secret).decrypt(decode("iv"), decode("ciphertext"), transfer_id.encode()))
         store(validate_cookies(cookies))
-        save(root, {"job_id": "session", "status": "stored", "service": KEYCHAIN_SERVICE})
+        terminal = {"job_id": "session", "status": "stored", "service": KEYCHAIN_SERVICE}
     except Exception as exc:
-        save(root, {"job_id": "session", "status": "failed",
-                    "error": str(exc) if isinstance(exc, BridgeError) else "auth_transfer_failed"})
+        terminal = {"job_id": "session", "status": "failed",
+                    "error": str(exc) if isinstance(exc, BridgeError) else "auth_transfer_failed"}
     finally:
-        payload_path.unlink(missing_ok=True)
-        os.close(fd)
+        try:
+            payload_path.unlink(missing_ok=True)
+            if terminal is not None:
+                save(root, terminal)
+        finally:
+            os.close(fd)
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
