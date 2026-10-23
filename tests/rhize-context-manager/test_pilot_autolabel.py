@@ -2070,6 +2070,27 @@ def test_the_lock_is_released_when_setup_fails_after_it_was_taken(tmp_path):
     assert not (blocker / 'codex-home').exists()
 
 
+@pytest.mark.parametrize('operation', ['read', 'write'])
+def test_process_retries_nonblocking_readiness_races(tmp_path, monkeypatch, operation):
+    original = getattr(auto.os, operation)
+    attempts = []
+    def transient(fd, value):
+        if auto.os.get_blocking(fd):
+            return original(fd, value)
+        attempts.append(fd)
+        if len(attempts) == 1:
+            raise BlockingIOError(35, 'temporarily unavailable')
+        if operation == 'write':
+            value = value[:1024]
+        return original(fd, value)
+    monkeypatch.setattr(auto.os, operation, transient)
+    payload = b'case context\n' * 2000
+    command = [sys.executable, '-c', 'import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())']
+    code, output, errors = auto.run_process(command, payload, tmp_path, 20, auto.child_env({'PATH': os.environ.get('PATH', '')}))
+    assert code == 0 and output.encode() == payload and errors == ''
+    assert len(attempts) > 1
+
+
 def test_codex_output_is_checked_to_the_last_byte_and_noise_fails_closed(cli, tmp_path):
     child = [sys.executable, '-c', 'import sys; sys.stdout.write(\'{"type": "item.started", "item": {"type": "command_execution"}}\'); sys.stdout.flush()']
     env = auto.child_env({'PATH': os.environ.get('PATH', '')})

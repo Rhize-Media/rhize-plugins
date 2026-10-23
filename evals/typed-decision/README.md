@@ -123,6 +123,150 @@ human acceptance, or decision-mode change follows from a report.
 
 Run a small replayable 4–6-pair pilot with identical rubric and frozen fixtures, then use randomized single-execution tasks on the real project. Predeclare quality, time and token analyses; count all fallbacks and missing data. Keep the duplicate-control total below the user's 1,000,000 incremental coding-agent token ceiling.
 
+### Prospective task benefit lab
+
+`benefit_lab.py` audits a **private development bundle** without executing tasks, calling a
+provider, importing labels or changing decision authority. It complements `task_trials.py`
+(token reservations, real task outcomes and task-cluster uncertainty), `operational.py`
+(deadline replay and menu rotations), and the existing isolated Docker evidence harness.
+It does not introduce another runtime controller or scheduled loop.
+
+Freeze a reviewed protocol **before** collecting new trials, preserve that file separately,
+then audit the completed or interrupted bundle:
+
+```sh
+python3 evals/typed-decision/benefit_lab.py freeze \
+  --bundle /private/trial/protocol.json --output /private/trial/frozen.json
+python3 evals/typed-decision/benefit_lab.py audit \
+  --bundle /private/trial/bundle.json --frozen /private/trial/frozen.json \
+  --output /private/trial/report.json
+```
+
+Inputs and referenced evidence files are bounded to 4 MiB each. References are relative
+`{"path": "...", "sha256": "..."}` objects confined to the bundle directory; missing files,
+symlinks, traversal and changed bytes fail closed. Outputs are new owner-only files; existing
+reports are never replaced. Exit 0 means a valid report was written, **not** that the experiment
+improved outcomes. Exit 2 returns a structured unavailable result without private error text.
+
+The exact executable schema and a complete synthetic read-only diagnostic example are in
+[`test_benefit_lab.py`](../../tests/typed-decision/test_benefit_lab.py). The fixture distinguishes
+reading interpreter/dependency metadata for an import failure from reading the named failing
+test and traceback for an assertion failure. It executes neither diagnostic nor task. Its
+utility values and evidence are synthetic contract anchors, never real labels or acceptance.
+
+The `rhize-benefit-protocol-v1` object freezes:
+
+- UTC `created_at`, opaque `decision`, source and mandatory-control SHA-256 values with
+  matching `source_evidence` and `required_controls_evidence` byte references.
+- Two to twelve named `arms`, exactly one `baseline`; other development modes are `rules`,
+  `shadow`, `advice` or `holdback`. Each pins `policy_sha256`, `question_sha256`, the same
+  `required_controls_sha256`, `context_mode` (`original|brief`), `question_kind`
+  (`broad|concrete`), matching `policy_evidence`/`question_evidence` byte references, and
+  optional-observer condition `observer` (`on|off`). An off observer
+  never disables required capture, approvals, safety controls or native guards.
+- Up to 2,400 cases with opaque `id`, immutable `group_sha256`, and task, fixture, context,
+  prompt, session and rubric hashes. The six `inputs` references must match those bytes.
+  Related task/session/prompt identities cannot span independent groups.
+- A bounded prospective `brief` (`intent`, `artifact`, `stage`, `constraints`, `missing_fact`),
+  frozen `actions` with descriptions and reviewed utility in [-1, 1], and explicit
+  `action_order`. More than one action may have positive utility. These are a separate
+  experimental answer key; existing taxonomy labels and gate scoring remain unchanged.
+- `pool` (`representative|challenge`), `variant` (`original|order|distractor|paraphrase|urgency|
+  no_correct_action`) and original `parent`. Variants retain task/fixture/session/group
+  identity. Order-only variants preserve menu, brief, context, prompt and rubric semantics. A named review binds
+  the SHA-256 of the exact case excluding its `review` field, with underlying review evidence.
+  Semantic edits require a newly reviewed case; there is no automatic label propagation.
+
+`freeze` writes a `rhize-frozen-benefit-protocol-v1` envelope containing the protocol, its
+canonical digest and automatically recorded UTC `frozen_at`. `audit` requires equality with
+that separately preserved snapshot and rejects trials dated before the freeze or in the future. Digests
+use UTF-8 JSON with sorted keys, compact separators and finite numbers. This proves byte and
+declared chronology consistency, **not** an independently witnessed preregistration or native
+prompt/session binding. Independently verify original authorized context before admitting a
+real case. Missing historical context stays deferred; never reconstruct earlier capture.
+
+The `rhize-benefit-bundle-v1` has exactly `schema`, `protocol`, `runs`, `judge_anchors` and
+`cache_bindings`. Each run has an opaque `id`, `case`, `arm`, matching `protocol_sha256`, UTC
+`observed_at` after protocol creation, `status` (`completed|failed|incomplete`), nullable
+`selected` and `proposed` actions, nullable `confidence`, `exposure` and `following` as in
+the existing telemetry contract. Following/override must agree with the two actual actions;
+baseline, shadow and holdback cannot show advice. Preserve every attempt under a distinct ID.
+
+Run `artifact`, `checks`, `correction`, `outcome`, `policy_evidence`, `reward_evidence` are
+nullable byte references. `acceptance` contains `value` (`accepted|rejected|undetermined`),
+`reviewer` and `evidence`. Undetermined uses null reviewer/evidence. An accepted task needs
+explicit acceptance evidence, a completed artifact and checks, plus the existing
+`rhize-typed-task-outcome-v1` contract with scored quality, passed checks and independent
+review, no critical failures, the frozen rubric and matching `rework`. Invocation, successful
+checks and exit 0 never establish acceptance. The lab checks supplied evidence consistency;
+it does not authenticate a reviewer or independently grade their work.
+
+Explicit accepted/rejected evidence is a `rhize-benefit-acceptance-v1` JSON object with exactly
+`schema`, `case`, `arm`, `protocol_sha256`, `artifact_sha256` (null if no artifact), `outcome`,
+`reviewer`, UTC `recorded_at`, and declared `basis` (`human|independent_model|fixture`). These
+must match the exact run and artifact; the answer cannot predate the run or lie in the future.
+Reports separate those bases. This is consistency checking of an explicit supplied answer,
+not authentication of a human reviewer; fixture acceptance never establishes real benefit.
+
+Run `wall_ms` and each `tax_ms` component (`prepare`, `schedule`, `queue`, `health`, `forward`,
+`decode`, `record`, `task`) are finite nonnegative measurements or null. Components must be
+disjoint and their known sum cannot exceed wall time. Do not double count a request envelope
+and its health/forward children. Missing native scheduling, orchestration or recording stays
+null and makes the full-tax comparison incomplete. Known stages that do not account for the
+whole wall envelope leave explicit `unattributed_ms` and an incomplete flag. Keep cold/warm and epoch cohorts in separate
+protocols. Reuse `task_trials.py` for token/cost accounting and the host-enforced duplicate cap.
+
+Optional `reward` in [0, 1] requires `reward_evidence`; exact-menu `logging_probabilities` and
+`target_probabilities` require `policy_evidence`. Otherwise leave all null. The per-arm,
+per-pool self-normalized importance estimate holds on missing data, absent target support or
+unstable weights. Effective sample size describes rows, not independent tasks. Logged
+probabilities must come from the actual assignment policy, never model confidence or invented
+propensities. This is an offline descriptive diagnostic with no causal or deployment claim.
+
+`judge_anchors` bind an artifact, independent expected and observed Boolean judgments,
+reviewer evidence and preserved blinding evidence. Reports count false accepts and all
+disagreements but do not claim verified blindness. `cache_bindings` check exact source,
+policy, question, context, fixture and menu hashes with evidence. The menu hash covers
+`{"actions": ..., "action_order": ...}` so order changes invalidate a cache binding. A valid binding proves
+invalidation behavior only; it never authorizes reuse, supplies permission or establishes a win.
+
+Reports retain every status, missing expected case, unknown outcome and incomplete timing.
+Proposed-action diagnostics are separate; shadow advice never inherits the incumbent's acceptance.
+Action utilities are equal-weighted within case, then within independent group. A group
+requires an observed action for every expected case/attempt before it is scored or paired;
+missing variants cannot silently improve a mean. Representative and challenge pools remain
+separate. Use the existing task ledger for accepted-task quality/time/token uncertainty;
+action utility alone is not that outcome. Review candidates are at most one representative
+per pool/group, ranked by judged regret times uncertainty, with correction/override/rework
+signals preserved. Every case with a context gap occupies a separate diagnostic list, including
+missing-context siblings of eligible cases in the same group, and never receives a review
+priority. This deterministic selection is not a random population accuracy sample.
+
+Implementation coverage of the development plan:
+
+| Direction | Working support and remaining evidence |
+| --- | --- |
+| Outcome chain | Verified input/action/exposure/artifact/check/acceptance links; missing stages visible. Prospective real capture still required. |
+| Full decision tax | Disjoint timing stages and incomplete flags by arm; real native measurements required. |
+| Narrow benefit pilot | Frozen read-only diagnostic fixture and protocol; use the existing ledger, identical rubrics and independent task groups for real trials. |
+| Context repair | Versioned prospective brief and separate missing-fact diagnostics; no historical backfill. |
+| Selective intervention | Baseline/shadow/holdback/advice contrasts and unresolved-action accounting; no live routing change. |
+| Counterfactual lab | Group-bound frozen variants and per-action utility; execute artifacts only through the existing isolated harness with real oracles. |
+| Review allocation | Group-deduplicated regret/uncertainty and correction queues; no label import. |
+| Judge audit | Digest-bound anchors, false accepts and disagreement counts; independent anchor collection and exposure verification still required. |
+| Rules and exact caches | Exact invalidation audit plus rules arm; review accepted-task wins in the existing ledger before distillation or reuse. |
+| Adversarial menus | Reviewed challenge variants and explicit order; use operational replay for model comparisons. |
+| Acceptable action sets | Separately versioned reviewed utility maps; no change to existing single-label gates. |
+| Procedure quality | Duplicate-description and acceptable-action diagnostics against frozen menus; procedure correctness needs an oracle/review. |
+| Concrete questions | Pinned broad/concrete question hashes and conditions; real comparative trials required. |
+| Corrections and rework | Evidence-bound correction, override and rework candidates; explicit human decisions remain separate. |
+| Observer effect | Pinned optional observer conditions with identical mandatory-control hashes; no disabling safety controls. |
+| Offline policy evaluation | Support/reward/propensity validation and bounded descriptive estimate; no online learning or promotion. |
+
+No daily loop is run to validate this tooling. Real prospective trials require actual source
+binding, reviewed fixtures/rubrics, independently graded outcomes and enforced host budgets;
+development readiness does not establish native activation or recovered live performance.
+
 ## Known limitations
 
 - No real Rhize labels have been imported yet; fixtures only prove the evaluator contract.

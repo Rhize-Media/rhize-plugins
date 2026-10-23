@@ -94,6 +94,8 @@ Follow [setup and interpretation](docs/skylos-evidence.md), pass the same explic
 and save the report outside the target checkout. Review findings against each impact-map invariant;
 retain incomplete coverage and unavailable execution as gaps. A clean report cannot approve a
 release or establish that a regression test protects behavior.
+An exited process leader is reaped before one cleanup retry on macOS. A persistent signal
+denial remains an unavailable result, never a clean report.
 
 ## Skills Reference
 

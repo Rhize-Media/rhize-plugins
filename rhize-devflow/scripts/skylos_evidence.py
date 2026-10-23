@@ -72,13 +72,19 @@ def run_bounded(argv, *, cwd, env, timeout=60):
         except ProcessLookupError:
             pass
         except PermissionError as exc:
-            # Cleanup could not be established; never return usable scanner evidence.
+            # macOS may deny signaling a group whose only member is an unreaped zombie.
+            process.poll()
             try:
-                process.kill()
-                process.wait(timeout=1)
-            except (OSError, subprocess.TimeoutExpired):
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
                 pass
-            raise Unavailable("process_cleanup_unavailable") from exc
+            except PermissionError:
+                try:
+                    process.kill()
+                    process.wait(timeout=1)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
+                raise Unavailable("process_cleanup_unavailable") from exc
         process.wait()
         if out.tell() + err.tell() > MAX_OUTPUT:
             reason = "output_limit"

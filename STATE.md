@@ -2,12 +2,74 @@
 
 ## Verified facts
 
+- 2026-10-23: Full local qualification at frozen source `0624fcf` passes **4,557 tests
+  and 27 subtests**, with seven unchanged optional/host-applicability skips, in 711.45s.
+  Required release checks pass **800 Dev Flow tests** plus impact/static-map/setup/config/
+  version contracts on identical production source. Root and all 12 plugin manifests pass;
+  generated docs are idempotent. Both the original 43-failure run and later parity timeout/
+  redaction timing failure remain preserved. All 351 redaction tests and the final complete
+  suite pass serially without changing their timing limits or security code. Lesson: do not
+  run competing qualification suites when evaluating strict wall-clock performance gates.
+  Local cold review is Jim's explicit substitute for Fable for this release. Installed caches,
+  hook definitions, runtime pins and live decision authority remain unchanged; source checks
+  do not establish native activation or natural task benefit.
+
+- 2026-10-23: Full-suite qualification exposed three platform failures beyond the original
+  interpreter fixture: a one-second real RSA startup wait, macOS nonblocking pipe EAGAIN
+  treated as a fatal labeler launch failure, and EPERM when signaling an unreaped process
+  group. The latter reproduced in 30/30 disposable children; 500 reaped adapter controls
+  passed. Regressions reproduced both pipe readiness races and cleanup failure before fixes.
+  The transport now retries EAGAIN within its existing deadline; Skylos reaps an exited
+  leader and retries the same group once, retaining fail-closed persistent denial. The auth
+  fixture gives real RSA startup ten bounded seconds. No live labeler, cache update or hook
+  removal was used. Lesson: selector readiness is advisory, and macOS zombie signaling is
+  distinct from a persistent permission denial. All 338 affected-module tests now pass;
+  final broad qualification subsequently passed at `0624fcf` as recorded above.
+
+- 2026-10-23: Fresh qualification also exposed a synthetic Node/Python parity fixture
+  blocked in stdin readall until its enclosing 300-second test deadline. A one-second
+  native stack sample confirmed input wait; a bounded standalone control passed, so no
+  validator defect is inferred. The fixture now reuses its existing temporary JSON writer
+  and passes an explicit file to the same Python validators, with a 30-second child bound.
+  Live decision registry code and state remain unchanged. Preserve the original timeout
+  separately from any later passing qualification; do not count a narrow rerun as full proof.
+
+- 2026-10-23: The interpreter-symlink regression fixture now creates a disposable venv
+  and exposes the runner's installed site-packages without pip or network access. The old
+  bare temporary link lost pyvenv.cfg and venv-only cryptography; the unchanged snapshot
+  builder correctly refused it. All 27 package tests pass with the real isolated import.
+  Local review also reproduced and fixed order-only variants accepting changed input
+  semantics, cache identity omitting menu order, and group deduplication hiding a sibling's
+  context gap. The combined package/lab check passes 67 tests (40 lab contracts). Source
+  merge does not update installed caches or remove hook paths. Jim explicitly authorized
+  local review instead of Fable for this release; no Fable request was retried.
+  Lesson: a symlink's Python environment is part of the fixture, and missing-case
+  diagnostics must survive independent-group representative selection.
+
 - 2026-10-23: PR53 review exposed a pre-existing authentication cleanup race: auth_worker saved a
   terminal session before unlinking payload.json, so polling could observe failed while cleanup was
   pending. The isolated fix unlinks before terminal publication and always closes the worker fd;
   interrupted-worker recovery follows the same ordering. Synthetic save-boundary tests reproduced
   all three old paths (stored, failed, interrupted) before the change. No live auth, query, Keychain
   write or installed-plugin update occurred. Lesson: terminal status must follow cleanup it promises.
+
+- 2026-10-23: Development-only `benefit_lab.py` candidate freezes separately preserved
+  prospective protocols and audits bounded private task evidence without executing tasks,
+  importing labels or changing live authority. Byte references bind inputs, policies, menus,
+  rubrics, outcomes and mandatory controls; explicit acceptance reuses the existing outcome
+  gates. Unknown timing and unattributed wall time remain visible. Related cases stay in
+  one group, challenge pools remain separate, and missing cases cannot improve paired means.
+  Context gaps are separate from regret/correction review candidates. Judge/cache checks
+  and logged-policy diagnostics make no causal, verified-blindness or permission claim.
+  The 36 synthetic contract tests pass, including the CLI freeze/audit round trip,
+  retroactive-freeze refusal and foreign acceptance rejection. Acceptance answers bind the
+  exact case/arm/protocol/artifact and distinguish declared human/model/fixture bases;
+  consistency checks do not authenticate a reviewer. These are not real task labels or benefit.
+  Requested Fable review job d6d85993-322e-42e2-aed2-dd7307e8cfdd failed with first-party
+  weekly usage exhaustion (no model usage or opinion); Jim subsequently authorized local
+  review instead for this release, with full-suite verification required before publication.
+  Lesson: a frozen input digest alone does not establish prospective collection; preserve
+  the freeze timestamp and reject earlier trials, while disclosing operator chronology.
 
 - 2026-10-22: Decision benchmark measurement candidate versions critical misses consistently
   across generic choice/Noul and workflow routing: abstentions are unresolved critical decisions,

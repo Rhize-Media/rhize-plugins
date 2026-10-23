@@ -35,6 +35,9 @@ point-in-time record.
 
 ### Added
 
+- Local qualification repairs the real-crypto interpreter fixture and RSA readiness wait, nonblocking subprocess pipe backpressure, and macOS exited-process cleanup; no installed plugin cache or live decision-mode change.
+- _2026-10-23_ version bump — **rhize-context-manager** 0.49.0 → 0.49.1 (patch); marketplace 2.112.2 → 2.112.3.
+- _2026-10-23_ version bump — **rhize-devflow** 2.30.0 → 2.30.1 (patch); marketplace 2.112.1 → 2.112.2.
 - _2026-10-23_ version bump — **perplexity-research** 0.2.0 → 0.2.1 (patch); marketplace 2.112.0 → 2.112.1.
 - _2026-10-22_ version bump — **rhize-context-manager** 0.48.1 → 0.49.0 (minor); **rhize-devflow** 2.29.0 → 2.30.0 (minor); marketplace 2.111.3 → 2.112.0.
 - _2026-10-22_ Add honest compression/constraint evidence, validated workflow failure-stage reporting and an opt-in isolated Python test-evidence lane with source-bound receipts, strict assertion classification and cleanup verification. Preserve existing authority and unsupported fallbacks.

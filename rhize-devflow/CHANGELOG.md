@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Reap an exited subprocess leader before one macOS process-group cleanup retry; persistent permission denial still invalidates Skylos evidence.
+- _2026-10-23_ version bump — 2.30.0 → 2.30.1 (patch); marketplace 2.112.1 → 2.112.2.
 - _2026-10-22_ version bump — 2.29.0 → 2.30.0 (minor); marketplace 2.111.3 → 2.112.0.
 - _2026-10-22_ Add opt-in pinned-local-image Docker evidence for exact declared Python test files and package-script oracles. Isolate a read-only tracked snapshot with no network/host credentials; classify actual Python test-method assertion failures separately from setup/import/empty-suite failures, bind writer+adapter receipts and verify cleanup. Package-script failures cannot establish a killed mutant; unavailable isolation stays unsupported. Never execute tests on the ambient host.
 - _2026-10-16_ version bump — 2.28.0 → 2.29.0 (minor); marketplace 2.108.0 → 2.109.0.
