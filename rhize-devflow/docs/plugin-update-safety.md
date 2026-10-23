@@ -24,6 +24,8 @@ the versioned Python files. Missing pre-tool scripts return an explicit permissi
 missing prompt/post/Stop scripts return unavailable/restart guidance with `continue: false`.
 The Stop guard also ends a held session when drift was first detected before a tool could run,
 so an unavailable session is not asked to execute reconciliation that its tool hold prevents.
+The surviving update hook checks that all three required Dev Flow scripts still exist, so a
+partial update also holds the task even when its package metadata did not change.
 They never substitute another version, execute a stub, disable guards or report a passed check.
 An existing script's substantive failure still propagates normally. This fallback covers Dev
 Flow's hooks; it cannot change older loaded definitions or another plugin's missing hook.

@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 
@@ -145,6 +146,23 @@ def test_parallel_tools_do_not_turn_session_lock_contention_into_a_restart(tmp_p
         results = list(pool.map(lambda _: run_guard(tmp_path), range(4)))
     assert all((r.returncode, r.stdout, r.stderr) == (0, '', '') for r in results)
     assert len(list((tmp_path / 'data/rhize/plugin-update-safety').glob('*.json'))) == 1
+
+
+def test_partial_update_missing_credential_guard_stops_the_surviving_hook(tmp_path):
+    scripts = tmp_path / 'plugin/scripts'
+    scripts.mkdir(parents=True)
+    for name in ('plugin_update_guard.py', 'credential_guard.py', 'refactor_gate.py'):
+        shutil.copyfile(PLUGIN / 'scripts' / name, scripts / name)
+    env = dict(os.environ, HOME=str(tmp_path), XDG_DATA_HOME=str(tmp_path / 'data'))
+    def invoke(event):
+        return subprocess.run([sys.executable, str(scripts / 'plugin_update_guard.py'), event],
+            input=json.dumps({'session_id': 'partial-update-session', 'hook_event_name': event}),
+            env=env, text=True, capture_output=True, timeout=5)
+    assert invoke('PreToolUse').stdout == ''
+    (scripts / 'credential_guard.py').unlink()
+    denied(invoke('PreToolUse'))
+    stop = invoke('Stop')
+    assert stop.returncode == 0 and json.loads(stop.stdout)['continue'] is False
 
 
 def test_same_version_metadata_replacement_and_removal_trigger_drift(tmp_path):

@@ -91,6 +91,9 @@ def fingerprint(home):
 
 
 def drift(payload):
+    if not all((Path(__file__).parent / name).is_file() for name in
+               ('plugin_update_guard.py', 'credential_guard.py', 'refactor_gate.py')):
+        raise ValueError('required_hook_unavailable')
     identity = payload.get('session_id')
     if not isinstance(identity, str) or not identity.strip():
         raise ValueError('native_session_missing')

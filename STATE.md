@@ -11,6 +11,8 @@
   or bypass the substantive guards. Close all hosts before updates; agent warnings and idle
   chats do not establish unloaded hooks. Native activation of the new safeguard remains
   separate from source checks and will not be hot-installed in this session.
+  All 88 focused update/credential/manifest checks pass, including removed-cache execution,
+  partial required-script loss, independent sessions, preserved restart holds and parallel hooks.
 
 - 2026-10-23: Full local qualification at frozen source `0624fcf` passes **4,557 tests
   and 27 subtests**, with seven unchanged optional/host-applicability skips, in 711.45s.
