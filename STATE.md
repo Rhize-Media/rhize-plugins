@@ -2,6 +2,18 @@
 
 ## Verified facts
 
+- 2026-10-23: Full local qualification at frozen source `0624fcf` passes **4,557 tests
+  and 27 subtests**, with seven unchanged optional/host-applicability skips, in 711.45s.
+  Required release checks pass **800 Dev Flow tests** plus impact/static-map/setup/config/
+  version contracts on identical production source. Root and all 12 plugin manifests pass;
+  generated docs are idempotent. Both the original 43-failure run and later parity timeout/
+  redaction timing failure remain preserved. All 351 redaction tests and the final complete
+  suite pass serially without changing their timing limits or security code. Lesson: do not
+  run competing qualification suites when evaluating strict wall-clock performance gates.
+  Local cold review is Jim's explicit substitute for Fable for this release. Installed caches,
+  hook definitions, runtime pins and live decision authority remain unchanged; source checks
+  do not establish native activation or natural task benefit.
+
 - 2026-10-23: Full-suite qualification exposed three platform failures beyond the original
   interpreter fixture: a one-second real RSA startup wait, macOS nonblocking pipe EAGAIN
   treated as a fatal labeler launch failure, and EPERM when signaling an unreaped process
@@ -12,7 +24,7 @@
   fixture gives real RSA startup ten bounded seconds. No live labeler, cache update or hook
   removal was used. Lesson: selector readiness is advisory, and macOS zombie signaling is
   distinct from a persistent permission denial. All 338 affected-module tests now pass;
-  final broad qualification remains pending.
+  final broad qualification subsequently passed at `0624fcf` as recorded above.
 
 - 2026-10-23: Fresh qualification also exposed a synthetic Node/Python parity fixture
   blocked in stdin readall until its enclosing 300-second test deadline. A one-second
