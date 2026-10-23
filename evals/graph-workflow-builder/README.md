@@ -32,6 +32,12 @@ and a frozen rubric/model/source binding. Include setup, dispatch, coordination,
 checks, cleanup and capture in wall time. Record unknown tokens as null, include overhead when
 exposed, and never infer a per-call USD price from a subscription.
 
+The shared setup catalog lists a manual authoring comparison, with natural capture disabled.
+Its stored baseline is component-wide: an earlier registry-workflow confirmation is not
+confirmation of this trial. Record the exact authoring baseline, goal, rubric and source
+bindings for each matched comparison before running or interpreting it. A receipt or catalog
+entry alone does not establish a valid control or authorize model execution.
+
 Quality rubric (score each 0/1/2, with evidence): criterion coverage, factual/semantic
 correctness, scope/authority, unnecessary work, and clarity. A pass needs all objective oracles,
 no authority failure, and at least 8/10; no dimension may score 0. Calibrate judge examples

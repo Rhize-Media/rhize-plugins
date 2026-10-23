@@ -24,6 +24,13 @@
   inference and every threshold are unchanged. Lessons: update the shared corpus and exact
   declarative inventories when adding a skill; distinguish native nonselection from global
   static silence. The fuller native Obsidian knowledge negative is preserved.
+- Shared evaluation setup initially rejected the fourth Procedural Memory skill because its
+  Core/Ops catalog and exact published total still covered 68. Reproduced the failure, then
+  synchronized both catalog/validator mirrors and their 69-skill test. All 117 Core/coverage
+  checks pass. The authoring benchmark is manual with natural capture disabled; a pre-existing
+  component-level registry baseline cannot confirm this distinct comparison. Core1.0.10 and
+  Ops0.33.1 patch bumps use the normal helper; marketplace candidate is now2.113.2. No setup,
+  baseline, capture or model trial was executed. Final-ref release validation remains required.
 - Cold coordinator self-review covered scope, trust/lifecycle callers, frozen execution,
   dynamic joins, reconciliation, independent final-state oracles and protected files. It caught
   a research oracle accepting numeric 1 as JSON true; reproduced and fixed with a rejecting check.

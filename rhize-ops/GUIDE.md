@@ -15,6 +15,16 @@ rhize-ops covers five everyday ops jobs:
 
 It's built for anyone running a Claude Code/Cowork setup who regularly delegates work and wants visibility into their own tool usage. `delegate-to-teammate` is config-driven — no recipient, workspace, or project data is hardcoded — so it works for any team once you run its setup wizard once.
 
+## Graph workflow evaluation coverage
+
+The shared evaluation catalog covers 69 marketplace skills, including Procedural Memory's
+`graph-workflow-builder`. Its authoring benchmark uses the separate cross-domain protocol and
+requires an explicitly confirmed baseline and subscription-native trials; it is not eligible
+for automatic natural capture. An existing component-level registry baseline does not confirm
+this authoring comparison; confirm the exact trial baseline in its protocol. Free static
+checks establish coverage, not model quality or
+measured task benefit. No setup, model trial or hook starts from this inventory update.
+
 ## Setup
 
 Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate-setup` — see [Commands Reference](#commands-reference) below. `skill-dashboard` and `parallel-agent-optimization` need no setup. The latter creates its private local receipt directory on first use.

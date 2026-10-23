@@ -13,6 +13,16 @@ guardrail-hook menu. Installing a Rhize plugin never turns on any of its hooks b
 hook this wizard offers gets smoke-tested before it's wired, so a broken hook script can't get
 wired silently.
 
+## Graph workflow evaluation coverage
+
+The shared evaluation catalog covers 69 marketplace skills, including Procedural Memory's
+`graph-workflow-builder`. Its authoring benchmark uses the separate cross-domain protocol and
+requires an explicitly confirmed baseline and subscription-native trials; it is not eligible
+for automatic natural capture. An existing component-level registry baseline does not confirm
+this authoring comparison; confirm the exact trial baseline in its protocol. Free static
+checks establish coverage, not model quality or
+measured task benefit. No setup, model trial or hook starts from this inventory update.
+
 ## Setup
 
 There's nothing to set up before using rhize-core — `/rhize-core:setup` **is** the setup wizard.

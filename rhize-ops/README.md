@@ -2,6 +2,16 @@
 
 Rhize Media's **operations** plugin — decision reviews, internal delegation, hand-offs, and team-workflow automation. Distinct from `rhize-devflow` (which is about *building* software); `rhize-ops` is about *running the team*.
 
+## Graph workflow evaluation coverage
+
+The shared evaluation catalog covers 69 marketplace skills, including Procedural Memory's
+`graph-workflow-builder`. Its authoring benchmark uses the separate cross-domain protocol and
+requires an explicitly confirmed baseline and subscription-native trials; it is not eligible
+for automatic natural capture. An existing component-level registry baseline does not confirm
+this authoring comparison; confirm the exact trial baseline in its protocol. Free static
+checks establish coverage, not model quality or
+measured task benefit. No setup, model trial or hook starts from this inventory update.
+
 ## Setup
 
 `delegate-to-teammate` needs a one-time setup before first use — see [Commands](#commands) below.

@@ -11,6 +11,16 @@ out of `rhize-ops` (repo-shape R-B, 2026-09) once the setup engine outgrew being
 plugin's side project — `rhize-ops` keeps a working, drift-tested fallback copy of this wizard for
 one release (see [Compatibility](#compatibility-with-rhize-ops-one-release-window) below).
 
+## Graph workflow evaluation coverage
+
+The shared evaluation catalog covers 69 marketplace skills, including Procedural Memory's
+`graph-workflow-builder`. Its authoring benchmark uses the separate cross-domain protocol and
+requires an explicitly confirmed baseline and subscription-native trials; it is not eligible
+for automatic natural capture. An existing component-level registry baseline does not confirm
+this authoring comparison; confirm the exact trial baseline in its protocol. Free static
+checks establish coverage, not model quality or
+measured task benefit. No setup, model trial or hook starts from this inventory update.
+
 ## Setup
 
 `/rhize-core:setup` is itself the fleet-level setup wizard — run it whenever you want to review or

@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Graph workflow builder evaluation coverage: synchronize the 69-skill catalog/validator mirrors, add the manual subscription-native authoring benchmark, and preserve setup/capture consent and authority.
+- _2026-10-23_ version bump — 0.33.0 → 0.33.1 (patch); marketplace 2.113.1 → 2.113.2.
 - Rename `business-premortem` to `decision-premortem`, broadening concrete decision scope while
   retaining the five-step method and historical evaluation evidence. The old invocation is replaced.
 - Synchronize Perplexity Research evaluation registration and 68-skill coverage in the Core fallback.
