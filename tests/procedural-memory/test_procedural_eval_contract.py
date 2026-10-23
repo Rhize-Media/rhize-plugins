@@ -10,9 +10,9 @@ def test_all_skills_have_local_trigger_and_quality_coverage() -> None:
     completed = subprocess.run(["python3", "evals/procedural-memory/run_evals.py"], cwd=REPO, capture_output=True, text=True)
     assert completed.returncode == 0, completed.stdout + completed.stderr
     result = json.loads(completed.stdout)
-    assert result["skills"] == 3
+    assert result["skills"] == 4
     assert result["routing"]["precision"] == result["routing"]["recall"] == 1.0
-    assert result["quality_contracts"]["passed"] == result["quality_contracts"]["total"] == 14
+    assert result["quality_contracts"]["passed"] == result["quality_contracts"]["total"] == 18
 
 
 def test_functionize_agent_cases_are_schema_valid() -> None:
@@ -20,7 +20,7 @@ def test_functionize_agent_cases_are_schema_valid() -> None:
         "python3", "procedural-memory/evals/validate-suite.py", "--eval-dir", "procedural-memory/evals"
     ], cwd=REPO, capture_output=True, text=True)
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "== 12 case(s), 0 error(s), 0 warning(s), 12 clean ==" in completed.stdout
+    assert "== 15 case(s), 0 error(s), 0 warning(s), 15 clean ==" in completed.stdout
     for case_name in (
         "functionize-cross-call",
         "functionize-recipe-review-needs-human",

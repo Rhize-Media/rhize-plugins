@@ -28,6 +28,26 @@ directly, or call `run` as a fallback; similarity never grants execution authori
 
 ## Setup
 
+### Graph workflow authoring and native execution
+
+The shared `graph-workflow-builder` skill defines named finished criteria, authors and validates
+reusable graphs, and includes bounded dynamic node creation in V1. It runs only when requested.
+The separate runtime must expose `graph validate` and `graph workflow`; the skill launcher
+refuses an older installation. Existing serial graphs keep their runner. See the
+[skill](skills/graph-workflow-builder/SKILL.md) and its execution/evaluation references.
+
+Execution uses subscription-native host workers and judges, one actual worktree per parallel
+thread, immutable template permissions, durable attempt identities, checked integration and
+final joins. Failed required work blocks dependents while useful independent work can finish
+within budget. Private recovery state and aggregate telemetry stay separate; unavailable
+tokens/backend model identity/overhead are reported honestly. No API fallback or new service.
+Cross-domain fixtures and independent outcome oracles live in
+[`evals/graph-workflow-builder`](../evals/graph-workflow-builder/README.md). Native qualification,
+source tests and matched task-benefit evidence remain distinct. Source release alone does not
+install the runtime, activate an artifact or grant its approval.
+
+### Registry CLI
+
 The `rhize-skill` CLI is not published to PyPI — it's a Rhize-internal registry you build from
 source once:
 
@@ -91,6 +111,7 @@ the same command-support probe and preserves its existing raw CLI passthrough.
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `functionize` | Mine repeated CLI usage and multi-call procedures into redacted Functionize candidates, compile inert proposal bundles, inspect the recipe… | automation, functionize |
+| `graph-workflow-builder` | Build or revise a reusable execution graph with explicit completion checks, bounded dynamic task expansion, and worktree-isolated parallel… | automation, workflow-patterns |
 | `procedural-memory` | Execute a proven artifact from the procedural-memory registry instead of recomposing a task. | automation, workflow-patterns |
 | `rhize-content-engine` | Select and follow the established RHIZE Content Engine for writing, combining, regenerating, or revising resource articles and website/blog… | content-authoring, workflow-patterns |
 <!-- SKILL-MAP:END -->

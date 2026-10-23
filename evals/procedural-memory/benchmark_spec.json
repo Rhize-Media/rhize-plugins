@@ -4,7 +4,7 @@
   "repetitions": 3,
   "arm_a": "User-confirmed existing repeated workflow, script, checklist, or tool",
   "arm_b": "procedural-memory, functionize or rhize-content-engine path under evaluation",
-  "skills": ["functionize", "procedural-memory", "rhize-content-engine"],
+  "skills": ["functionize", "procedural-memory", "rhize-content-engine", "graph-workflow-builder"],
   "metrics": [
     "correctness", "verification_completion", "routing_precision", "routing_recall",
     "tokens_by_exposed_category", "latency_ms", "tool_calls", "follow_up_reads",
@@ -14,7 +14,8 @@
     "Use the same normalized task and validation contract for both arms.",
     "Record the actual arm and exact implementation digest before execution.",
     "Keep portable vendor cases separate from local deterministic routing contracts.",
-    "Do not claim benefit until all three matched pairs pass correctness and non-inferiority gates."
+    "Do not claim benefit until all three matched pairs pass correctness and non-inferiority gates.",
+    "Graph workflow authoring, dynamic expansion and frozen-plan scheduler comparisons are separate; see evals/graph-workflow-builder/benchmark_spec.json. All model and judge execution must be subscription-native."
   ],
   "results": []
 }

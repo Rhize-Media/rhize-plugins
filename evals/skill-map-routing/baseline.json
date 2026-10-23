@@ -41,15 +41,15 @@
   "procedural-memory": {
    "eval_negatives": {
     "false_trigger": 0,
-    "n": 5,
+    "n": 7,
     "other_cross_plugin": 0,
     "other_same_plugin": 0,
-    "silent": 5
+    "silent": 7
    },
    "eval_positives": {
     "hit": 1,
-    "n": 4,
-    "silent": 2,
+    "n": 5,
+    "silent": 3,
     "wrong": 1
    }
   },
@@ -113,9 +113,9 @@
     "silent": 22
    },
    "eval_positives": {
-    "hit": 1,
+    "hit": 3,
     "n": 15,
-    "silent": 14,
+    "silent": 12,
     "wrong": 0
    },
    "long_negative_fires": 1,
@@ -1570,20 +1570,20 @@
   {
    "group": "eval",
    "id": "rhize-devflow/trigger-credential-keychain",
-   "outcome": "silent",
+   "outcome": "hit",
    "prompt": "Use stored credentials in Keychain Access to authenticate this service CLI privately.",
    "should_trigger": true,
    "target": "skill:rhize-devflow/credential-access",
-   "top": null
+   "top": "skill:rhize-devflow/credential-access"
   },
   {
    "group": "eval",
    "id": "rhize-devflow/trigger-credential-stored",
-   "outcome": "silent",
+   "outcome": "hit",
    "prompt": "Find the appropriate CLI workflow for stored credentials in the OS keychain.",
    "should_trigger": true,
    "target": "skill:rhize-devflow/credential-access",
-   "top": null
+   "top": "skill:rhize-devflow/credential-access"
   },
   {
    "group": "eval",
@@ -1682,6 +1682,33 @@
    "prompt": "Explain what a content engine is in one sentence.",
    "should_trigger": false,
    "target": "skill:procedural-memory/rhize-content-engine",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/graph-build-positive",
+   "outcome": "silent",
+   "prompt": "Build a reusable graph workflow with bounded dynamic research workers and named completion",
+   "should_trigger": true,
+   "target": "skill:procedural-memory/graph-workflow-builder",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/graph-knowledge-negative@graph-workflow-builder",
+   "outcome": "silent",
+   "prompt": "Explain the difference between a knowledge graph and an execution DAG in two sentences; ex",
+   "should_trigger": false,
+   "target": "skill:procedural-memory/graph-workflow-builder",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/graph-simple-negative@graph-workflow-builder",
+   "outcome": "silent",
+   "prompt": "Give a one-line command to count lines; do not invoke graph-workflow-builder.",
+   "should_trigger": false,
+   "target": "skill:procedural-memory/graph-workflow-builder",
    "top": null
   },
   {
@@ -2720,20 +2747,20 @@
    "top": null
   }
  ],
- "rows_sha": "dd1ae1a79f07d02a",
+ "rows_sha": "f2d744abc77d539f",
  "schema": 1,
  "summary": {
   "eval_negatives": {
    "false_trigger": 0,
-   "n": 112,
+   "n": 114,
    "other_cross_plugin": 0,
    "other_same_plugin": 0,
-   "silent": 112
+   "silent": 114
   },
   "eval_positives": {
-   "hit": 13,
-   "n": 74,
-   "silent": 56,
+   "hit": 15,
+   "n": 75,
+   "silent": 55,
    "wrong": 5
   },
   "long_negatives": {

@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-23_ Add graph-workflow-builder: build-only validation, named finished criteria, bounded atomic dynamic expansion, worktree-isolated native subscription execution, checked integration, recovery/telemetry guidance and cross-domain outcome oracles. Require the matching runtime command surface; source qualification is separate from artifact activation and task-benefit evidence.
+- _2026-10-23_ version bump — 0.9.2 → 0.10.0 (minor); marketplace 2.112.4 → 2.113.0.
 - _2026-10-19_ Fix Stop parsing for session-bound native Codex command completions: surface confirmed successes, reject terminal failures and hold ambiguous evidence. Preserve opaque/unrelated queue bytes and concurrent cooperative captures through a shared append/update lock; no registry promotion or health change.
 - _2026-10-19_ version bump — 0.9.1 → 0.9.2 (patch); marketplace 2.111.2 → 2.111.3.
 - _2026-10-18_ Require reader-first briefs, task-based titles, direct answers and practical examples in the Content Engine. Add a bundled editorial workflow and coordinator review for articles and derivatives, clean revision copy, evidence limits and metadata alignment; preserve registry trust and publication boundaries.

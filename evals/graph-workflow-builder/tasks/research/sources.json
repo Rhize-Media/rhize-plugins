@@ -1,0 +1,24 @@
+{
+  "fixture": "synthetic release cards",
+  "sources": [
+    {
+      "id": "alpha",
+      "facts": {
+        "workers": 2,
+        "dynamic": false
+      }
+    },
+    {
+      "id": "beta",
+      "facts": {
+        "workers": 3,
+        "dynamic": true
+      }
+    }
+  ],
+  "questions": [
+    "alpha workers",
+    "beta workers",
+    "beta dynamic"
+  ]
+}

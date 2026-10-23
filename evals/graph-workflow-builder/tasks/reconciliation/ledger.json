@@ -1,0 +1,21 @@
+{
+  "records": [
+    {
+      "id": "a",
+      "state": "pending"
+    },
+    {
+      "id": "b",
+      "state": "pending"
+    },
+    {
+      "id": "c",
+      "state": "pending"
+    },
+    {
+      "id": "d",
+      "state": "pending"
+    }
+  ],
+  "events": []
+}

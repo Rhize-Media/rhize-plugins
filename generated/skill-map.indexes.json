@@ -667,6 +667,35 @@
           "weight": 2
         }
       ],
+      "skill:procedural-memory/graph-workflow-builder": [
+        {
+          "kind": "name",
+          "label": "graph-workflow-builder",
+          "weight": 1
+        },
+        {
+          "kind": "phrase",
+          "label": "build graph workflow",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "completion gates",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
       "skill:procedural-memory/procedural-memory": [
         {
           "kind": "name",

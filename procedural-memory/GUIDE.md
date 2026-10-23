@@ -20,6 +20,16 @@ trust remain host-controlled.
 
 ## When to reach for what
 
+- **"Build a reusable graph workflow" / "add dynamic tasks with finished criteria"**
+  → use `graph-workflow-builder`. It freezes the goal, named acceptance checks, template
+  permissions and budgets; builds/validates by default; and runs only when requested.
+  Dynamic membership is admitted atomically from approved templates, then checked at its
+  parent barrier and final integrated join. Subscription-native workers each own a worktree.
+  It requires a runtime with `graph validate`/`graph workflow`; an older CLI is unavailable,
+  never a reason to use an API fallback. See the [skill](skills/graph-workflow-builder/SKILL.md).
+  Completion requires evidence, integration and capture. Quota, missing evidence, failed
+  children and unresolved effects remain incomplete/failed. Publishing/approval rules persist.
+
 - **"Functionize this repeated CLI pattern" / "compile a safe wrapper proposal"**
   → use the `functionize` skill. `mine` reads and redacts local history shapes, `generate`
   compiles one candidate manifest, and `review` records a digest-bound decision. The result is an

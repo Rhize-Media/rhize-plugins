@@ -1,0 +1,24 @@
+{
+  "records": [
+    {
+      "id": "a",
+      "status": "settled",
+      "reference": "receipt-a"
+    },
+    {
+      "id": "b",
+      "status": "processing",
+      "reference": "receipt-b"
+    },
+    {
+      "id": "c",
+      "status": "settled",
+      "reference": "receipt-c"
+    },
+    {
+      "id": "c",
+      "status": "failed",
+      "reference": "receipt-c-2"
+    }
+  ]
+}

@@ -49,6 +49,13 @@ def test_results_shape(harness_run):
     assert len(res["rows"]) == sum(v["n"] for v in s.values())
 
 
+def test_graph_workflow_builder_selection(harness_run):
+    rows = {row["id"]: row for row in json.loads((harness_run / "results.json").read_text())["rows"]}
+    assert rows["procedural-memory/graph-build-positive"]["top"] == "skill:procedural-memory/graph-workflow-builder"
+    for name in ("graph-knowledge-negative", "graph-simple-negative"):
+        assert rows[f"procedural-memory/{name}@graph-workflow-builder"]["outcome"] == "silent"
+
+
 def test_corpus_is_fresh_and_deterministic(harness_run):
     committed = (HARNESS / "corpus.json").read_text()
     assert (harness_run / "corpus.json").read_text() == committed, (
