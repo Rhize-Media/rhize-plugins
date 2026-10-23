@@ -37,6 +37,15 @@ Do not activate this skill for adjacent work owned by other skills:
 
 ## Core Concepts
 
+The bundled `compression_evaluator.py` returns lexical **heuristic** scores, not model judgments or
+semantic acceptance. Its summaries and results mark `scoring_basis: heuristic` and
+`semantic_verified: false`; quoting a restriction can score well while contradicting it. Use
+`check_structured_constraints(expected, observed)` only for exact separately supplied frozen
+string/bool/int/null fields (authority, current source, error/status, artifact identity and unknowns).
+Missing, changed or differently typed values fail their field check. This does not extract facts
+from prose, authenticate agent-supplied assertions, or grant authorization. Inspect ambiguous prose
+against source or obtain authorized human review; never turn a high score into permission.
+
 Context compression trades token savings against information loss. Select from three production-ready approaches based on session characteristics:
 
 1. **Anchored Iterative Summarization**: Implement this for long-running sessions where file tracking matters. Maintain structured, persistent summaries with explicit sections for session intent, file modifications, decisions, and next steps. When compression triggers, summarize only the newly-truncated span and merge with the existing summary rather than regenerating from scratch. This prevents drift that accumulates when summaries are regenerated wholesale — each regeneration risks losing details the model considers low-priority but the task requires. Structure forces preservation because dedicated sections act as checklists the summarizer must populate, catching silent information loss.

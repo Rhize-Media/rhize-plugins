@@ -644,10 +644,11 @@ def test_missing_split_holds_before_any_search(tmp_path, monkeypatch):
     assert registry_state(tmp_path) is None and ledger_events(tmp_path) == []
 
 
-@pytest.mark.parametrize('guarded', ['evaluator', 'decoder', 'promoter'])
+@pytest.mark.parametrize('guarded', ['evaluator', 'measurement', 'decoder', 'promoter'])
 def test_changed_guarded_source_during_promotion_never_mutates_the_registry(tmp_path, monkeypatch, guarded):
     corpus(monkeypatch, [case(i) for i in range(150)])
     path = {'evaluator': ROOT/'evals/typed-decision/research.py',
+            'measurement': ROOT/'evals/typed-decision/measurement.py',
             'decoder': ROOT/'rhize-context-manager/scripts/pilot_routing.py',
             'promoter': ROOT/'evals/typed-decision/typed_promotion.py'}[guarded]
     source, real, state = path.read_bytes(), cycle.digest, {'changed': False}

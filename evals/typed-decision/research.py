@@ -16,6 +16,9 @@ _SCRIPTS = str(Path(__file__).resolve().parents[2] / 'rhize-context-manager/scri
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 from typed_advice import post_local
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+from measurement import summarize
 
 
 PILOT_COHORT = "workflow-pilot-v2"
@@ -23,6 +26,7 @@ PILOT_COHORT_V3 = "workflow-pilot-v3"  # one choice question 'route'; replayed f
 PILOT_COHORTS = frozenset({PILOT_COHORT, PILOT_COHORT_V3})
 # Model-reviewed labels are accepted only when an operator policy exported them; rows record which.
 LABEL_BASES = frozenset({"human_adjudicated", "ai_model_reviewed"})
+METRICS_SCHEMA = "rhize-typed-research-metrics-v2"
 
 
 def decode_route(row, result, threshold):
@@ -90,6 +94,7 @@ def read_jsonl(path: Path) -> list[dict]:
                 raise ValueError("noul label must be boolean")
             if kind not in {"choice", "noul"}:
                 raise ValueError("research runner supports choice and noul only")
+        questions_for(row, {})
         if not isinstance(row.get("state"), (str, dict, list)):
             raise ValueError("state must be a string, object, or array")
     cohorts = {row.get('cohort_version') for row in rows}
@@ -140,8 +145,8 @@ def validate_candidate(candidate: dict, rows: list[dict]) -> None:
         raise ValueError("abstain_below must be a probability")
 
 
-def local_call(base_url: str, request: dict) -> tuple[dict, float]:
-    result, latency = post_local(base_url, "/v1/systemone", request, 20)
+def local_call(base_url: str, request: dict, timeout: float = 20) -> tuple[dict, float]:
+    result, latency = post_local(base_url, "/v1/systemone", request, timeout)
     if not isinstance(result.get("routing"), dict) or result["routing"].get("model") != request["model"]:
         raise ValueError("local provider routed a different checkpoint")
     if set(result.get("answers", {})) != set(request["questions"]):
@@ -149,25 +154,63 @@ def local_call(base_url: str, request: dict) -> tuple[dict, float]:
     return result, latency
 
 
-def evaluate(rows: list[dict], candidate: dict, call) -> dict:
+def questions_for(row: dict, candidate: dict) -> dict:
+    """Keep explicit menu order across canonical JSON storage without changing the provider schema."""
+    orders = row.get('candidate_orders', {})
+    if not isinstance(orders, dict) or set(orders) - set(row['questions']):
+        raise ValueError('invalid candidate orders')
+    questions = {}
+    for name, question in row['questions'].items():
+        value = {**question, 'instructions': candidate.get('instructions', {}).get(name, question['instructions'])}
+        if name in orders:
+            order = orders[name]
+            if (question['type'] != 'choice' or not isinstance(order, list)
+                    or any(not isinstance(k, str) for k in order)
+                    or len(order) != len(question['criteria']) or set(order) != set(question['criteria'])):
+                raise ValueError('invalid candidate order')
+            value['criteria'] = {k: question['criteria'][k] for k in order}
+        questions[name] = value
+    return questions
+
+
+def tuning_majority(rows: list[dict]) -> dict:
+    from collections import Counter
+    counts = defaultdict(Counter)
+    for row in rows:
+        labels = {'route': row['routing_choice']} if row.get('cohort_version') in PILOT_COHORTS else row['labels']
+        for name, label in labels.items():
+            counts[f"{row['decision_type']}:{name}"][json.dumps(label)] += 1
+    return {'tuning_sha256': digest(rows), 'predictions': {
+        key: json.loads(min(values, key=lambda label: (-values[label], label))) for key, values in counts.items()}}
+
+
+def evaluate(rows: list[dict], candidate: dict, call, *, baseline: dict | None = None) -> dict:
     validate_candidate(candidate, rows)
     totals = defaultdict(lambda: {"count": 0, "correct": 0, "abstained": 0, "critical_misses": 0,
-                                  "brier_sum": 0.0, "brier_count": 0})
+                                  "critical_false_negatives": 0, "brier_sum": 0.0, "brier_count": 0})
+    critical_strata = {f"{row['decision_type']}:{row['stratum']}" for row in rows
+                       if row['stratum'].startswith('critical')}
     latencies = []
+    samples = []
     usage = {"input_tokens": 0, "output_tokens": 0}
     for row in rows:
-        questions = {name: {**question, "instructions": candidate.get("instructions", {}).get(name, question["instructions"])}
-                     for name, question in row["questions"].items()}
+        def record(name, label, prediction, raw_prediction, confidence, cardinality):
+            samples.append({'decision': row['decision_type'], 'question': name, 'label': label,
+                            'prediction': prediction, 'raw_prediction': raw_prediction, 'confidence': confidence,
+                            'cardinality': cardinality, 'group': row['group_id'],
+                            'label_basis': row.get('label_basis', 'unspecified')})
+        questions = questions_for(row, candidate)
         result, latency = call({"state": row["state"], "questions": questions, "model": candidate["model"]})
         latencies.append(latency)
         measured_usage = result.get("usage", {})
         for key in usage:
-            if not isinstance(measured_usage.get(key), int):
+            if type(measured_usage.get(key)) is not int or measured_usage[key] < 0:
                 usage[key] = None
             elif usage[key] is not None:
                 usage[key] += measured_usage[key]
         if row.get('cohort_version') == PILOT_COHORT:
             decoded = decode_route(row, result, candidate.get('abstain_below', 0.0))
+            record('route', row['routing_choice'], decoded['choice'], decoded['ranking'][0]['candidateId'], None, 3)
             score = totals[f"{row['decision_type']}:{row['stratum']}"]
             score['count'] += 1
             if decoded['choice'] is None:
@@ -181,6 +224,8 @@ def evaluate(rows: list[dict], candidate: dict, call) -> dict:
             continue
         if row.get('cohort_version') == PILOT_COHORT_V3:
             decoded, probabilities = decode_route_v3(row, result, candidate.get('abstain_below', 0.0))
+            record('route', row['routing_choice'], decoded['choice'], decoded['ranking'][0]['candidateId'],
+                   decoded['ranking'][0]['score'], len(probabilities))
             score = totals[f"{row['decision_type']}:{row['stratum']}"]
             score['count'] += 1
             score['brier_sum'] += sum((value - int(name == row['routing_choice'])) ** 2
@@ -216,6 +261,8 @@ def evaluate(rows: list[dict], candidate: dict, call) -> dict:
                                           for option, value in probabilities.items()) / len(probabilities)
                 score["brier_count"] += 1
                 correct = prediction == label
+                record(name, label, None if confidence < candidate.get('abstain_below', 0.0) else prediction,
+                       prediction, confidence, len(probabilities))
                 if confidence < candidate.get("abstain_below", 0.0):
                     score["abstained"] += 1
                 elif correct:
@@ -229,12 +276,21 @@ def evaluate(rows: list[dict], candidate: dict, call) -> dict:
                 score["brier_sum"] += (probability - int(label)) ** 2
                 score["brier_count"] += 1
                 confidence = max(probability, 1 - probability)
+                record(name, label, None if confidence < candidate.get('abstain_below', 0.0) else probability >= .5,
+                       probability >= .5, confidence, 2)
                 if confidence < candidate.get("abstain_below", 0.0):
                     score["abstained"] += 1
                 elif (probability >= 0.5) == label:
                     score["correct"] += 1
                 elif label and row["stratum"].startswith("critical"):
                     score["critical_misses"] += 1
+                    score["critical_false_negatives"] += 1
+    # A missed critical decision is not evidence that an unsafe action was executed.
+    for key, score in totals.items():
+        critical = key in critical_strata
+        score['critical_misses'] = score['count'] - score['correct'] if critical else 0
+        score['critical_abstentions'] = score['abstained'] if critical else 0
+        score['critical_wrong_answers'] = score['critical_misses'] - score['critical_abstentions']
     count = sum(item["count"] for item in totals.values())
     correct = sum(item["correct"] for item in totals.values())
     abstained = sum(item["abstained"] for item in totals.values())
@@ -242,8 +298,22 @@ def evaluate(rows: list[dict], candidate: dict, call) -> dict:
     brier_sum = sum(item["brier_sum"] for item in totals.values())
     brier_count = sum(item["brier_count"] for item in totals.values())
     latencies.sort()
-    return {"count": count, "accuracy": correct / count, "abstention_rate": abstained / count,
+    return {"metrics_schema": METRICS_SCHEMA, "count": count,
+            "independent_groups": len({row['group_id'] for row in rows}),
+            "unit": "routing_case" if all(row.get('cohort_version') in PILOT_COHORTS for row in rows) else "question",
+            "accuracy": correct / count, "abstention_rate": abstained / count,
             "critical_misses": critical_misses, "by_stratum": dict(sorted(totals.items())),
+            "critical_abstentions": sum(s['critical_abstentions'] for s in totals.values()),
+            "critical_wrong_answers": sum(s['critical_wrong_answers'] for s in totals.values()),
+            "critical_false_negatives": sum(s['critical_false_negatives'] for s in totals.values()),
+            "unsafe_actions": None,
+            "diagnostics": summarize(samples),
+            "majority_baseline": ({'basis': 'frozen_tuning', 'tuning_sha256': baseline['tuning_sha256'],
+                                   'accuracy': sum(baseline['predictions'][f"{s['decision']}:{s['question']}"] == s['label']
+                                                   for s in samples) / len(samples)}
+                                  if baseline and all(f"{s['decision']}:{s['question']}" in baseline['predictions']
+                                                      for s in samples) else 'unavailable'),
+            "brier_convention": "choice mean squared error across candidates; scalar Noul squared error; v2 relevance excluded",
             "brier_mean": brier_sum / brier_count if brier_count else None,
             "latency_ms_p50": latencies[len(latencies) // 2],
             "latency_ms_p95": latencies[min(len(latencies) - 1, int(len(latencies) * 0.95))],
@@ -257,8 +327,7 @@ def predict(rows: list[dict], candidate: dict, call) -> dict:
     for row in rows:
         if row.get('cohort_version') != PILOT_COHORT_V3:
             raise ValueError('predict supports workflow-pilot-v3 cases only')
-        questions = {name: {**question, "instructions": candidate.get("instructions", {}).get(name, question["instructions"])}
-                     for name, question in row["questions"].items()}
+        questions = questions_for(row, candidate)
         result, _ = call({"state": row["state"], "questions": questions, "model": candidate["model"]})
         decoded, _ = decode_route_v3(row, result, candidate.get('abstain_below', 0.0))
         predictions[row['case_id']] = decoded['choice']
@@ -310,9 +379,11 @@ def read_ledger(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
-def check_holdout_authority(ledger: list[dict], dataset_hash: str, seed_hash: str, candidate_hash: str) -> None:
+def check_holdout_authority(ledger: list[dict], dataset_hash: str, seed_hash: str, candidate_hash: str,
+                            metrics_schema: str | None = None) -> None:
     if not any(row.get("dataset_sha256") == dataset_hash and row.get("candidate_sha256") == candidate_hash
-               and row.get("seed_sha256") == seed_hash and row.get("status") == "keep" for row in ledger):
+               and row.get("seed_sha256") == seed_hash and row.get("status") == "keep"
+               and (metrics_schema is None or row.get('metrics_schema') == metrics_schema) for row in ledger):
         raise ValueError("candidate must be frozen from a recorded development keep")
     if any(row.get("dataset_sha256") == dataset_hash and row.get("status") == "holdout" for row in ledger):
         raise ValueError("locked holdout was already used for this dataset")
@@ -422,25 +493,32 @@ def main() -> int:
     dataset_hash = manifest["corpus_sha256"]
     seed_hash = manifest["seed_sha256"]
     ledger = read_ledger(args.ledger)
+    baseline = tuning_majority(splits['train']) if args.phase == 'search' else next((
+        row.get('tuning_baseline') for row in reversed(ledger)
+        if row.get('dataset_sha256') == dataset_hash and row.get('seed_sha256') == seed_hash
+        and row.get('candidate_sha256') == digest(candidates[0]) and row.get('status') == 'keep'
+        and row.get('metrics_schema') == METRICS_SCHEMA), None)
     if args.phase == "holdout":
         frozen = digest(candidates[0])
         if args.frozen_candidate_sha256 != frozen:
             raise ValueError("frozen candidate hash mismatch")
-        check_holdout_authority(ledger, dataset_hash, seed_hash, frozen)
+        check_holdout_authority(ledger, dataset_hash, seed_hash, frozen, METRICS_SCHEMA)
     args.ledger.parent.mkdir(parents=True, exist_ok=True)
     prior = [entry for entry in ledger if entry.get("dataset_sha256") == dataset_hash
-             and entry.get("seed_sha256") == seed_hash and entry.get("status") == "keep"]
+             and entry.get("seed_sha256") == seed_hash and entry.get("status") == "keep"
+             and entry.get('metrics_schema') == METRICS_SCHEMA]
     best = min(((entry["validation"]["critical_misses"], -entry["validation"]["accuracy"],
                  entry["validation"]["abstention_rate"]) for entry in prior), default=None)
     for candidate in candidates:
         validate_candidate(candidate, rows)
         if args.phase == "search" and any(entry.get("candidate_sha256") == digest(candidate)
                                           and entry.get("dataset_sha256") == dataset_hash
-                                          and entry.get("seed_sha256") == seed_hash for entry in ledger):
+                                          and entry.get("seed_sha256") == seed_hash
+                                          and entry.get('metrics_schema') == METRICS_SCHEMA for entry in ledger):
             raise ValueError("candidate already evaluated on this dataset and split")
         if args.phase == "search":
-            train = evaluate(splits["train"], candidate, lambda request: local_call(args.base_url, request))
-            validation = evaluate(splits["validation"], candidate, lambda request: local_call(args.base_url, request))
+            train = evaluate(splits["train"], candidate, lambda request: local_call(args.base_url, request), baseline=baseline)
+            validation = evaluate(splits["validation"], candidate, lambda request: local_call(args.base_url, request), baseline=baseline)
             key = (validation["critical_misses"], -validation["accuracy"], validation["abstention_rate"])
             keep = best is None or key < best
             if keep:
@@ -450,10 +528,14 @@ def main() -> int:
             arm_a = {"train": arm_a_metrics(splits["train"]), "validation": arm_a_metrics(splits["validation"])}
         else:
             train = validation = None
-            holdout = evaluate(splits["holdout"], candidate, lambda request: local_call(args.base_url, request))
+            holdout = evaluate(splits["holdout"], candidate, lambda request: local_call(args.base_url, request), baseline=baseline)
             arm_a = {"holdout": arm_a_metrics(splits["holdout"])}
             status = "holdout"
-        entry = {"schema": "rhize-typed-research-v1", "at": time.time(), "dataset_sha256": dataset_hash,
+        entry = {"schema": "rhize-typed-research-v1", "metrics_schema": METRICS_SCHEMA,
+                 "evaluator_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                 "measurement_sha256": hashlib.sha256(Path(__file__).with_name('measurement.py').read_bytes()).hexdigest(),
+                 "tuning_baseline": baseline,
+                 "at": time.time(), "dataset_sha256": dataset_hash,
                  "seed_sha256": seed_hash, "release_eligible": manifest["release_eligible"],
                  "candidate_sha256": digest(candidate), "candidate_id": candidate["id"], "model": candidate["model"],
                  "status": status, "split_counts": manifest["split_counts"],

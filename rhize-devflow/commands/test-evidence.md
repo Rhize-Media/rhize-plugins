@@ -6,10 +6,11 @@ description: Produce fail-closed, state-bound metadata for explicit regression c
 # Test Evidence
 
 Invoke the canonical `rhize-devflow:test-evidence` skill and follow it completely. This command is
-the explicit pre-review writer; it binds only authorized package-script declarations but does not
-execute them until a trusted sandbox adapter exists. It never mutates the live checkout. Pass
-`$ARGUMENTS` unchanged as the requested claim/spec boundary. `/review` remains read-only and treats
-the resulting unavailable packet as unsupported.
+the explicit pre-review writer; it binds declared package scripts or exact Python test files.
+Execution requires explicit opt-in with an existing local Docker image digest; default and
+unavailable isolation remain unsupported. It never mutates the live checkout. Pass `$ARGUMENTS`
+unchanged as the requested claim/spec boundary. `/review` remains read-only and validates the
+private execution receipt before accepting a supported claim.
 
 If the runner is invoked without `--output`, it writes the packet to a default location —
 `~/.rhize/test-evidence/packets/<repo-slug>-<head-sha12>.json` — and prints the resolved path;

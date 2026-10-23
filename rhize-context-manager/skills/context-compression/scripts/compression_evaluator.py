@@ -25,9 +25,11 @@ Top-level convenience function:
   recommendations. Use when: running a one-shot compression quality check
   without wiring up individual components.
 
-PRODUCTION NOTES:
-- The LLM judge calls are stubbed for demonstration. Production systems
-  should implement actual API calls to a frontier model.
+EVIDENCE LIMITS:
+- Scores are lexical heuristics, not model judgments or semantic verification.
+  Quoting a restriction can score well even when the response contradicts it.
+- Use check_structured_constraints for exact frozen fields supplied separately
+  from prose. It does not infer authority or validate natural-language claims.
 - Token estimation uses simplified heuristics. Production systems should
   use model-specific tokenizers.
 - Ground truth extraction uses pattern matching. Production systems may
@@ -50,6 +52,7 @@ __all__ = [
     "CompressionEvaluator",
     "StructuredSummarizer",
     "evaluate_compression_quality",
+    "check_structured_constraints",
 ]
 
 
@@ -95,6 +98,19 @@ class EvaluationResult:
     criterion_results: List[CriterionResult]
     aggregate_score: float
     dimension_scores: Dict[str, float] = field(default_factory=dict)
+    scoring_basis: str = "heuristic"
+    semantic_verified: bool = False
+
+
+def check_structured_constraints(expected: Dict, observed: Dict) -> Dict[str, bool]:
+    """Compare frozen scalar fields exactly; never extract authority from prose."""
+    if not isinstance(expected, dict) or not expected or not isinstance(observed, dict):
+        raise ValueError("constraints require a non-empty expected object and an observed object")
+    for key, value in expected.items():
+        if not isinstance(key, str) or type(value) not in (str, bool, int, type(None)):
+            raise ValueError("expected constraints must have string keys and string/bool/int/null values")
+    return {key: key in observed and type(observed[key]) is type(value) and observed[key] == value
+            for key, value in expected.items()}
 
 
 # Evaluation Rubrics
@@ -326,7 +342,7 @@ class ProbeGenerator:
 
 
 class CompressionEvaluator:
-    """Evaluate compression quality using probes and LLM judge.
+    """Screen probe responses with lexical heuristics, without semantic acceptance.
 
     Use when: comparing compression methods or validating that a specific
     compression pass preserved critical information. Scores responses
@@ -405,7 +421,7 @@ class CompressionEvaluator:
             per-dimension averages, and weakest/strongest dimensions.
         """
         if not self.results:
-            return {"error": "No evaluations performed"}
+            return {"error": "No evaluations performed", "scoring_basis": "heuristic", "semantic_verified": False}
 
         avg_score = sum(r.aggregate_score for r in self.results) / len(self.results)
 
@@ -424,6 +440,8 @@ class CompressionEvaluator:
         }
 
         return {
+            "scoring_basis": "heuristic",
+            "semantic_verified": False,
             "total_evaluations": len(self.results),
             "average_score": avg_score,
             "dimension_averages": avg_dimensions,
@@ -459,26 +477,9 @@ class CompressionEvaluator:
                             probe: Probe,
                             response: str,
                             context: str) -> CriterionResult:
-        """
-        Evaluate a single criterion using LLM judge.
-
-        PRODUCTION NOTE: This is a stub implementation.
-        Production systems should call the actual LLM API:
-
-        ```python
-        result = openai.chat.completions.create(
-            model="gpt-5.2",
-            messages=[
-                {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
-                {"role": "user", "content": self._format_judge_input(criterion, probe, response, context)}
-            ]
-        )
-        return self._parse_judge_output(result)
-        ```
-        """
-        # Stub implementation - in production, call LLM judge
+        """Return a lexical screening score; no judge or semantic check runs."""
         score = self._heuristic_score(criterion, response, probe.ground_truth)
-        reasoning = f"Evaluated {criterion['id']} based on response content."
+        reasoning = f"Heuristic overlap/length score for {criterion['id']}; semantic fidelity unverified."
 
         return CriterionResult(
             criterion_id=criterion["id"],
@@ -493,7 +494,7 @@ class CompressionEvaluator:
         """
         Heuristic scoring for demonstration.
 
-        Production systems should use LLM judge instead.
+        This score cannot establish instruction following or factual correctness.
         """
         score = 3.0  # Base score
 
@@ -784,7 +785,7 @@ def evaluate_compression_quality(
 
     if summary.get("average_score", 0) < 3.5:
         summary["recommendations"].append(
-            "Compression quality is below threshold - consider less aggressive compression"
+            "Heuristic recall score is low; inspect retained facts and constraints before changing compression"
         )
 
     return summary
@@ -845,7 +846,7 @@ if __name__ == "__main__":
 
     print("=== Compression Quality Evaluation ===")
     print(f"Total evaluations: {result['total_evaluations']}")
-    print(f"Average score: {result['average_score']:.2f}")
+    print(f"Average heuristic score: {result['average_score']:.2f}; semantic fidelity unverified")
     print()
     print("Dimension averages:")
     for dim, score in result.get("dimension_averages", {}).items():
@@ -859,4 +860,4 @@ if __name__ == "__main__":
         for rec in result["recommendations"]:
             print(f"  - {rec}")
     else:
-        print("No recommendations - compression quality looks acceptable.")
+        print("No heuristic recommendation; semantic fidelity and acceptance remain unverified.")
