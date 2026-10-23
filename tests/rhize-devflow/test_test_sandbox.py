@@ -191,20 +191,65 @@ def test_cleanup_failure_names_resource_and_cannot_support_claim(tmp_path, monke
     assert test_evidence.validate_packet(packet, repo)['review_verdict'] == 'FAIL_REQUIRES_HUMAN'
 
 
-def test_host_client_deadline_terminates_forked_descendants(tmp_path):
+@pytest.mark.parametrize('startup_delay', [0, .75])
+def test_host_client_deadline_terminates_forked_descendants(tmp_path, monkeypatch, startup_delay):
+    import os
+    import signal
     import subprocess
     import sys
+    import time
     adapter = test_evidence.sandbox_adapter()
     sandbox = adapter.DockerSandbox.__new__(adapter.DockerSandbox)
     pids = tmp_path / 'pids'
     cli = tmp_path / 'fixture-cli'
-    cli.write_text('#!' + sys.executable + '\nimport os,time\nos.fork()\nwith open(' + repr(str(pids)) + ',"a") as f: f.write(str(os.getpid())+"\\n")\ntime.sleep(60)\n')
+    cli.write_text('#!' + sys.executable + '\nimport os,time\ntime.sleep(' + repr(startup_delay) + ')\nos.fork()\nwith open(' + repr(str(pids)) + ',"a") as f: f.write(str(os.getpid())+"\\n")\ntime.sleep(60)\n')
     cli.chmod(0o700)
     sandbox.binary, sandbox.config, sandbox.env = str(cli), tmp_path, {}
-    with pytest.raises(adapter.SandboxUnavailable, match='deadline'):
-        sandbox.client(timeout=.5)
+    popen = subprocess.Popen
+    def ready_popen(*args, **kwargs):
+        process = popen(*args, **kwargs)
+        deadline = time.monotonic() + 10
+        try:
+            while not pids.exists() or len(pids.read_text().splitlines()) != 2:
+                assert time.monotonic() < deadline, 'fork fixture did not become ready'
+                time.sleep(.01)
+        except BaseException:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=5)
+            raise
+        return process
+    # Warm the real fork fixture before the client's unchanged cleanup interval begins.
+    with monkeypatch.context() as patch:
+        patch.setattr(adapter.subprocess, 'Popen', ready_popen)
+        with pytest.raises(adapter.SandboxUnavailable, match='deadline'):
+            sandbox.client(timeout=.5)
     children = pids.read_text().splitlines()
     assert len(children) == 2
     for pid in children:
         state = subprocess.run(['/bin/ps', '-o', 'stat=', '-p', pid], capture_output=True, text=True).stdout.strip()
         assert not state or state.startswith('Z'), (pid, state)
+
+
+def test_host_client_still_bounds_slow_startup(tmp_path, monkeypatch):
+    import subprocess
+    import sys
+    adapter = test_evidence.sandbox_adapter()
+    sandbox = adapter.DockerSandbox.__new__(adapter.DockerSandbox)
+    started = tmp_path / 'started'
+    cli = tmp_path / 'fixture-cli'
+    cli.write_text('#!' + sys.executable + '\nimport time\ntime.sleep(60)\nopen(' + repr(str(started)) + ',"w").close()\n')
+    cli.chmod(0o700)
+    sandbox.binary, sandbox.config, sandbox.env = str(cli), tmp_path, {}
+    popen, processes = subprocess.Popen, []
+    def record_popen(*args, **kwargs):
+        process = popen(*args, **kwargs)
+        processes.append(process)
+        return process
+    monkeypatch.setattr(adapter.subprocess, 'Popen', record_popen)
+    with pytest.raises(adapter.SandboxUnavailable, match='deadline'):
+        sandbox.client(timeout=.5)
+    assert len(processes) == 1 and processes[0].poll() is not None
+    assert not started.exists()

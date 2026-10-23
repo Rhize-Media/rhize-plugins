@@ -2,6 +2,27 @@
 
 ## Verified facts
 
+- 2026-10-23: Required qualification exposed an existing forked-cleanup fixture assuming
+  a real Python child and descendant would write their PID file within the operation's
+  .5-second deadline. A deliberate .75-second startup reproduced the missing-file failure.
+  The fixture now waits for both real PIDs before its unchanged cleanup interval, with a
+  bounded ten-second readiness wait and failure cleanup. A separate uninstrumented case
+  retains startup deadline coverage. Production sandbox code/deadlines are unchanged.
+  Lesson: prove descendants existed before asserting their termination; an early startup
+  timeout proves a different cleanup case. Process inspection requires its normal OS access.
+
+- 2026-10-23: The earlier native update completed on both hosts (Context Manager0.49.1,
+  Dev Flow2.30.1), but removed the old Dev Flow2.30.0 cache while this session retained its
+  Stop command. That produced repeated identical synthetic prompts until the user interrupted
+  and reloaded. This resumed session's new hook paths and source-bound checkpoint work.
+  Candidate prevention adds a pre/post installed-package guard plus shell-resident Dev Flow
+  missing-file handling: deny tools and stop for restart, never request repeated continuation
+  or bypass the substantive guards. Close all hosts before updates; agent warnings and idle
+  chats do not establish unloaded hooks. Native activation of the new safeguard remains
+  separate from source checks and will not be hot-installed in this session.
+  All 88 focused update/credential/manifest checks pass, including removed-cache execution,
+  partial required-script loss, independent sessions, preserved restart holds and parallel hooks.
+
 - 2026-10-23: Full local qualification at frozen source `0624fcf` passes **4,557 tests
   and 27 subtests**, with seven unchanged optional/host-applicability skips, in 711.45s.
   Required release checks pass **800 Dev Flow tests** plus impact/static-map/setup/config/

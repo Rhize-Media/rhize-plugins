@@ -61,7 +61,11 @@ the move except where noted.*
   pins BEHIND this repo. When it goes stale, `rhize-context-manager:*` skills report
   "Unknown skill" and **scheduled tasks fail silently**. Refresh with
   `claude plugin marketplace update rhize-plugins` then `claude plugin update`. (Diagnosed
-  2026-08-05; `ai-stack-version-drift` now auto-updates marketplaces + plugins twice weekly.)
+  2026-08-05; `ai-stack-version-drift` introduced twice-weekly marketplace/plugin updates.) Installed updates must
+  run from a separate terminal with all Claude/Codex hosts closed, after durable checkpoints;
+  warnings alone do not unload hooks. Dev Flow's pre/post update guard holds changed sessions
+  for restart and its shell fallback prevents its missing Stop script becoming a retry loop.
+  See `rhize-devflow/docs/plugin-update-safety.md`; do not hot-update to activate that safeguard.
 
 ### Git workflow
 - Stale `.git/index.lock` mid-session: `rm -f .git/index.lock` (verify no live git process
