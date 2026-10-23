@@ -1119,37 +1119,61 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
-      "to": "hook:rhize-devflow/inline-95242299",
+      "to": "hook:rhize-devflow/inline-3dfe2645",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
-      "to": "hook:rhize-devflow/inline-a3a2bdba",
+      "to": "hook:rhize-devflow/inline-4259629e",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
-      "to": "hook:rhize-devflow/inline-d45b5937",
+      "to": "hook:rhize-devflow/inline-53017bc5",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
-      "to": "hook:rhize-devflow/inline-e12f824e",
+      "to": "hook:rhize-devflow/inline-62c681aa",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
-      "to": "hook:rhize-devflow/inline-ea6a756f",
+      "to": "hook:rhize-devflow/inline-6bd9a179",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
-      "to": "hook:rhize-devflow/inline-f095e19f",
+      "to": "hook:rhize-devflow/inline-7d8e9531",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-979ad088",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-9b17a6bc",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-bc85f328",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-fecd474d",
       "type": "contains"
     },
     {
@@ -4356,67 +4380,111 @@
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-stop",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-stop; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
       "event": "Stop",
-      "id": "hook:rhize-devflow/inline-95242299",
+      "id": "hook:rhize-devflow/inline-3dfe2645",
       "kind": "hook",
       "matcher": "",
-      "name": "inline-95242299",
+      "name": "inline-3dfe2645",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command-post",
-      "event": "PostToolUse",
-      "id": "hook:rhize-devflow/inline-a3a2bdba",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" Stop; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
+      "event": "Stop",
+      "id": "hook:rhize-devflow/inline-4259629e",
       "kind": "hook",
-      "matcher": "Bash|exec_command|functions.exec",
-      "name": "inline-a3a2bdba",
+      "matcher": "",
+      "name": "inline-4259629e",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command",
-      "event": "PreToolUse",
-      "id": "hook:rhize-devflow/inline-d45b5937",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-prompt; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-devflow/inline-53017bc5",
       "kind": "hook",
-      "matcher": "Bash|exec_command|functions.exec",
-      "name": "inline-d45b5937",
+      "matcher": "",
+      "name": "inline-53017bc5",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/credential_guard.py\"",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" PreToolUse; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}}'; fi",
       "event": "PreToolUse",
-      "id": "hook:rhize-devflow/inline-e12f824e",
+      "id": "hook:rhize-devflow/inline-62c681aa",
       "kind": "hook",
       "matcher": "*",
-      "name": "inline-e12f824e",
+      "name": "inline-62c681aa",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-prompt",
-      "event": "UserPromptSubmit",
-      "id": "hook:rhize-devflow/inline-ea6a756f",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command-post; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
+      "event": "PostToolUse",
+      "id": "hook:rhize-devflow/inline-6bd9a179",
       "kind": "hook",
-      "matcher": "",
-      "name": "inline-ea6a756f",
+      "matcher": "Bash|exec_command|functions.exec",
+      "name": "inline-6bd9a179",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-write",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" SessionStart; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
+      "event": "SessionStart",
+      "id": "hook:rhize-devflow/inline-7d8e9531",
+      "kind": "hook",
+      "matcher": "startup|resume",
+      "name": "inline-7d8e9531",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/credential_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/credential_guard.py\"; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}}'; fi",
       "event": "PreToolUse",
-      "id": "hook:rhize-devflow/inline-f095e19f",
+      "id": "hook:rhize-devflow/inline-979ad088",
+      "kind": "hook",
+      "matcher": "*",
+      "name": "inline-979ad088",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-write; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}}'; fi",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/inline-9b17a6bc",
       "kind": "hook",
       "matcher": "Edit|Write|MultiEdit|NotebookEdit|apply_patch",
-      "name": "inline-f095e19f",
+      "name": "inline-9b17a6bc",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" PostToolUse; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
+      "event": "PostToolUse",
+      "id": "hook:rhize-devflow/inline-bc85f328",
+      "kind": "hook",
+      "matcher": "*",
+      "name": "inline-bc85f328",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}}'; fi",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/inline-fecd474d",
+      "kind": "hook",
+      "matcher": "Bash|exec_command|functions.exec",
+      "name": "inline-fecd474d",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"

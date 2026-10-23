@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-23_ version bump — **rhize-devflow** 2.30.1 → 2.30.2 (patch); marketplace 2.112.3 → 2.112.4.
 - Local qualification repairs the real-crypto interpreter fixture and RSA readiness wait, nonblocking subprocess pipe backpressure, and macOS exited-process cleanup; no installed plugin cache or live decision-mode change.
 - _2026-10-23_ version bump — **rhize-context-manager** 0.49.0 → 0.49.1 (patch); marketplace 2.112.2 → 2.112.3.
 - _2026-10-23_ version bump — **rhize-devflow** 2.30.0 → 2.30.1 (patch); marketplace 2.112.1 → 2.112.2.

@@ -2,6 +2,16 @@
 
 ## Verified facts
 
+- 2026-10-23: The earlier native update completed on both hosts (Context Manager0.49.1,
+  Dev Flow2.30.1), but removed the old Dev Flow2.30.0 cache while this session retained its
+  Stop command. That produced repeated identical synthetic prompts until the user interrupted
+  and reloaded. This resumed session's new hook paths and source-bound checkpoint work.
+  Candidate prevention adds a pre/post installed-package guard plus shell-resident Dev Flow
+  missing-file handling: deny tools and stop for restart, never request repeated continuation
+  or bypass the substantive guards. Close all hosts before updates; agent warnings and idle
+  chats do not establish unloaded hooks. Native activation of the new safeguard remains
+  separate from source checks and will not be hot-installed in this session.
+
 - 2026-10-23: Full local qualification at frozen source `0624fcf` passes **4,557 tests
   and 27 subtests**, with seven unchanged optional/host-applicability skips, in 711.45s.
   Required release checks pass **800 Dev Flow tests** plus impact/static-map/setup/config/

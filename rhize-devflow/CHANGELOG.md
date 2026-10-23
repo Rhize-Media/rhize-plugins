@@ -6,6 +6,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Block recognizable installed Rhize updates inside native sessions; compare per-session package metadata before/after tools and stop once on drift. Shell-resident missing-file checks deny tools and end Stop handling without a continuation loop. Preserve existing credential/refactor failures and require closed-host updates with normal trust review; arbitrary external updaters remain outside containment.
+
+- _2026-10-23_ version bump — 2.30.1 → 2.30.2 (patch); marketplace 2.112.3 → 2.112.4.
 - Reap an exited subprocess leader before one macOS process-group cleanup retry; persistent permission denial still invalidates Skylos evidence.
 - _2026-10-23_ version bump — 2.30.0 → 2.30.1 (patch); marketplace 2.112.1 → 2.112.2.
 - _2026-10-22_ version bump — 2.29.0 → 2.30.0 (minor); marketplace 2.111.3 → 2.112.0.

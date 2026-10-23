@@ -1,12 +1,12 @@
 {
-  "description": "rhize-devflow auto-wires the auto-selection workflow gate: material implementation/refactor prompts require a CodeGraph-or-recorded-fallback impact-map receipt before source edits (native edit tools and recognizable shell writes), flag source a shell changed while no map was prepared, and require reconciliation before commit/completion. Trusted adapters may invoke the same gate with required activation and an explicit implementation task kind; the study control omits the plugin instead of disabling the gate. The mutation and protected-file guards remain opt-in through setup/manifest.json.",
+  "description": "rhize-devflow auto-wires the auto-selection workflow gate: material implementation/refactor prompts require a CodeGraph-or-recorded-fallback impact-map receipt before source edits (native edit tools and recognizable shell writes), flag source a shell changed while no map was prepared, and require reconciliation before commit/completion. Trusted adapters may invoke the same gate with required activation and an explicit implementation task kind; the study control omits the plugin instead of disabling the gate. The mutation and protected-file guards remain opt-in through setup/manifest.json. Native update safety denies recognizable in-session Rhize package mutations and stops sessions after installed metadata changes. Missing Dev Flow scripts hold tools and stop without a retrying Stop-hook error.",
   "hooks": {
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-prompt",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-prompt; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
             "timeout": 5
           }
         ]
@@ -18,7 +18,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/credential_guard.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" PreToolUse; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}}'; fi",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/credential_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/credential_guard.py\"; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}}'; fi",
             "timeout": 5
           }
         ]
@@ -28,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-write",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-write; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}}'; fi",
             "timeout": 5
           }
         ]
@@ -38,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}}'; fi",
             "timeout": 5
           }
         ]
@@ -46,11 +56,21 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" PostToolUse; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Bash|exec_command|functions.exec",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command-post",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command-post; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
             "timeout": 5
           }
         ]
@@ -61,10 +81,31 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-stop",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" Stop; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-stop; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" ]; then exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin_update_guard.py\" SessionStart; else printf '%s\\n' '{\"continue\":false,\"stopReason\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\",\"systemMessage\":\"Rhize plugin files unavailable: required guards have not run. Save the checkpoint, stop tools and restart all affected hosts. Never retry missing-hook errors or disable guards.\"}'; fi",
+            "timeout": 5
+          }
+        ],
+        "matcher": "startup|resume"
       }
     ]
   }

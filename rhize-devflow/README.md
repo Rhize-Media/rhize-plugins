@@ -40,6 +40,11 @@ claude plugin install rhize-context-manager@rhize-plugins
 
 **Claude Code — updating an existing install:**
 
+Save active task checkpoints, close all Claude/Codex host sessions, and run updates from a
+separate ordinary terminal. Cache replacement can remove files still referenced by loaded
+hooks. The [native update safeguard](docs/plugin-update-safety.md) blocks recognizable live
+updates, checks package changes after tools, and stops affected sessions for restart.
+
 ```bash
 claude plugin marketplace update rhize-plugins
 claude plugin update rhize-devflow
@@ -61,7 +66,7 @@ codex plugin add rhize-context-manager@rhize-plugins
 Codex reaches the same canonical command bodies as Claude through `.codex-plugin/plugin.json`'s
 `skills: "./skills/"` router — there is no separate Codex-specific workflow body to keep in sync.
 
-Start a new Claude/Codex session after installing or updating so the refreshed skills, commands,
+Restart Claude/Codex after installing or updating so the refreshed skills, commands,
 and compiled cross-plugin relationship are loaded. Do not append a local cachebuster suffix
 (a throwaway branch ref, a `?v=` query string, a re-cloned temp path) to force a refresh for a
 published release — resolve through the named `rhize-plugins` marketplace entry and the update
