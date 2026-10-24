@@ -39,7 +39,7 @@ Directories with `trigger_evals.json` or `quality_evals.json` are auto-discovere
 harness. Other components deliberately use offline runners with component-specific schemas so they
 cannot be swept into a paid model run by accident.
 
-The offline coverage gates account for all 68 currently published Rhize plugin skills. That is a
+The offline coverage gates account for all 69 current Rhize plugin skills. That is a
 coverage statement, not a benefit claim: most live and controlled Arm A/Arm B cohorts are still
 pending, and every checked-in benchmark contract says so explicitly.
 
@@ -196,6 +196,15 @@ Results are saved to `evals/results/`:
 | `has_data` | number | At least N concrete data points (numbers, percentages, URLs, scores) |
 
 ## Suites
+
+### graph-workflow-builder
+
+Three cross-domain fixture tasks and independent final-state oracles cover research/content,
+software repair and operational reconciliation. The benchmark contract separates authoring,
+bounded dynamic expansion and frozen-plan scheduler comparisons. Model and judge calls must
+use a qualified native subscription harness; results remain pending until matched trials run.
+See [the suite](graph-workflow-builder/README.md). Static routing/schema checks and native
+worktree qualification are separate from task benefit.
 
 ### business-premortem
 

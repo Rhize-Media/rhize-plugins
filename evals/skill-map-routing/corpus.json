@@ -1,7 +1,7 @@
 {
  "counts": {
-  "eval:neg": 112,
-  "eval:pos": 74,
+  "eval:neg": 114,
+  "eval:pos": 75,
   "probe:pos": 17
  },
  "rows": [
@@ -1516,6 +1516,33 @@
    "should_trigger": false,
    "source": "evals/procedural-memory/skill-evals.json",
    "target": "skill:procedural-memory/rhize-content-engine"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/graph-build-positive",
+   "prompt": "Build a reusable graph workflow with bounded dynamic research workers and named completion gates.",
+   "should_trigger": true,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/graph-workflow-builder"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/graph-knowledge-negative@graph-workflow-builder",
+   "prompt": "Explain the difference between a knowledge graph and an execution DAG in two sentences; explanation only, no tools.",
+   "should_trigger": false,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/graph-workflow-builder"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/graph-simple-negative@graph-workflow-builder",
+   "prompt": "Give a one-line command to count lines; do not invoke graph-workflow-builder.",
+   "should_trigger": false,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/graph-workflow-builder"
   },
   {
    "authored": "eval",

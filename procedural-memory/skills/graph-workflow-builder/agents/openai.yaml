@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph Workflow Builder"
+  short_description: "Build checked workflows with bounded dynamic workers"
+  default_prompt: "Use $graph-workflow-builder to define the goal and finished criteria, build the smallest validated graph, and execute only if I requested a run."

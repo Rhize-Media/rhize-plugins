@@ -1,5 +1,13 @@
 # procedural-memory eval suite
 
+Graph workflow builder cases add a build-only dynamic contract and two routing negatives.
+Their schema validation is local; it does not establish native task quality or subscription
+billing. The historical command below includes metered cost controls: under a subscription-only
+request, do not run it until both run and judge modes are verified. Use the separate
+[cross-domain fixtures and outcome oracles](../../evals/graph-workflow-builder/README.md)
+with qualified native subscription sessions instead. Authoring, dynamic expansion and scheduler
+benefit are separate comparisons; no uplift is claimed from text contracts or one fixture run.
+
 ## Status: harness enabled, suite runs for real (since 2026-09-14)
 
 `claude plugin eval` is **enabled for this organization**: measured 2026-09-14 on Claude Code

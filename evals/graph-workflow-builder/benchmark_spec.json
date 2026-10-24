@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "pending",
+  "billing": "subscription_only",
+  "repetitions_per_task_arm": 3,
+  "tasks": [
+    "research",
+    "software",
+    "reconciliation"
+  ],
+  "comparisons": [
+    "authoring_with_without_builder",
+    "fixed_vs_discovered_membership",
+    "frozen_plan_serial_vs_parallel"
+  ],
+  "must_match": [
+    "task_inputs",
+    "executor_model",
+    "final_oracles",
+    "authority",
+    "deadline",
+    "source_bindings"
+  ],
+  "metrics": [
+    "objective_correctness",
+    "rubric_quality",
+    "verification_completion",
+    "required_children_coverage",
+    "rejected_invalid_expansions",
+    "wall_ms_end_to_end",
+    "tokens_by_exposed_category",
+    "orchestration_overhead",
+    "tool_calls",
+    "rework",
+    "failures",
+    "refusals",
+    "capture_cleanup_completion"
+  ],
+  "unknown_measurements": null,
+  "results": []
+}

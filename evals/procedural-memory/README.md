@@ -1,8 +1,8 @@
 # Procedural-memory deterministic evaluations
 
 The existing `procedural-memory/evals/` suite remains the canonical agent-eval suite; native runs became available
-in September 2026. See that directory's README for version-stamped results and sandbox limits. This directory adds a free local collision contract for three discovered skills:
-`procedural-memory`, `functionize` and `rhize-content-engine`. The new skill cases check explicit
+in September 2026. See that directory's README for version-stamped results and sandbox limits. This directory adds a free local collision contract for four discovered skills:
+`procedural-memory`, `functionize`, `rhize-content-engine` and `graph-workflow-builder`. The new skill cases check explicit
 name collisions only; they do not classify general task intent or replace the task-agent decision.
 
 ```bash
@@ -17,3 +17,9 @@ review evidence. The five reader-focus contracts fail on the prior skill and pas
 instructions; they do not judge generated prose or establish future compliance. These checks do
 not run an artifact, read real shell history, compile a proposal, or claim natural agent-trigger
 accuracy.
+
+The graph builder adds build-only authority, dynamic admission, checked completion and
+subscription/worktree contracts. Cross-domain outcome oracles and the separate authoring,
+expansion and scheduler benchmark plan live in [graph-workflow-builder](../graph-workflow-builder/README.md).
+The native plugin-eval billing path is not assumed subscription-backed; do not run model or
+judge calls there under a subscription-only request until that mode is verified.

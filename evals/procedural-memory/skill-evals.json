@@ -84,6 +84,60 @@
         {"id": "derivative-reader-focus", "patterns": ["derivative", "same reader intent", "platform"]},
         {"id": "coordinator-editorial-gate", "patterns": ["every variant", "revise/hold", "graph.*schemas", "editorial-review.md", "validation-stage evidence", "partial/failed completion, never completed"]}
       ]
+    },
+    {
+      "id": "graph-workflow-builder",
+      "source": "procedural-memory/skills/graph-workflow-builder/SKILL.md",
+      "include_patterns": [
+        "build (?:a )?(?:reusable )?(?:graph workflow|execution graph)",
+        "use graph-workflow-builder"
+      ],
+      "exclude_patterns": [
+        "do not (?:invoke|build)",
+        "knowledge graph"
+      ],
+      "positive_cases": [
+        "graph-build-positive"
+      ],
+      "negative_cases": [
+        "graph-knowledge-negative",
+        "graph-simple-negative"
+      ],
+      "quality_contracts": [
+        {
+          "id": "build-boundary",
+          "patterns": [
+            "Builds and validates by default",
+            "build-only request stops here",
+            "Never add"
+          ]
+        },
+        {
+          "id": "dynamic-admission",
+          "patterns": [
+            "atomically",
+            "completion barrier",
+            "approved\\s+templates"
+          ]
+        },
+        {
+          "id": "verified-completion",
+          "patterns": [
+            "Missing evidence stays incomplete",
+            "final acceptance gate",
+            "Failed required work blocks dependents"
+          ]
+        },
+        {
+          "id": "subscription-worktrees",
+          "patterns": [
+            "subscription-native",
+            "No metered API fallback",
+            "Every parallel thread gets its own actual Git worktree",
+            "Unknown token usage is null"
+          ]
+        }
+      ]
     }
   ],
   "cases": [
@@ -132,6 +186,23 @@
     {
       "id": "content-explanation-negative",
       "prompt": "Explain what a content engine is in one sentence.",
+      "expected": []
+    },
+    {
+      "id": "graph-build-positive",
+      "prompt": "Build a reusable graph workflow with bounded dynamic research workers and named completion gates.",
+      "expected": [
+        "graph-workflow-builder"
+      ]
+    },
+    {
+      "id": "graph-knowledge-negative",
+      "prompt": "Explain the difference between a knowledge graph and an execution DAG in two sentences; explanation only, no tools.",
+      "expected": []
+    },
+    {
+      "id": "graph-simple-negative",
+      "prompt": "Give a one-line command to count lines; do not invoke graph-workflow-builder.",
       "expected": []
     }
   ]

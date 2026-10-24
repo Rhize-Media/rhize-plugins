@@ -3,7 +3,7 @@
 Covers scripts/build_skill_map.py's parse_router_phrases() validation (the
 accepted shape plus every BuildError case), build_router_index()'s weight-2
 `phrase` signal for the declaring skill only, and the committed artifacts
-compiling to the phrases the five name-echo skills declare.
+compiling to the phrases the declaring skills specify.
 """
 from __future__ import annotations
 
@@ -113,6 +113,7 @@ def test_router_index_is_deterministic_regardless_of_phrase_order():
 # --- committed artifacts ---------------------------------------------------
 
 EXPECTED = {
+    "skill:procedural-memory/graph-workflow-builder": ["build graph workflow", "completion gates"],
     "skill:rhize-devflow/credential-access": ["keychain access", "keychain credentials", "stored credentials"],
     "skill:obsidian-second-brain/defuddle": ["web clipping"],
     "skill:rhize-devflow/sanity-development": ["cms development"],

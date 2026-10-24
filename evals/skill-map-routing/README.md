@@ -66,10 +66,14 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
 
 ## Committed artifacts
 
-- `baseline.json`, `inferred_baseline.json`: the harness run against unmodified `main` at
-  the credential-skill corpus refresh (commit `6203848`). All 279 pre-existing
-  rows retain their prior control routing records; only four credential cases were added.
-  This is a deterministic development fixture, not pilot or task-benefit evidence.
+- `baseline.json`: the 286-row corpus run against an immutable, unmodified source snapshot
+  of `369627dc84943991c58308e66690e92494833da3` (2026-10-23). Three graph-builder cases were
+  added. Of the 283 previous rows, 281 control predictions are unchanged; the two credential
+  positives now reach `credential-access` in current main. Those upstream gains are separate
+  from this feature. Candidate versus current control changes only the new builder positive
+  from silent to hit; both added negatives stay silent. Thresholds are unchanged.
+  `inferred_baseline.json` is byte-identical to the prior credential refresh (`6203848`).
+  These are deterministic development fixtures, not pilot or task-benefit evidence.
   Refresh with `run.py --checkout <unmodified-control>` and copy
   `out/results.json` and `out/inferred_signals.json`.
 - `corpus.json`: the corpus as built from the repo, for review; `run.py` rebuilds it.
@@ -108,6 +112,11 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
 6. **Not modelled:** the hook's workflow-selection bridge, the typed shadow decision, the
    map-scanning fallback (`route()`), and per-session suppression. Only `routeFromIndex`
    (including its explicit "use X" handling and extends tie-break) is exercised.
+7. **Skill-negative and globally silent are different claims.** The native builder suite keeps
+   an Obsidian knowledge-graph question to check semantic selection. The shared static negative
+   asks for a conceptual knowledge-graph/execution-DAG explanation without an Obsidian action
+   context: this harness gates suggestions to *any other plugin*, including existing Graphify.
+   Neither static keyword routing nor authored positive gains prove native task quality.
 
 ## Results history (2026-10-10)
 

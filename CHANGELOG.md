@@ -35,6 +35,10 @@ point-in-time record.
 
 ### Added
 
+- Core/Ops evaluation setup now discovers graph-workflow-builder and its manual benchmark; all 69 published skills are covered without starting model trials or capture.
+- _2026-10-23_ version bump — **rhize-ops** 0.33.0 → 0.33.1 (patch); marketplace 2.113.1 → 2.113.2.
+- _2026-10-23_ version bump — **rhize-core** 1.0.9 → 1.0.10 (patch); marketplace 2.113.0 → 2.113.1.
+- _2026-10-23_ version bump — **procedural-memory** 0.9.2 → 0.10.0 (minor); marketplace 2.112.4 → 2.113.0.
 - _2026-10-23_ version bump — **rhize-devflow** 2.30.1 → 2.30.2 (patch); marketplace 2.112.3 → 2.112.4.
 - Local qualification repairs the real-crypto interpreter fixture and RSA readiness wait, nonblocking subprocess pipe backpressure, and macOS exited-process cleanup; no installed plugin cache or live decision-mode change.
 - _2026-10-23_ version bump — **rhize-context-manager** 0.49.0 → 0.49.1 (patch); marketplace 2.112.2 → 2.112.3.

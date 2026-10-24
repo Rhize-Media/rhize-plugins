@@ -639,6 +639,12 @@
     {
       "from": "plugin:procedural-memory",
       "source": "marketplace",
+      "to": "skill:procedural-memory/graph-workflow-builder",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
       "to": "skill:procedural-memory/procedural-memory",
       "type": "contains"
     },
@@ -1858,6 +1864,18 @@
       "from": "skill:procedural-memory/functionize",
       "source": "frontmatter",
       "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/graph-workflow-builder",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/graph-workflow-builder",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
     },
     {
@@ -4837,6 +4855,21 @@
       "path": "procedural-memory/skills/functionize/SKILL.md",
       "totalBytes": 10816,
       "treeHash": "08275eb5a897282ea1fc8a2a2d2982b38f9440549dfc7f46ea62c5d5f044ae7a"
+    },
+    {
+      "contentHash": "284a380b7068cfcb5c3840875168b3f62d5f5b0dbb640d0912fdf348740c6058",
+      "description": "Build or revise a reusable execution graph with explicit completion checks, bounded dynamic task expansion, and worktree-isolated parallel workers. Use for requests to design a graph workflow, convert a multi-step goal into an executable workflow, or repair its dependencies and done criteria. Builds and validates by default; runs only when requested. Does not build knowledge graphs over notes or replace a simple one-step command.",
+      "fileCount": 7,
+      "id": "skill:procedural-memory/graph-workflow-builder",
+      "kind": "skill",
+      "name": "graph-workflow-builder",
+      "path": "procedural-memory/skills/graph-workflow-builder/SKILL.md",
+      "routerPhrases": [
+        "build graph workflow",
+        "completion gates"
+      ],
+      "totalBytes": 22646,
+      "treeHash": "86af5865daac9c2505dd6c0d2669290e9b47da076c3e39e4cbf8c2e3658f8bc4"
     },
     {
       "contentHash": "0bffebb5f4e242359345eb48220337716efe7b4d554584aba61d0cf961c530b7",

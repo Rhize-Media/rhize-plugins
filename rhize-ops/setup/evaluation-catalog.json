@@ -68,12 +68,12 @@
       "id": "procedural-memory",
       "kind": "plugin",
       "domain": "knowledge-context",
-      "skills": ["functionize", "procedural-memory", "rhize-content-engine"],
+      "skills": ["functionize", "graph-workflow-builder", "procedural-memory", "rhize-content-engine"],
       "suites": [
         {"id": "procedural-memory-local", "kind": "python", "path": "evals/procedural-memory/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true},
         {"id": "procedural-memory-portable-schema", "kind": "python", "path": "procedural-memory/evals/validate-suite.py", "args": [], "cwd": "procedural-memory", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}
       ],
-      "benchmarks": [{"id": "procedural-existing-vs-registry", "protocol": "evals/procedural-memory/benchmark_spec.json", "arm_a": "user-confirmed existing repeated workflow", "arm_b": "procedural-memory", "natural_capture_eligible": true}]
+      "benchmarks": [{"id": "procedural-existing-vs-registry", "protocol": "evals/procedural-memory/benchmark_spec.json", "arm_a": "user-confirmed existing repeated workflow", "arm_b": "procedural-memory", "natural_capture_eligible": true}, {"id": "graph-workflow-authoring-v1", "protocol": "evals/graph-workflow-builder/benchmark_spec.json", "arm_a": "user-confirmed existing authoring without the builder", "arm_b": "graph-workflow-builder on the same goal and acceptance checks", "natural_capture_eligible": false}]
     },
     {
       "id": "rhize-ops",

@@ -9,7 +9,7 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### rhize-core
 
-Version 1.0.9. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
+Version 1.0.10. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
 
 [README](../rhize-core/README.md) · [GUIDE](../rhize-core/GUIDE.md) · [0 skills](../generated/SKILL-CATALOG.md#rhize-core)
 
@@ -45,7 +45,7 @@ Version 0.49.1. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.33.0. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
+Version 0.33.1. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [5 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
@@ -63,9 +63,9 @@ Version 0.2.3. Sets up the starter files describing a new Cowork client's busine
 
 ### procedural-memory
 
-Version 0.9.2. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
+Version 0.10.0. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
 
-[README](../procedural-memory/README.md) · [GUIDE](../procedural-memory/GUIDE.md) · [3 skills](../generated/SKILL-CATALOG.md#procedural-memory)
+[README](../procedural-memory/README.md) · [GUIDE](../procedural-memory/GUIDE.md) · [4 skills](../generated/SKILL-CATALOG.md#procedural-memory)
 
 ### rhize-outreach
 

@@ -17,6 +17,7 @@ def test_codex_manifest_discovers_the_shared_skill() -> None:
     assert codex["skills"] == "./skills/"
     assert (PLUGIN / "skills/procedural-memory/agents/openai.yaml").is_file()
     assert (PLUGIN / "skills/functionize/agents/openai.yaml").is_file()
+    assert (PLUGIN / "skills/graph-workflow-builder/agents/openai.yaml").is_file()
 
 
 def test_shared_skill_uses_a_self_relative_launcher() -> None:

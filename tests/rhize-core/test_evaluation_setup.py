@@ -60,8 +60,12 @@ def test_catalog_covers_every_skill_and_groups_obsidian_with_context() -> None:
     completed = run_cli("validate", "--repo-root", str(REPO))
     assert completed.returncode == 0, completed.stdout + completed.stderr
     result = json.loads(completed.stdout)
-    assert result["plugin_skills"] == 68
+    assert result["plugin_skills"] == 69
     assert result["components"] == 13
+    procedural = next(c for c in evaluation_setup.validate_catalog(REPO)["components"] if c["id"] == "procedural-memory")
+    assert "graph-workflow-builder" in procedural["skills"]
+    benchmark = next(b for b in procedural["benchmarks"] if b["id"] == "graph-workflow-authoring-v1")
+    assert benchmark["natural_capture_eligible"] is False
     assert result["domains"]["knowledge-context"] == [
         "obsidian-second-brain", "rhize-context-manager", "procedural-memory"
     ]

@@ -2,6 +2,53 @@
 
 ## Verified facts
 
+- 2026-10-24: Runtime source PR #22 merged as fb887358de0b7d758d9fbacca042723bd4b6c8d4
+  after signed correction `1711b6a` passed exact-head portable CI. Three real-macOS lifecycle
+  cases received only their missing platform markers; production bytes retain the 1,436-test
+  macOS qualification, and all five CLI cases passed again on the actual sandbox.
+  Final coordinated plugin contracts pass 840 Dev Flow tests, 418 consumer checks with two
+  existing parity skips, 117 Core/coverage checks and all required map/setup/config/version
+  checks. This checkpoint changes state prose only. Installed activation, additional-host
+  fault qualification and matched task benefit remain separate and unverified.
+  Lesson: mark real platform dependencies explicitly while retaining real-host acceptance.
+
+- 2026-10-23: Graph workflow builder adds build-only validation, subscription-native host
+  handoffs, actual per-thread worktrees, bounded atomic dynamic expansion, sealed required-child
+  barriers, checked integration, recovery and private/aggregate telemetry separation. Explicit
+  objective evidence and rubric thresholds control completion; current decision authority stays.
+  Companion runtime frozen-source macOS acceptance passes 1,436 tests/10 subtests; two real
+  native worker threads passed isolated checkpoints, combined output checks and safe cleanup.
+  This is source/observational evidence; serving backend identity and complete usage are unknown.
+  The first runtime portable CI exposed three real-macOS lifecycle tests incorrectly classified
+  as portable; only those three platform markers were corrected. All five CLI cases pass on
+  the real macOS sandbox again, with every assertion/guard retained.
+- Required plugin release qualification passes 840 Dev Flow tests, all seven impact-map contracts,
+  config lint and map/setup freshness. Strict manifests pass for root/all 12 plugins; doctor is
+  healthy and docs regeneration is idempotent. Affected suites passed 425 checks with one exact
+  phrase inventory failure; the corrected mirror then passes all 20 phrase checks. Two existing
+  parity skips apply to project-launcher/rhize-cowork, which lack Codex manifests. All 15 native
+  eval case schemas and four-skill/18 static contracts pass; these do not prove model quality.
+- Shared routing corpus refresh uses immutable unmodified 369627d control on 286 rows. The new
+  builder positive alone changes to a hit; added negatives remain silent. All 283 prior row IDs
+  remain; two credential gains already in current main are attributed upstream. Third-party
+  inference and every threshold are unchanged. Lessons: update the shared corpus and exact
+  declarative inventories when adding a skill; distinguish native nonselection from global
+  static silence. The fuller native Obsidian knowledge negative is preserved.
+- Shared evaluation setup initially rejected the fourth Procedural Memory skill because its
+  Core/Ops catalog and exact published total still covered 68. Reproduced the failure, then
+  synchronized both catalog/validator mirrors and their 69-skill test. All 117 Core/coverage
+  checks pass. The authoring benchmark is manual with natural capture disabled; a pre-existing
+  component-level registry baseline cannot confirm this distinct comparison. Core1.0.10 and
+  Ops0.33.1 patch bumps use the normal helper; marketplace candidate is now2.113.2. No setup,
+  baseline, capture or model trial was executed. Final-ref release validation remains required.
+- Cold coordinator self-review covered scope, trust/lifecycle callers, frozen execution,
+  dynamic joins, reconciliation, independent final-state oracles and protected files. It caught
+  a research oracle accepting numeric 1 as JSON true; reproduced and fixed with a rejecting check.
+  Existing JSON formatting was preserved. No installed update, registry approval, schedule or
+  authority change occurred. Additional-host fault behavior, calibrated matched benefit and
+  installed activation remain unqualified; unknown usage and subscription USD stay null.
+
+
 - 2026-10-23: Required qualification exposed an existing forked-cleanup fixture assuming
   a real Python child and descendant would write their PID file within the operation's
   .5-second deadline. A deliberate .75-second startup reproduced the missing-file failure.
