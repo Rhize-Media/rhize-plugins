@@ -28,6 +28,16 @@ python3 evals/typed-decision/research.py --phase search \
 
 The search phase evaluates train and validation only, ranks candidates first by fewer critical misses, then higher accuracy, then lower abstention, and appends every keep/discard result. Inspect all strata, Brier diagnostics where defined, latency and token usage; the provisional rank is not a release decision. Select and freeze exactly one kept candidate, put it alone in a candidate file, then run holdout once using the digest printed by search:
 
+The pilot coordinator retains `evaluator-failure.json` when its search child exits nonzero
+or exceeds its deadline. The private write-once receipt binds the run ID, exit code, output
+byte counts and SHA-256 fingerprints. Its status receipt records the diagnostic file hash.
+Allowlisted final traceback patterns provide best-effort exception/HTTP metadata and distinguish
+busy (429/503), timeout, invalid and unavailable failures; unrecognized output stays unknown.
+Raw stdout, stderr, request text and traceback paths are never copied into this receipt.
+Partial candidate results remain evidence of an incomplete search, never a selected winner.
+Failed and interrupted searches are preserved without automatic replay. Diagnostics do not
+raise a caller deadline, retry inference, clear a coverage hold or authorize promotion.
+
 ```sh
 python3 evals/typed-decision/research.py --phase holdout \
   --manifest /private/path/new-split/manifest.json \

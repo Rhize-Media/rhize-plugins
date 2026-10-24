@@ -51,6 +51,32 @@ def private_write(path, value):
         json.dump(value, stream, sort_keys=True, indent=2)
 
 
+def evaluator_failure(run_dir, completed):
+    """Keep fingerprints and allowlisted exception metadata, never child output text."""
+    evidence = {'schema': 'rhize-research-child-failure-v1', 'runId': run_dir.name,
+                'exitCode': getattr(completed, 'returncode', None)}
+    tail = ''
+    for stream in ('stdout', 'stderr'):
+        raw = getattr(completed, stream, None)
+        if isinstance(raw, str):
+            raw = raw.encode('utf-8', errors='replace')
+        evidence[stream + 'Sha256'] = digest(raw) if isinstance(raw, bytes) else None
+        evidence[stream + 'Bytes'] = len(raw) if isinstance(raw, bytes) else None
+        if stream == 'stderr' and raw:
+            tail = raw[-4096:].decode('utf-8', errors='replace').splitlines()[-1]
+    match = re.match(r'^(?:urllib\.error\.)?(HTTPError|URLError|TimeoutError|OSError|ValueError|KeyError|TypeError):', tail)
+    error = 'TimeoutExpired' if isinstance(completed, subprocess.TimeoutExpired) else match[1] if match else None
+    http = re.match(r'^urllib\.error\.HTTPError: HTTP Error ([1-5][0-9]{2}):', tail)
+    code = int(http[1]) if http else None
+    category = ('timeout' if error in ('TimeoutExpired', 'TimeoutError') else
+                'busy' if code in (429, 503) else
+                'invalid' if error in ('ValueError', 'KeyError', 'TypeError') else 'unavailable')
+    details = {'category': category, 'exceptionType': error, 'httpStatus': code}
+    path = run_dir / 'evaluator-failure.json'
+    private_write(path, {**evidence, **details})
+    return {**details, 'file': path.name, 'sha256': digest(path.read_bytes())}
+
+
 def legacy_cycle(root, receipts, research_root, minimum=200, deadline=180, run=subprocess.run):
     if minimum < 20 or minimum > 10000 or not 1 <= deadline <= 1800:
         raise ValueError('invalid research bounds')
@@ -103,7 +129,8 @@ def legacy_cycle(root, receipts, research_root, minimum=200, deadline=180, run=s
             started = time.monotonic()
             completed = run(command, capture_output=True, text=True, timeout=deadline)
             if completed.returncode:
-                return finish({**state, 'status': 'failed', 'reason': 'evaluator_failed', 'exitCode': completed.returncode})
+                return finish({**state, 'status': 'failed', 'reason': 'evaluator_failed',
+                               'exitCode': completed.returncode, 'diagnostics': evaluator_failure(run_dir, completed)})
             if digest(evaluator.read_bytes() + evaluator.with_name('measurement.py').read_bytes()) != evaluator_hash:
                 raise ValueError('evaluator changed during search')
             ledger = module.read_ledger(run_dir / 'ledger.jsonl')
@@ -118,7 +145,9 @@ def legacy_cycle(root, receipts, research_root, minimum=200, deadline=180, run=s
                            'releaseEligible': manifest['release_eligible'], 'holdout': 'not_run', 'promotion': 'not_performed',
                            'wallMs': round((time.monotonic() - started) * 1000)})
         except (OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired) as exc:
-            return finish({**state, 'status': 'failed', 'reason': type(exc).__name__})
+            return finish({**state, 'status': 'failed', 'reason': type(exc).__name__,
+                           **({'diagnostics': evaluator_failure(run_dir, exc)}
+                              if isinstance(exc, subprocess.TimeoutExpired) else {})})
 
 
 GROUP_PATTERN = re.compile(r'(session|parent|task|input|template|prompt):[0-9a-f]{64}\Z')
@@ -547,7 +576,8 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
             started = time.monotonic()
             completed = run(command, capture_output=True, text=True, timeout=deadline)
             if completed.returncode:
-                return finish({**state, 'status': 'failed', 'reason': 'evaluator_failed', 'exitCode': completed.returncode})
+                return finish({**state, 'status': 'failed', 'reason': 'evaluator_failed',
+                               'exitCode': completed.returncode, 'diagnostics': evaluator_failure(run_dir, completed)})
             if legacy_manifest_fingerprint(research_root) != legacy_sha:
                 raise ValueError('legacy_metadata_changed_during_search')
             check_sources()
@@ -591,7 +621,9 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
                 return finish({**state, 'status': 'held', 'reason': reason})
             return finish({**state, 'status': 'failed', 'reason': 'ValueError'})
         except (OSError, KeyError, TypeError, StopIteration, subprocess.TimeoutExpired) as exc:
-            return finish({**state, 'status': 'failed', 'reason': type(exc).__name__})
+            return finish({**state, 'status': 'failed', 'reason': type(exc).__name__,
+                           **({'diagnostics': evaluator_failure(run_dir, exc)}
+                              if isinstance(exc, subprocess.TimeoutExpired) else {})})
 
 
 def main():

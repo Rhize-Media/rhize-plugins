@@ -48,6 +48,16 @@
   authority change occurred. Additional-host fault behavior, calibrated matched benefit and
   installed activation remain unqualified; unknown usage and subscription USD stay null.
 
+- 2026-10-24: The workflow research coordinator discarded a failed child's stderr,
+  leaving only evaluator_failed/exit1. Synthetic child HTTP503, timeout and invalid-output
+  tracebacks reproduced the missing diagnostic artifact before the fix. Failed and timed-out
+  searches now preserve a private write-once receipt with output fingerprints and allowlisted
+  exception/HTTP metadata; unknown details stay unknown and raw output is omitted. The parent
+  status binds the receipt hash. Neither partial candidate rows nor diagnostics can turn a
+  failed search into a winner or permit a replay, promotion or mode change. The actual old
+  exception is unrecoverable; this repair does not establish native latency recovery.
+  Lesson: preserve bounded child-failure evidence at the subprocess boundary without retaining
+  request-bearing exception text, and never infer a historical cause from a synthetic reproduction.
 
 - 2026-10-23: Required qualification exposed an existing forked-cleanup fixture assuming
   a real Python child and descendant would write their PID file within the operation's
