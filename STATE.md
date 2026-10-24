@@ -2,6 +2,16 @@
 
 ## Verified facts
 
+- 2026-10-24: Runtime source PR #22 merged as fb887358de0b7d758d9fbacca042723bd4b6c8d4
+  after signed correction `1711b6a` passed exact-head portable CI. Three real-macOS lifecycle
+  cases received only their missing platform markers; production bytes retain the 1,436-test
+  macOS qualification, and all five CLI cases passed again on the actual sandbox.
+  Final coordinated plugin contracts pass 840 Dev Flow tests, 418 consumer checks with two
+  existing parity skips, 117 Core/coverage checks and all required map/setup/config/version
+  checks. This checkpoint changes state prose only. Installed activation, additional-host
+  fault qualification and matched task benefit remain separate and unverified.
+  Lesson: mark real platform dependencies explicitly while retaining real-host acceptance.
+
 - 2026-10-23: Graph workflow builder adds build-only validation, subscription-native host
   handoffs, actual per-thread worktrees, bounded atomic dynamic expansion, sealed required-child
   barriers, checked integration, recovery and private/aggregate telemetry separation. Explicit
