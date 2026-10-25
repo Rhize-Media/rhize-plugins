@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-25_ version bump — **rhize-devflow** 2.30.2 → 2.30.3 (patch); marketplace 2.113.2 → 2.113.3.
 - Core/Ops evaluation setup now discovers graph-workflow-builder and its manual benchmark; all 69 published skills are covered without starting model trials or capture.
 - _2026-10-23_ version bump — **rhize-ops** 0.33.0 → 0.33.1 (patch); marketplace 2.113.1 → 2.113.2.
 - _2026-10-23_ version bump — **rhize-core** 1.0.9 → 1.0.10 (patch); marketplace 2.113.0 → 2.113.1.

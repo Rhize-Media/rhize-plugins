@@ -234,6 +234,58 @@ def test_interrupted_attempt_never_replayed(tmp_path, monkeypatch):
     assert result['status'] == 'unchanged' and result['previous']['status'] == 'interrupted'
 
 
+@pytest.mark.parametrize('failure,category,error_type,http_status', [
+    ("raise urllib.error.HTTPError('http://127.0.0.1:9/private', 503, 'private secret', {}, None)",
+     'busy', 'HTTPError', 503),
+    ("raise TimeoutError('private secret')", 'timeout', 'TimeoutError', None),
+    ("raise ValueError('private secret')", 'invalid', 'ValueError', None),
+    ("raise RuntimeError('private secret')", 'unavailable', None, None),
+])
+def test_search_failure_retains_safe_child_evidence_without_replay(
+        tmp_path, monkeypatch, failure, category, error_type, http_status):
+    import subprocess, sys
+    corpus(monkeypatch, [case(i) for i in range(40)])
+    calls = []
+    def run(command, **kwargs):
+        calls.append(command)
+        return subprocess.run([sys.executable, '-c',
+                               "import urllib.error; print('private request'); " + failure],
+                              **kwargs)
+    result = run_cycle(tmp_path, run=run, shadow_only=True)
+    assert result['status'] == 'failed' and result['exitCode'] == 1
+    details = result['diagnostics']
+    assert details['category'] == category and details['exceptionType'] == error_type
+    assert details['httpStatus'] == http_status
+    directory = tmp_path/'research'/cycle.COHORT/result['runId']
+    path = directory/details['file']
+    evidence = json.loads(path.read_text())
+    assert details['sha256'] == cycle.digest(path.read_bytes())
+    assert evidence['runId'] == result['runId']
+    assert len(evidence['stdoutSha256']) == len(evidence['stderrSha256']) == 64
+    assert evidence['stdoutBytes'] > 0 and evidence['stderrBytes'] > 0
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert not (directory/'frozen-candidate.json').exists()
+    assert 'private' not in json.dumps(result) + path.read_text()
+    second = run_cycle(tmp_path, run=run, shadow_only=True)
+    assert second['status'] == 'unchanged' and len(calls) == 1
+    assert registry_state(tmp_path) is None and ledger_events(tmp_path) == []
+
+
+def test_search_deadline_preserves_partial_output_fingerprints(tmp_path, monkeypatch):
+    import subprocess
+    corpus(monkeypatch, [case(i) for i in range(40)])
+    def run(*args, **kwargs):
+        raise subprocess.TimeoutExpired('private command', 1, output=b'partial private output',
+                                        stderr=b'partial private error')
+    result = run_cycle(tmp_path, run=run, shadow_only=True)
+    assert result['status'] == 'failed' and result['reason'] == 'TimeoutExpired'
+    assert result['diagnostics']['category'] == 'timeout'
+    path = tmp_path/'research'/cycle.COHORT/result['runId']/result['diagnostics']['file']
+    evidence = json.loads(path.read_text())
+    assert evidence['exitCode'] is None and evidence['stdoutBytes'] == 22
+    assert 'private' not in json.dumps(result) + path.read_text()
+
+
 def test_v3_uses_shared_choice_decoder_mask_and_abstention():
     row = case(0)
     def provider(_):
