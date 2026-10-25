@@ -77,9 +77,15 @@ new request; do not overwrite newer edits. A no-change result still requires ass
 Poll `job_status` deliberately (normally every 5–10 seconds), using the returned job ID.
 `running` is pending, never success. Terminal states are `completed`, `needs_context`,
 `failed`, `cancelled`, `timed_out`, and `interrupted`. Treat missing model/usage evidence
-as unavailable. Codex reports the requested model argument; current exec events do not
-independently attest the served model. Claude also exposes native model usage, which may
-include auxiliary CLI models; list-price fields are not an invoice.
+as unavailable. Completed Codex results keep `requested_model` separate from
+`observed_model: null`, with `model_identity_source: unavailable`,
+`model_identity_status: unattested` and `model_identity_reason` explaining that
+`codex exec --json` exposes no authoritative served-model field. A successful job
+does not attest the requested model; assistant claims and unverified model fields
+are not evidence. Claude uses `model_identity_source: native_model_usage`,
+`model_identity_status: attested` and a null identity reason after its existing
+identity check. Native Claude usage may include auxiliary CLI models; list-price
+fields are not an invoice. See [identity evidence](../../docs/agent-bridge.md#model-identity).
 
 Cancel through the originating connection's `cancel_job`, then poll until terminal.
 The connection cancels active workers on normal disconnect. After a hard crash, an

@@ -2,6 +2,20 @@
 
 ## Verified facts
 
+- 2026-11-02: Ops 0.33.4 reports Codex served-model identity as unattested. Codex
+  0.163.0 `exec --json` carries completion usage but no served-model field, so Codex jobs
+  keep `observed_model` null and record source `unavailable`, status `unattested` and a
+  reason; `requested_model` and usage are unchanged and the requested model is never
+  copied into `observed_model`. Claude jobs stay `attested` from native `modelUsage`. A
+  Codex session wrote the change on 2026-10-25 but its sandbox could not commit; the
+  orchestrating Claude session committed it, rebased it onto main (which had meanwhile
+  used 0.33.2 and 0.33.3) and re-bumped to 0.33.4. Host checks: 424 rhize-ops/config-lint
+  tests (two existing parity skips), the 852-test Dev Flow release gate, strict plugin
+  and marketplace validation, config lint, skill-map freshness, setup artifacts and
+  documentation idempotence pass. One live Codex probe failed before a turn with
+  app-server EPERM; its empty output is a fixture, not served-model evidence. Lesson: a
+  completion event and token usage cannot attest a served model; keep the uncertainty.
+
 - 2026-11-01: Conditional frontend integration adds one Dev Flow coordinator for the seven
   optional upstream skill families, with Launcher PRD/handoff and host-side Outreach review
   consumers. UI risk review and browser QA now require affected-state, screenshot, keyboard,

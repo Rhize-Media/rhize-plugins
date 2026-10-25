@@ -71,6 +71,49 @@ identity mismatch and out-of-scope edits fail the job. Task tests always belong 
 coordinator. Exact file hashes bind the source state including uncommitted edits.
 Review findings and patch contents remain untrusted suggestions.
 
+## Model identity
+
+New completed review/task results (and valid `needs_context` answers) expose these
+`job_status` fields. Previously saved jobs retain their original metadata.
+
+| Field | Meaning |
+| --- | --- |
+| `requested_model` | The explicit native CLI model argument. |
+| `observed_model` | The model attested by native output, or null when unavailable. Never copied from the argument or assistant prose. |
+| `model_identity_source` | `native_model_usage` for validated Claude usage; `unavailable` for Codex. |
+| `model_identity_status` | `attested` for validated Claude identity; `unattested` for Codex. |
+| `model_identity_reason` | Null for attested identity; otherwise explains that `codex exec --json` exposes no authoritative served model field. |
+| `usage` | Native token/model usage when reported, independently of model attestation. |
+
+Codex identity remains unattested even when the requested model appears in assistant
+text or an unverified event field. A requested/served mismatch cannot be established
+without authoritative evidence. Claude retains its existing failure on missing or
+mismatched native model usage, including canonical-model matching; auxiliary usage
+entries are not selected as the serving model. Failure/cancellation results may lack
+identity metadata when parsing never completed. Completion and identity are separate.
+
+On 2026-10-25, the installed CLI reported version 0.163.0. Its first-party tagged
+[exec event schema](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/exec/src/exec_events.rs)
+defines `thread.started` with only a thread ID, `turn.started` with no fields and
+`turn.completed` with only usage. The corresponding
+[JSONL processor](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/exec/src/event_processor_with_jsonl_output.rs)
+discards `ModelVerification` notifications. It renders reroutes as error items,
+which the bridge's existing unexpected-item guard rejects; these are not completion
+attestations. The [official JSONL example](https://learn.chatgpt.com/docs/non-interactive-mode#make-output-machine-readable)
+also reports completion usage without a served model. `--ephemeral` suppresses
+session rollout persistence; configured/session model names alone do not prove service.
+
+The single authorized live probe used the bridge's exact `worker_command`, requested
+`gpt-6.1-sol` at low effort and asked only for an OK summary. It exited 1 before a
+turn because in-process app-server initialization was denied by the host sandbox
+(`Operation not permitted`). No JSON events were emitted, and no probe was retried.
+[`codex-exec-0.163.0-probe.json`](../../tests/rhize-ops/fixtures/codex-exec-0.163.0-probe.json)
+preserves the raw empty stdout, stderr and exit code without sensitive data. This is
+a failed-probe fixture, not a live completed-event capture. Completion regressions
+use synthetic events matching the first-party schema. Positive Codex attestation and
+an attested Codex mismatch remain unverified/unsupported until an authoritative
+same-run source is exposed; no hypothetical event parser is added.
+
 ## Failures and private data
 
 State is local under `~/.rhize/agent-bridge` (override `--state-dir`). Directories must

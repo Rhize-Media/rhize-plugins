@@ -1,0 +1,9 @@
+{
+  "cli_version": "0.163.0",
+  "requested_model": "gpt-6.1-sol",
+  "command_source": "worker_command with effort low and the bridge answer schema",
+  "prompt": "Reply OK in summary with no findings or changes.",
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)\nError: failed to initialize in-process app-server client: Operation not permitted (os error 1)\n"
+}

@@ -5395,15 +5395,15 @@
       "treeHash": "7eab9eb510c0fe182a5ea78e004cf561a0222dd0971d43a4ebe4dd45fc40f27a"
     },
     {
-      "contentHash": "f4a3f1ee01a5c43510a24260dd5d937422447ef24aac1da31270e151837442bf",
+      "contentHash": "8e74c4560a743cb1890eba61fe00856a229ca935b626b1a4f4c3e29070e759b5",
       "description": "Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Claude Code and Codex. Use when the user asks Claude to consult Codex, Codex to consult Claude, or explicitly authorizes a cross-model review or task. Keep implementation, integration and approval with the coordinating host.",
       "fileCount": 2,
       "id": "skill:rhize-ops/cross-model-handoff",
       "kind": "skill",
       "name": "cross-model-handoff",
       "path": "rhize-ops/skills/cross-model-handoff/SKILL.md",
-      "totalBytes": 5820,
-      "treeHash": "37b2d4f88c43c6e249af7bc02795aef4f3d0a6738345605e75ea0faa12232d3e"
+      "totalBytes": 6295,
+      "treeHash": "810c3d762c7b2fda82dcdc2e3a8c8ba4cff416aef3c3b56b47992f1735211f83"
     },
     {
       "contentHash": "f0c9a4e8089d3ff98093ef57497990178911a12ff10a4c272569c989d0741d76",

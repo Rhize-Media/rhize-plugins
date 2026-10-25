@@ -201,7 +201,10 @@ def parse_native(host, output, model):
     if isinstance(answer, str):
         answer = json.loads(answer)
     return answer, {"requested_model": model, "observed_model": observed, "usage": usage,
-                    "model_identity_source": "native_model_usage" if host == "claude" else "explicit_cli_argument"}
+                    "model_identity_source": "native_model_usage" if host == "claude" else "unavailable",
+                    "model_identity_status": "attested" if observed is not None else "unattested",
+                    "model_identity_reason": None if observed is not None else
+                        "codex exec --json does not expose an authoritative served model field"}
 
 
 def relative_path(value):

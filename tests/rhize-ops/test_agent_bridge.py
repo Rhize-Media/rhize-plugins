@@ -135,6 +135,70 @@ def test_native_failure_identity_and_tools():
             b.parse_native("codex", json.dumps(event), "gpt-5.6-terra")
 
 
+def test_attested_model_match():
+    model = "claude-sonnet-5"
+    output = json.dumps(dict(subtype="success", modelUsage={model: {}}, structured_output=answer()))
+    parsed, metadata = b.parse_native("claude", output, model)
+    assert parsed == answer()
+    assert metadata["requested_model"] == metadata["observed_model"] == model
+    assert metadata["model_identity_source"] == "native_model_usage"
+    assert metadata["model_identity_status"] == "attested"
+    assert metadata["model_identity_reason"] is None
+
+
+@pytest.mark.parametrize("reported_model", [None, "gpt-6.1-sol", "gpt-6.1-luna"],
+                         ids=["missing-field", "unverified-match", "unverified-mismatch"])
+def test_codex_served_model_is_unattested(reported_model):
+    result = answer()
+    result["summary"] = "I am gpt-6.1-sol"
+    completed = {"type": "turn.completed", "usage": {"input_tokens": 10, "output_tokens": 20}}
+    if reported_model is not None:
+        completed["model"] = reported_model
+    output = '\n'.join(map(json.dumps, [
+        {"type": "item.completed", "item": {"type": "agent_message", "text": json.dumps(result)}}, completed]))
+    parsed, metadata = b.parse_native("codex", output, "gpt-6.1-sol")
+    assert parsed == result
+    assert metadata["requested_model"] == "gpt-6.1-sol"
+    assert metadata["observed_model"] is None
+    assert metadata["usage"] == completed["usage"]
+    assert metadata["model_identity_source"] == "unavailable"
+    assert metadata["model_identity_status"] == "unattested"
+    assert "served model" in metadata["model_identity_reason"]
+    assert "codex exec --json" in metadata["model_identity_reason"]
+
+
+def test_review_persists_unattested_model(monkeypatch, tmp_path):
+    monkeypatch.setattr(b, "authenticated", lambda *a: True)
+    output = '\n'.join(map(json.dumps, [
+        {"type": "item.completed", "item": {"type": "agent_message", "text": json.dumps(answer())}},
+        {"type": "turn.completed"}]))
+    monkeypatch.setattr(b, "run_process", lambda *a: (0, output, ""))
+    bridge = b.Bridge(tmp_path.resolve() / "state", "claude", {"codex": "codex"})
+    try:
+        result = wait(bridge, bridge.submit("review", request()))
+        assert result["status"] == "completed"
+        assert result["model_identity_status"] == "unattested"
+        assert result["model_identity_reason"]
+        assert result["observed_model"] is None
+        assert bridge.status(result["job_id"]) == result
+    finally:
+        bridge.close()
+
+
+def test_failed_live_probe_never_becomes_success(monkeypatch, tmp_path):
+    probe = json.loads((Path(__file__).parent / "fixtures/codex-exec-0.163.0-probe.json").read_text())
+    monkeypatch.setattr(b, "authenticated", lambda *a: True)
+    monkeypatch.setattr(b, "run_process", lambda *a: (probe["exit_code"], probe["stdout"], probe["stderr"]))
+    bridge = b.Bridge(tmp_path.resolve() / "state", "claude", {"codex": "codex"})
+    try:
+        result = wait(bridge, bridge.submit("review", request()))
+        assert result["status"] == "failed"
+        assert result["reason"] == "native CLI exited unsuccessfully"
+        assert result.get("observed_model") is None
+    finally:
+        bridge.close()
+
+
 def test_jobs_idempotence_and_isolated_results(monkeypatch, tmp_path, repo):
     calls = []
     monkeypatch.setattr(b, "authenticated", lambda *a: True)
@@ -154,6 +218,9 @@ def test_jobs_idempotence_and_isolated_results(monkeypatch, tmp_path, repo):
         assert other.submit("task", args) == result
         assert len(calls) == 1
         assert result["observed_model"] is None
+        assert result["model_identity_source"] == "unavailable"
+        assert result["model_identity_status"] == "unattested"
+        assert result["model_identity_reason"]
         assert result["source"]["file_hashes"]["math.py"] == b.digest((repo / "math.py").read_bytes())
         assert "a - b" in (repo / "math.py").read_text()
         scope = {}

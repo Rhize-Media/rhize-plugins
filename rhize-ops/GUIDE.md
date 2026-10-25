@@ -69,6 +69,12 @@ The worker cannot run commands or tests. Your coordinating agent checks the find
 patch, tests it, and integrates it within the authorization you already gave. Missing
 context or a failed worker is surfaced; it never silently switches models or API billing.
 
+Codex's current JSON event output does not attest which model served the job.
+Results show the requested model, a null observed model, an explicit `unattested`
+identity status and a reason. Successful completion alone does not verify the
+requested model. Claude's native model-usage evidence remains available; see
+[model identity](docs/agent-bridge.md#model-identity) for the result fields and limits.
+
 Use this for second opinions and small, well-described edits. Keep broad repository
 exploration and multi-system migrations with the coordinator. The bridge does not grant
 permission to deploy, publish, upgrade software or send messages.
