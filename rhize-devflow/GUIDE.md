@@ -164,7 +164,8 @@ made against; see [`docs/test-evidence.md`](./docs/test-evidence.md) for the ful
 Without an explicitly selected usable local Docker image by sha256, execution remains unsupported.
 The opt-in Python lane loads only the declared test file in a read-only snapshot, without network
 or host credentials, and verifies container removal. Actual test-method assertion failures are
-distinct from collection/import/setup errors and zero-test runs. Package-script oracles can run
+distinct from collection/import/setup errors and zero-test runs. Pytest counts the selected items
+at collection completion, before pytest publishes its final session count. Package-script oracles can run
 in the sandbox, but their failures cannot establish a killed mutant. Host execution is forbidden.
 Receipts bind writer and adapter bytes plus the
 packet, but do not attest against a malicious writer with the same user privileges.

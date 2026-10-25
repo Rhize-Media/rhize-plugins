@@ -901,3 +901,28 @@ locally pinned candidate; retrieve durable results without resubmitting user que
 
 Lesson: verify the released design before fixing a stale operator instruction; a shadow-only
 policy needs an executable boundary in every scheduled research caller.
+
+## Laya evidence implementation — October 25, 2026
+
+- Reproduced a test-evidence defect with the exact isolated pytest harness: all
+  59 selected tests passed, but the harness returned unavailable because pytest
+  had not populated `session.testscollected` at collection completion. It now
+  counts `session.items`; real subprocess fixtures distinguish a passing baseline,
+  assertion failure, runtime error, skipped, empty and collection-error runs while
+  excluding an unrelated test file. The focused evidence suites pass 62 tests.
+- Candidate Dev Flow 2.30.3 contains this repair; native package installation and
+  trust remain separate. No host cache, authority, model or timing policy changed.
+- The forward-capture audit distinguishes immutable old-source holds from current
+  eligible roots. An older operator runtime cannot establish current-source export
+  readiness; a dependency-complete candidate must match the installed collection
+  digest and retain all prior runtime/cohort evidence before any pin transition.
+- Public source, isolated evidence, configured runtime, fresh native activation and
+  natural performance each need their own proof. No label or historical capture
+  reconstruction, holdout evaluation, mode change or manual daily-loop run is part
+  of this repair.
+
+Lesson: a successful pytest transcript is insufficient when a wrapper's result
+classification is wrong; exercise the real wrapper and its non-success branches.
+The full local run passed 4,613 tests with two nested-Python/PyYAML environment
+failures; both passed after putting the verified interpreter's bin directory on
+PATH. An explicit parent interpreter alone does not select nested `python3` calls.

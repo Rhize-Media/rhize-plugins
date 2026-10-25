@@ -48,7 +48,7 @@ else:
   failures = 0
   unexpected = False
   count = 0
-  def pytest_collection_finish(self, session): self.count = session.testscollected
+  def pytest_collection_finish(self, session): self.count = len(session.items)
   def pytest_collectreport(self, report):
    if report.failed: self.unexpected = True
   @pytest.hookimpl(hookwrapper=True)

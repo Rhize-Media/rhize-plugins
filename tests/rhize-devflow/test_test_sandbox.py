@@ -134,6 +134,27 @@ def test_unittest_harness_runs_only_the_selected_file(tmp_path, selected_has_tes
     assert result.returncode == expected, result.stderr
 
 
+@pytest.mark.parametrize('selected,expected', [
+    ('def test_selected(): assert True\n', 0),
+    ('def test_selected(): assert False\n', 10),
+    ('def test_selected(): raise RuntimeError("unavailable")\n', 20),
+    ('import pytest\ndef test_selected(): pytest.skip("unavailable")\n', 20),
+    ('VALUE = 1\n', 20),
+    ('def test_selected(:\n', 20),
+])
+def test_pytest_harness_counts_selected_items_and_preserves_failure_classes(tmp_path, selected, expected):
+    import os
+    import subprocess
+    import sys
+    adapter = test_evidence.sandbox_adapter()
+    (tmp_path / 'test_selected.py').write_text(selected)
+    (tmp_path / 'test_other.py').write_text('def test_other(): assert False\n')
+    result = subprocess.run([sys.executable, '-I', '-B', '-c', adapter.PYTHON_RUNNER,
+                             'python_pytest', 'test_selected.py'], cwd=tmp_path, capture_output=True,
+                            env={**os.environ, 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1'}, timeout=20)
+    assert result.returncode == expected, result.stdout + result.stderr
+
+
 def test_sandbox_receipt_is_bound_to_observed_packet_and_private_store(tmp_path, monkeypatch):
     monkeypatch.setenv('HOME', str(tmp_path / 'home'))
     adapter = test_evidence.sandbox_adapter()

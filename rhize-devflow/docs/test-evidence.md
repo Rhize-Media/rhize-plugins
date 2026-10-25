@@ -36,6 +36,9 @@ Package scripts run through `npm --ignore-scripts run NAME`, without pre/post li
 Python uses the bundled isolated unittest/pytest harness for that exact file; glob/selector names
 are refused. The workspace is added to the import path after trusted runner modules load. Pytest
 cache and plugin autoload are disabled; repository conftest remains candidate code inside isolation.
+The pytest harness counts `session.items` at collection completion, when `session.testscollected`
+is not yet populated. Passing selected tests can therefore establish a baseline; empty runs,
+skips and collection/setup errors still return unavailable, while assertion failures remain distinct.
 
 The Docker adapter uses an empty client configuration and explicit local Unix socket, avoiding
 ambient proxy/credential settings. It rejects image-declared volumes, overrides entrypoints and
