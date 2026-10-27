@@ -26,6 +26,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-27_ version bump — 0.50.0 → 0.50.1 (patch); marketplace 2.114.0 → 2.114.1.
 - Add `preview --requirements` for advisory exact-source coverage, retaining scope, pack identity and incumbent ranking. Extend the existing paired gauntlet with separated private criteria, bound blind reviews and an offline full-source control; do not infer quality from source coverage or static grades.
 
 - _2026-10-27_ version bump — 0.49.1 → 0.50.0 (minor); marketplace 2.113.3 → 2.114.0.

@@ -33,6 +33,8 @@
   and 27 subtests with four existing skips; all 846 Dev Flow release checks, seven impact-map
   contracts and required map/setup/config/version checks pass. Independent review found no
   actionable findings; installed activation and natural task benefit remain unverified.
+  These counts describe the earlier 7ebd5b6 source. The repair is rebased onto published
+  Context Manager0.50.0; integrated0.50.1/marketplace2.114.1 qualification is pending.
   Lesson: named JSON-schema refinements must explicitly retain their common object schema.
 
 - 2026-10-24: Runtime source PR #22 merged as fb887358de0b7d758d9fbacca042723bd4b6c8d4

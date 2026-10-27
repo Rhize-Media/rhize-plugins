@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-27_ version bump — **rhize-context-manager** 0.50.0 → 0.50.1 (patch); marketplace 2.114.0 → 2.114.1.
 - Opt-in source completeness diagnostics and separated private task/criteria evaluation, with hash-bound blind review import and a distinct offline full-source control. Existing context ranking and injection authority are unchanged; quality and human acceptance remain separately measured.
 
 - _2026-10-27_ version bump — **rhize-context-manager** 0.49.1 → 0.50.0 (minor); marketplace 2.113.3 → 2.114.0.
