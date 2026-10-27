@@ -91,3 +91,62 @@ Use the same corpus, baseline, repetitions and limits with `--host codex` and it
 Judge quality within each host. Different native host overhead and unrelated task samples cannot
 support a model ranking. Pilot results establish measurement feasibility and reveal failure cases;
 choose a separate main-study corpus and sample size from the desired precision before running it.
+
+## Private real-task inputs and independent review
+
+Reuse the controlled gauntlet with `--corpus /private/tasks.json --rubrics /private/grading.json`.
+The separate task file contains only `schemaVersion: 1`, `name`, `provenance` and `cases`. Each case
+contains `id`, `question`, and `sources`; each source contains only `id`, `heading`, and `body`.
+Grader/answer fields in task inputs are rejected before provider execution. Use approved source
+excerpts from actual work, keep their provenance privately, and never commit private corpus files.
+
+The grading file contains `schemaVersion: 1`, `corpusHash` (SHA-256 of the exact task-file bytes), a
+nonempty, predeclared `decisionRule`, and `cases` matching task IDs exactly. Each grading case has
+`id`, `rubric` and `reviewCriteria` (a nonempty list of semantic review checks). The rubric accepts
+`requiredTerms`, `forbiddenTerms`, `requiredSourceIds` and `expectedAbstention`; required sources
+must belong to that case. Grade inputs never enter the native question/evidence prompt. Hashes
+retain the task/grading binding and decision rule in the run report. This is operator-declared
+chronology, not authenticated proof that the rule was chosen prospectively.
+
+With `--retain-review`, private packets include the original shared source evidence and semantic
+review checks. Opaque response labels conceal the arm mapping; the run report retains that mapping
+separately. Give reviewers only the review packets. Do not give them the run report. This is
+concealment by export, not independently verified blindness. Reported end-to-end elapsed time
+includes retrieval, native answers and local report work; refresh cost stays null unless measured
+separately. Native usage stays null when unavailable rather than becoming zero.
+
+Retain human or model review separately with:
+
+```bash
+python3 evals/memory-context/review_pilot.py --run /private/run.json \
+  --review-dir /private/run-review --reviews /private/reviewer-one.json \
+  --reviews /private/reviewer-two.json --output /private/imported-reviews.json
+```
+
+Each review file has `schemaVersion: "memory-pilot-review-v1"`, `runSha256` (exact run-file bytes),
+`reviewerId` (safe ID), `basis` (`human` or `model`), and `reviews`. Each review item contains:
+
+```json
+{"packetSha256":"<exact packet hash>","responseId":"response-1","correctness":null,
+ "materialOmissions":[],"unsupportedClaims":[],"correction":null,
+ "abstentionAppropriate":null,"notes":"Review pending"}
+```
+
+`correctness` and `abstentionAppropriate` are boolean or null. Omissions and unsupported claims are
+lists of nonempty strings; correction is text or null. Import validates exact run/packet/answer
+bindings and opaque response labels, refuses duplicate reviewer/response records and retains
+disagreements. Reviewer identity and basis are declarations, not authentication. No import grants
+human acceptance, changes routing, promotes a skill or overwrites the original run.
+
+The optional preview `--requirements` source checklist is documented in the memory-context skill's
+[evidence completeness reference](../../rhize-context-manager/skills/memory-context/references/evidence-completeness.md).
+Its report changes neither core assembler bytes nor ranking, and has separate contract tests.
+
+For a distinct full-source comparison, `export_raw_control.py --corpus /private/tasks.json
+--rubrics /private/grading.json --output /private/raw-control.json` prepares all admissible source
+records without selection budgets. This is a separate offline control; Arm A remains the bounded
+legacy assembler and Arm B remains awareness selection. The export retains exact corpus/snapshot
+bindings, source hashes, source/input bytes, measured construction time, and a byte/4 token estimate.
+It refuses inputs exceeding the existing native driver's 64,000-byte prompt ceiling rather than
+silently truncating evidence. It preserves scope/sensitivity admission. Model calls, quality and
+refresh cost remain unobserved, and the export cannot establish a raw-source answer-quality result.

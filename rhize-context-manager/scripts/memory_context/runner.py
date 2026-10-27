@@ -34,6 +34,11 @@ def command_preview(args: argparse.Namespace) -> int:
                          project=request["project"], task=request.get("task"))
         document.setdefault("adapters", []).append(adapter)
     manifest, payload = assembler.assemble(document, _time(args.now))
+    diagnostics = {}
+    if getattr(args, "requirements", None):
+        from memory_context.evidence_completeness import diagnose
+        requirements = json.loads(Path(args.requirements).expanduser().read_text(encoding="utf-8"))
+        diagnostics["evidenceCompleteness"] = diagnose(document, manifest, requirements, assembler)
     store = MemoryStore(Path(args.data_dir).expanduser() if args.data_dir else default_memory_root())
     manifest_path, payload_path = store.write(manifest, payload)
     print(json.dumps({
@@ -46,6 +51,7 @@ def command_preview(args: argparse.Namespace) -> int:
         "warnings": manifest["warnings"],
         "manifestPath": str(manifest_path),
         "payloadPath": str(payload_path),
+        **diagnostics,
     }, indent=2, sort_keys=True))
     return 0
 
@@ -155,6 +161,7 @@ def build_parser() -> argparse.ArgumentParser:
     preview.add_argument("--data-dir")
     preview.add_argument("--now")
     preview.add_argument("--procedural-launcher", help="Opt-in canonical installed launcher for bounded offline metadata recall")
+    preview.add_argument("--requirements", help="Private exact-source checklist for advisory completeness diagnostics")
     verify = subparsers.add_parser("verify")
     verify.add_argument("--manifest", required=True)
     verify.add_argument("--payload", required=True)

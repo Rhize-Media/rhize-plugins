@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/memory-evidence-requirements-v1.schema.json",
+  "title": "Advisory exact-source requirements",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "requirements"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "requirements": {
+      "type": "array", "maxItems": 100,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "adapter", "sourceId", "sourceRevision"],
+        "properties": {
+          "id": {"$ref": "#/$defs/safeId"}, "adapter": {"$ref": "#/$defs/safeId"},
+          "sourceId": {"$ref": "#/$defs/safeId"}, "sourceRevision": {"$ref": "#/$defs/safeId"}
+        }
+      }
+    }
+  },
+  "$defs": {"safeId": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"}}
+}

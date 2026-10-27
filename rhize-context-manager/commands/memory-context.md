@@ -15,6 +15,9 @@ Use the canonical `memory-context` skill. This Claude command is only a thin ada
 Inspect adapter statuses, exclusions, conflicts, authority classes, expiry, and warnings. Do not read
 the private payload into a prompt automatically. Verification, exact-source purge, and expired-pack
 cleanup use the same launcher and require the boundaries described by the canonical skill.
+Pass `preview --requirements /absolute/private/requirements.json` for the optional exact-source
+checklist report; see the canonical skill's evidence-completeness reference. Its warnings remain
+advisory and do not change the pack, ranking, authorization or injection behavior.
 
 The same launcher exposes opt-in `catalog` and `expand` subcommands for metadata-first discovery
 and selected details. Follow the canonical skill's awareness reference for exact source bindings,
