@@ -2,6 +2,26 @@
 
 ## Verified facts
 
+- 2026-10-27: The AmesMedia enhancement adds opt-in exact-source completeness reports to
+  memory preview, separate private task/grading inputs to the existing paired gauntlet,
+  hash-bound blind reviewer imports and an offline full-admissible-source control. The
+  incumbent assembler, native answer driver, ranking and runtime authority are unchanged.
+  The 112-test memory suite passes. A frozen private twelve-case email-evidence pilot
+  exposed budget omissions: incumbent full/partial/zero source coverage 4/1/7 cases;
+  selected-memory full/zero 3/9. Checklist diagnostics identify five selected and nine
+  excluded source requirements. These are mechanism findings, not answer-quality gains.
+  All twelve full-source controls fit the existing native prompt ceiling. Private model
+  calls were initially approval-held; Jim subsequently authorized the exact 24-call pilot.
+  Final model outcomes, independent review and source release evidence are recorded in
+  the associated vault implementation handoff. Installed activation remains separate.
+  Final qualification: 112 memory-context tests, 846 Dev Flow release-contract tests,
+  map/setup/config/version checks and strict plugin/marketplace validation pass. Astra
+  independently reran eighteen focused context tests. The first release-gate attempt
+  passed 844 tests but two real process-cleanup checks could not execute /bin/ps inside
+  the workspace sandbox; the unchanged full gate passed under normal host permissions.
+  Lesson: a completed retrieval operation can still omit all required evidence; distinguish
+  operation status, declared-source coverage and answer correctness.
+
 - 2026-10-24: Runtime source PR #22 merged as fb887358de0b7d758d9fbacca042723bd4b6c8d4
   after signed correction `1711b6a` passed exact-head portable CI. Three real-macOS lifecycle
   cases received only their missing platform markers; production bytes retain the 1,436-test
