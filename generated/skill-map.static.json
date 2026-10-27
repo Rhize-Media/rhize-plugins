@@ -5062,15 +5062,15 @@
       "treeHash": "68560e63d06f74c07494f9ab3bc01bef88439ac7f365a060ce3207822e225228"
     },
     {
-      "contentHash": "a9fdd690b596fd9fcb14b2ed06d777fa450a2f45b4c4bba3bb46c70068237b1b",
+      "contentHash": "69d0f50b667f932ec3eb263174102a05b3cb01e859fa8bd0f79d27365ceb1ff7",
       "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes, or paired memory measurements. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
-      "fileCount": 5,
+      "fileCount": 6,
       "id": "skill:rhize-context-manager/memory-context",
       "kind": "skill",
       "name": "memory-context",
       "path": "rhize-context-manager/skills/memory-context/SKILL.md",
-      "totalBytes": 22029,
-      "treeHash": "3faaa1c776f9ff15f48a65c735616a9bb50a16dccb5eaec41fe5b8c9c8f0fd0f"
+      "totalBytes": 24679,
+      "treeHash": "0b303cddd396df7d5aea968a96e397128a1ea847e285f84e0da7400339c82c7b"
     },
     {
       "contentHash": "c53c30d4ee22f521b279b4adec806f465a57b79c9574b291efe796fae37f557c",

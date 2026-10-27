@@ -35,6 +35,9 @@ point-in-time record.
 
 ### Added
 
+- Opt-in source completeness diagnostics and separated private task/criteria evaluation, with hash-bound blind review import and a distinct offline full-source control. Existing context ranking and injection authority are unchanged; quality and human acceptance remain separately measured.
+
+- _2026-10-27_ version bump — **rhize-context-manager** 0.49.1 → 0.50.0 (minor); marketplace 2.113.3 → 2.114.0.
 - _2026-10-25_ version bump — **rhize-devflow** 2.30.2 → 2.30.3 (patch); marketplace 2.113.2 → 2.113.3.
 - Core/Ops evaluation setup now discovers graph-workflow-builder and its manual benchmark; all 69 published skills are covered without starting model trials or capture.
 - _2026-10-23_ version bump — **rhize-ops** 0.33.0 → 0.33.1 (patch); marketplace 2.113.1 → 2.113.2.

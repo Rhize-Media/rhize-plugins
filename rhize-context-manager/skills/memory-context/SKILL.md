@@ -30,6 +30,12 @@ Use direct preview for known or short sources, and skip memory when unnecessary.
 [awareness input and expansion contract](references/awareness.md); existing host awareness is not
 permission to create another transcript index. No provider is invoked by either command.
 
+For a task with declared source requirements, pass `preview --requirements
+/absolute/private/requirements.json`. Follow the [evidence checklist contract](references/evidence-completeness.md).
+The returned advisory report distinguishes selected exact revisions, budget exclusions, empty,
+unavailable, missing and unknown evidence. It cannot establish semantic completeness, approve an
+answer, or reveal scope-denied content. Selection, pack identity and injection policy are unchanged.
+
 The assembler enforces exact tenant/project/task scope and sensitivity before ranking. It ranks
 deterministically within working, episodic, semantic, and procedural lanes, then allocates the total
 budget fairly across lanes. Contradictory source-bound candidates remain separate and receive one
