@@ -302,6 +302,7 @@
       },
       "properties": {
         "credential-procedure": {
+          "$ref": "#/properties/decisions/additionalProperties",
           "properties": {
             "deployablePolicy": {
               "const": "credential-cli-v1"
@@ -312,6 +313,7 @@
           ]
         },
         "skill-fit": {
+          "$ref": "#/properties/decisions/additionalProperties",
           "properties": {
             "deployablePolicy": {
               "enum": [

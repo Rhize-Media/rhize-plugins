@@ -22,6 +22,16 @@
   Lesson: a completed retrieval operation can still omit all required evidence; distinguish
   operation status, declared-source coverage and answer correctness.
 
+- 2026-10-27: Combined branch qualification reproduced named JSON-schema entries bypassing
+  common constraints: `additionalProperties` excludes names declared in `properties`.
+  Three local references now retain the common shape for registry `skill-fit`/
+  `credential-procedure` and credential state. The fixture targets the actual credential
+  decision and rejects missing/unknown fields and invalid earned bindings. All 56 affected
+  schema/setup tests pass. Setup smoke needs its dependency-complete interpreter in PATH;
+  injected PYTHONPATH is intentionally removed by isolation. Canonical runtime validation,
+  live authority and registry state are unchanged. Final full qualification is pending.
+  Lesson: named JSON-schema refinements must explicitly retain their common object schema.
+
 - 2026-10-24: Runtime source PR #22 merged as fb887358de0b7d758d9fbacca042723bd4b6c8d4
   after signed correction `1711b6a` passed exact-head portable CI. Three real-macOS lifecycle
   cases received only their missing platform markers; production bytes retain the 1,436-test

@@ -374,6 +374,9 @@ Any Laya failure emits today's output byte for byte. The hook needs a host timeo
 8 s. Inspect, pin or roll back with `scripts/typed_decisions/decision_registry.py`; the operator
 guide is [skill fit](../docs/typed-decisions/skill-fit.md).
 
+Registry JSON-schema validation includes the common entry shape for named decisions and requires
+a known revision and null cohort for credential-procedure cosign state.
+
 **Advise mode.** Laya can now also give one labelled recommendation (not a decision) for workflow fit, procedure
 pick, skill fit and the other registry decisions, but only once a decision has beaten its majority baseline in the
 gate; everything starts and stays in `shadow` until then, and nothing is in `advise` today. To see it: run
