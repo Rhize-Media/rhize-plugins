@@ -176,21 +176,30 @@ def test_json_schemas_accept_valid_fixtures():
     # Named decision constraints must retain the common required shape, not bypass additionalProperties.
     shipped = json.loads((REPO / 'rhize-context-manager/catalog/decision-registry.json').read_text())
     registry_validator = jsonschema.Draft202012Validator(schema('decision-registry-v1'))
-    for field in ('tier', 'gates', 'model'):
+    for decision in ('workflow-fit', 'skill-fit', 'credential-procedure'):
+        for field in ('tier', 'gates', 'model'):
+            broken = json.loads(json.dumps(shipped))
+            del broken['decisions'][decision][field]
+            with pytest.raises(jsonschema.ValidationError): registry_validator.validate(broken)
         broken = json.loads(json.dumps(shipped))
-        del broken['decisions']['workflow-fit'][field]
+        broken['decisions'][decision]['unexpected'] = True
         with pytest.raises(jsonschema.ValidationError): registry_validator.validate(broken)
     state = json.loads(json.dumps(load('registry.json')['validStates']['cosign']))
     entry = state['decisions'].pop('skill-fit')
     entry.update(layaRevision='fixture-known', cohortId=None,
                  policySha256=contract.policy_sha256(contract.POLICY_CREDENTIAL),
                  instrumentSha256=instrument.instrument_sha256(contract.POLICY_CREDENTIAL))
-    state['decisions']['workflow-fit'] = entry
+    state['decisions']['credential-procedure'] = entry
     state_validator = jsonschema.Draft202012Validator(schema('decision-registry-state-v1'))
     state_validator.validate(state)
+    for field in ('mode', 'pinned', 'since', 'reason', 'policySha256', 'instrumentSha256', 'layaRevision', 'cohortId'):
+        broken = json.loads(json.dumps(state)); del broken['decisions']['credential-procedure'][field]
+        with pytest.raises(jsonschema.ValidationError): state_validator.validate(broken)
+    broken = json.loads(json.dumps(state)); broken['decisions']['credential-procedure']['unexpected'] = True
+    with pytest.raises(jsonschema.ValidationError): state_validator.validate(broken)
     for field, value in [('layaRevision', None), ('layaRevision', 'unknown'), ('cohortId', 'a' * 32),
                          ('policySha256', None)]:
-        broken = json.loads(json.dumps(state)); broken['decisions']['workflow-fit'][field] = value
+        broken = json.loads(json.dumps(state)); broken['decisions']['credential-procedure'][field] = value
         with pytest.raises(jsonschema.ValidationError): state_validator.validate(broken)
 
 

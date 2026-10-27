@@ -149,6 +149,7 @@
       },
       "properties": {
         "credential-procedure": {
+          "$ref": "#/properties/decisions/additionalProperties",
           "if": {
             "properties": {
               "mode": {

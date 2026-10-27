@@ -350,6 +350,9 @@ Its shadow default and existing audited activation path are described in the sam
 The content/general measurement pilot remains in shadow; it does not cap separately activated
 credential guidance or provide evidence that a credential operation succeeded.
 
+The registry JSON schemas apply the common required-field and unknown-field checks to named
+decisions as well, including credential-specific earned-state constraints.
+
 See [workflow selection](docs/workflow-selection.md) for the opt-in shared Claude/Codex
 UserPromptSubmit selector, private opportunity/decision/outcome receipts and explicit local
 skill-source allowlist. Metadata recall uses the supported procedural-memory launcher and
