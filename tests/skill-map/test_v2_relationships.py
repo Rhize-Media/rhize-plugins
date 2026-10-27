@@ -206,6 +206,17 @@ def test_check_stale_covers_indexes() -> None:
     check("--check-stale output mentions the indexes artifact", "indexes" in result.stdout)
 
 
+def test_build_requires_pyyaml() -> None:
+    result = subprocess.run(
+        [sys.executable, "-S", str(BUILD_SCRIPT)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    check("build_skill_map.py refuses to run without PyYAML", result.returncode != 0, result.stderr)
+    check("missing PyYAML failure is explicit", "PyYAML is required to compile skill frontmatter" in result.stderr)
+
+
 # ---------------------------------------------------------------------------
 # 4. Query CLI — each seed query against the real (static) artifact
 # ---------------------------------------------------------------------------
@@ -253,6 +264,7 @@ def main() -> int:
     test_indexes_emission()
     test_indexes_determinism()
     test_check_stale_covers_indexes()
+    test_build_requires_pyyaml()
     test_query_cli()
 
     if FAILURES:

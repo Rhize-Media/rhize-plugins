@@ -28,6 +28,11 @@
       "thirdPartyPlugin": "humanizer/humanizer"
     },
     {
+      "id": "tag:topic/content-authoring",
+      "kind": "tag",
+      "description": "Writing, formatting, and modeling content: notes, docs, templates, CMS schemas, and clean text extracted from web pages"
+    },
+    {
       "id": "external:ecc-react-build-resolver",
       "kind": "external",
       "name": "ecc:react-build-resolver (agent)",

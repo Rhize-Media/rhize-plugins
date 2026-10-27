@@ -157,14 +157,15 @@ OUTPUT_PATH = REPO_ROOT / "generated" / "skill-map.static.json"
 INDEXES_OUTPUT_PATH = REPO_ROOT / "generated" / "skill-map.indexes.json"
 SCHEMA_VERSION = "1.1.0"
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover - environment-dependent
-    yaml = None
-
 
 class BuildError(Exception):
     """Raised for conditions the plan requires to be a hard build failure."""
+
+
+try:
+    import yaml
+except ImportError as exc:  # pragma: no cover - environment-dependent
+    raise BuildError("PyYAML is required to compile skill frontmatter") from exc
 
 
 def split_frontmatter(text: str) -> tuple[dict, str]:
@@ -185,15 +186,13 @@ def split_frontmatter(text: str) -> tuple[dict, str]:
     body = parts[1]
     if body.startswith("\n"):
         body = body[1:]
-    if yaml is not None:
-        try:
-            data = yaml.safe_load(raw_fm) or {}
-            if not isinstance(data, dict):
-                data = {}
-            return data, body
-        except yaml.YAMLError:
-            return {}, body
-    return {}, body
+    try:
+        data = yaml.safe_load(raw_fm) or {}
+        if not isinstance(data, dict):
+            data = {}
+        return data, body
+    except yaml.YAMLError:
+        return {}, body
 
 
 def slugify(value: str) -> str:

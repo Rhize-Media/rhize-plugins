@@ -62,6 +62,9 @@ SOURCES.md, `catalog/skill-relations.json`) and regenerate — never hand-edit t
 itself. A hand-edit to a generated file is indistinguishable from drift and will be silently
 overwritten (or, once Phase 1's staleness check lands, will fail CI).
 
+`scripts/build_skill_map.py` requires PyYAML 6.0.3 (pinned in `.github/requirements-ci.txt`);
+it fails before writing output when that dependency is unavailable.
+
 ## Node kinds and IDs
 
 Every node ID is a string of the form `<kind>:<qualifier>`:
