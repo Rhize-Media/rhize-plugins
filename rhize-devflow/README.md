@@ -460,3 +460,11 @@ protected paths, deploy, publish, credentials, approvals, security review, requi
 and Laya only chooses between the full list and the deterministic relaxed list once it has earned `advise`. See [check relaxation](docs/check-relaxation.md), the
 [typed checkpoint contract](docs/typed-checkpoint.md#advise-mode), the
 [advise-everywhere plan](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md) and the [decision layer](../docs/typed-decision-layer.md).
+
+## Local inference admission
+
+The shared Python transport keeps immediate admission by default. Background development
+research may opt into at most 2,000 ms of admission waiting inside its existing request
+deadline. The local service must support that header; no request is retried. Native routing
+and operational deadline benchmarks retain their existing budgets and default admission.
+Waiting and unavailable responses do not establish model speed, acceptance or earned authority.

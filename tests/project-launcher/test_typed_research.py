@@ -24,6 +24,24 @@ def case(case_id: str, group: str, label: bool, *, stratum: str = "normal") -> d
 
 
 class TypedResearchTests(unittest.TestCase):
+    def test_research_requests_bounded_background_admission(self):
+        from unittest.mock import patch
+        request = {'model': 'typed-decisions', 'questions': {'q': {}}}
+        result = {'routing': {'model': 'typed-decisions'}, 'answers': {'q': {}}}
+        with patch.object(RESEARCH, 'post_local', return_value=(result, 125.0)) as transport:
+            self.assertEqual(RESEARCH.local_call('http://127.0.0.1:8000', request, admission_wait_ms=2000), (result, 125.0))
+        transport.assert_called_once_with('http://127.0.0.1:8000', '/v1/systemone', request, 20,
+                                          admission_wait_ms=2000)
+
+    def test_operational_call_keeps_default_admission(self):
+        from unittest.mock import patch
+        request = {'model': 'typed-decisions', 'questions': {'q': {}}}
+        result = {'routing': {'model': 'typed-decisions'}, 'answers': {'q': {}}}
+        with patch.object(RESEARCH, 'post_local', return_value=(result, 125.0)) as transport:
+            RESEARCH.local_call('http://127.0.0.1:8000', request, timeout=0.8)
+        transport.assert_called_once_with('http://127.0.0.1:8000', '/v1/systemone', request, 0.8,
+                                          admission_wait_ms=0)
+
     def test_group_split_is_stable_and_disjoint(self):
         rows = [case("a", "same-task", True), case("b", "same-task", False), case("c", "other-task", True)]
         splits = RESEARCH.partition(rows, "fixed-seed")

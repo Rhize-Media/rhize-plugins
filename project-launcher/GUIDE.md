@@ -219,3 +219,11 @@ stopping, completion or release is enabled by this pilot.
 **Decision layer status is blocked:** Set the provider environment variable and run the synthetic `probe` command from the scaffolded project. Check `gsd-sdk query agent-skills` for planner, executor, and verifier. The project should not be described as ready until these checks pass.
 
 **A skill it suggests during scaffolding gets blocked:** Project-launcher gates any skill it suggests through a safety check before adding it, and refuses anything rated HIGH/CRITICAL risk. This is intentional — it won't silently add an unvetted skill just because it looked relevant to your stack.
+
+## Local inference admission
+
+The shared Python transport keeps immediate admission by default. Background development
+research may opt into at most 2,000 ms of admission waiting inside its existing request
+deadline. The local service must support that header; no request is retried. Native routing
+and operational deadline benchmarks retain their existing budgets and default admission.
+Waiting and unavailable responses do not establish model speed, acceptance or earned authority.

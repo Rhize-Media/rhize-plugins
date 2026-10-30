@@ -9,8 +9,13 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Fixed
+
+- Add bounded opt-in background admission metadata to the shared local transport; default native admission, request deadlines and fail-closed transport rules stay unchanged. Development search opts in without retrying rejected calls.
+
 ### Added
 
+- _2026-10-30_ version bump — 0.33.1 → 0.33.2 (patch); marketplace 2.114.3 → 2.114.4.
 - Graph workflow builder evaluation coverage: synchronize the 69-skill catalog/validator mirrors, add the manual subscription-native authoring benchmark, and preserve setup/capture consent and authority.
 - _2026-10-23_ version bump — 0.33.0 → 0.33.1 (patch); marketplace 2.113.1 → 2.113.2.
 - Rename `business-premortem` to `decision-premortem`, broadening concrete decision scope while

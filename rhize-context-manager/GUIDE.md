@@ -469,3 +469,11 @@ keep-warm epoch; small samples and post-epoch rates do not prove causal recovery
 counters. The AI labeler keeps exact known no-tools Code Mode startup notices as
 `codexLockdownNotices`; unexpected Codex warnings reach both the call record and run summary.
 Tools remain disabled, and auth write-back warnings still require operator attention.
+
+## Local inference admission
+
+The shared Python transport keeps immediate admission by default. Background development
+research may opt into at most 2,000 ms of admission waiting inside its existing request
+deadline. The local service must support that header; no request is retried. Native routing
+and operational deadline benchmarks retain their existing budgets and default admission.
+Waiting and unavailable responses do not establish model speed, acceptance or earned authority.

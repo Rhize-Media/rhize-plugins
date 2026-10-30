@@ -169,3 +169,11 @@ After each GSD phase, the autonomous Claude runs:
 ```
 /sc:reflect on whether all tasks were implemented and then /simplify your code changes where needed for an optimal solution
 ```
+
+## Local inference admission
+
+The shared Python transport keeps immediate admission by default. Background development
+research may opt into at most 2,000 ms of admission waiting inside its existing request
+deadline. The local service must support that header; no request is retried. Native routing
+and operational deadline benchmarks retain their existing budgets and default admission.
+Waiting and unavailable responses do not establish model speed, acceptance or earned authority.

@@ -238,17 +238,21 @@ def check_identity(base_url, model=MODEL, timeout=2.0):
     _probe(_opener(), _destination(base_url, '/health'), model, time.monotonic() + timeout)
 
 
-def post_local(base_url, path, payload, timeout, max_bytes=MAX_RESPONSE_BYTES, health_cache=None):
+def post_local(base_url, path, payload, timeout, max_bytes=MAX_RESPONSE_BYTES, health_cache=None,
+               *, admission_wait_ms=0):
     """POST JSON to a literal loopback IP after a /health identity probe; return (response dict, latency ms).
 
     The destination is validated before the payload is built. The probe must list payload['model'] in
     `loaded`; probe and POST share one deadline of `timeout` seconds. Proxies are ignored, redirects
-    refused, responses bounded. Raises ValueError with a short code; payload text never enters an error.
+    refused, responses bounded. Opt-in admission waiting shares that deadline and never retries.
+    Raises ValueError with a short code; payload text never enters an error.
     """
     url = _destination(base_url, path)
     health = _destination(base_url, '/health')
     if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
         raise ValueError('invalid_timeout')
+    if type(admission_wait_ms) is not int or not 0 <= admission_wait_ms <= 2000:
+        raise ValueError('invalid_admission_wait')
     started = time.monotonic()
     deadline = started + timeout
     body = payload() if callable(payload) else payload
@@ -263,8 +267,10 @@ def post_local(base_url, path, payload, timeout, max_bytes=MAX_RESPONSE_BYTES, h
                 _write_atomic(Path(health_cache), {'url': health, 'model': model, 'checkedAt': time.time()})
             except (OSError, ValueError):
                 pass
-    request = urllib.request.Request(url, data=json.dumps(body).encode(), method='POST',
-                                     headers={'Content-Type': 'application/json'})
+    headers = {'Content-Type': 'application/json'}
+    if admission_wait_ms:
+        headers['X-Rhize-Admission-Wait-Ms'] = str(min(admission_wait_ms, max(0, int(_remaining(deadline) * 1000))))
+    request = urllib.request.Request(url, data=json.dumps(body).encode(), method='POST', headers=headers)
     value = _get_json(opener, request, deadline, max_bytes)
     return value, round((time.monotonic() - started) * 1000, 3)
 
