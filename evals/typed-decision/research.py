@@ -145,8 +145,8 @@ def validate_candidate(candidate: dict, rows: list[dict]) -> None:
         raise ValueError("abstain_below must be a probability")
 
 
-def local_call(base_url: str, request: dict, timeout: float = 20) -> tuple[dict, float]:
-    result, latency = post_local(base_url, "/v1/systemone", request, timeout)
+def local_call(base_url: str, request: dict, timeout: float = 20, *, admission_wait_ms: int = 0) -> tuple[dict, float]:
+    result, latency = post_local(base_url, "/v1/systemone", request, timeout, admission_wait_ms=admission_wait_ms)
     if not isinstance(result.get("routing"), dict) or result["routing"].get("model") != request["model"]:
         raise ValueError("local provider routed a different checkpoint")
     if set(result.get("answers", {})) != set(request["questions"]):
@@ -517,8 +517,8 @@ def main() -> int:
                                           and entry.get('metrics_schema') == METRICS_SCHEMA for entry in ledger):
             raise ValueError("candidate already evaluated on this dataset and split")
         if args.phase == "search":
-            train = evaluate(splits["train"], candidate, lambda request: local_call(args.base_url, request), baseline=baseline)
-            validation = evaluate(splits["validation"], candidate, lambda request: local_call(args.base_url, request), baseline=baseline)
+            train = evaluate(splits["train"], candidate, lambda request: local_call(args.base_url, request, admission_wait_ms=2000), baseline=baseline)
+            validation = evaluate(splits["validation"], candidate, lambda request: local_call(args.base_url, request, admission_wait_ms=2000), baseline=baseline)
             key = (validation["critical_misses"], -validation["accuracy"], validation["abstention_rate"])
             keep = best is None or key < best
             if keep:

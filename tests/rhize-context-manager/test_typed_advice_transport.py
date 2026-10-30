@@ -177,3 +177,23 @@ def test_payload_must_be_an_object(server, payload):
 def test_timeout_must_be_a_positive_number(server, timeout):
     with pytest.raises(ValueError, match='invalid_timeout'):
         transport.post_local(server, '/ok', {}, timeout)
+
+
+@pytest.mark.parametrize('wait', [True, -1, 2001, 1.5, '100'])
+def test_admission_wait_is_bounded_before_network(wait):
+    with pytest.raises(ValueError, match='invalid_admission_wait'):
+        transport.post_local('http://127.0.0.1:1', '/ok', {'model': M}, 5, admission_wait_ms=wait)
+
+
+def test_background_wait_is_opt_in_and_does_not_change_payload(server, monkeypatch):
+    captured = []
+    original = transport._get_json
+    def capture(opener, request, deadline, max_bytes):
+        if request.get_method() == 'POST':
+            captured.append(request.get_header('X-rhize-admission-wait-ms'))
+        return original(opener, request, deadline, max_bytes)
+    monkeypatch.setattr(transport, '_get_json', capture)
+    payload = {'model': M, 'request': 'fixture'}
+    assert transport.post_local(server, '/ok', payload, 5)[0]['echo'] == payload
+    assert transport.post_local(server, '/ok', payload, 5, admission_wait_ms=2000)[0]['echo'] == payload
+    assert captured == [None, '2000']

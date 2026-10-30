@@ -618,3 +618,11 @@ checks to run and re-verifies the plan right before the verdict. Docs-only chang
 tests, and a diff without UI or logic files skips browser QA or mutation analysis. Protected paths (CI, auth, env, lockfiles,
 migrations, infra) and anything release-stage always get the full list, and Laya (`check-relaxation`, shadow until earned)
 can only keep it. See [check relaxation](docs/check-relaxation.md).
+
+## Local inference admission
+
+The shared Python transport keeps immediate admission by default. Background development
+research may opt into at most 2,000 ms of admission waiting inside its existing request
+deadline. The local service must support that header; no request is retried. Native routing
+and operational deadline benchmarks retain their existing budgets and default admission.
+Waiting and unavailable responses do not establish model speed, acceptance or earned authority.

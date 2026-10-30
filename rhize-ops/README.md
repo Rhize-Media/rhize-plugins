@@ -278,3 +278,11 @@ Local coverage checks do not execute or approve its graph, enable capture, or es
 The shared evaluation inventory includes `rhize-devflow:credential-access`. Coverage checks
 do not retrieve credentials, activate native hooks, or establish baseline benefit. Existing
 domains, capture modes and user-confirmed baseline decisions are unchanged.
+
+## Local inference admission
+
+The shared Python transport keeps immediate admission by default. Background development
+research may opt into at most 2,000 ms of admission waiting inside its existing request
+deadline. The local service must support that header; no request is retried. Native routing
+and operational deadline benchmarks retain their existing budgets and default admission.
+Waiting and unavailable responses do not establish model speed, acceptance or earned authority.

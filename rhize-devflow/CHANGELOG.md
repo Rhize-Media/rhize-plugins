@@ -4,8 +4,13 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Fixed
+
+- Add bounded opt-in background admission metadata to the shared local transport; default native admission, request deadlines and fail-closed transport rules stay unchanged. Development search opts in without retrying rejected calls.
+
 ### Added
 
+- _2026-10-30_ version bump — 2.30.3 → 2.30.4 (patch); marketplace 2.114.4 → 2.114.5.
 - _2026-10-25_ version bump — 2.30.2 → 2.30.3 (patch); marketplace 2.113.2 → 2.113.3.
 - Synchronize the real forked-cleanup test fixture before its unchanged .5-second deadline, exercise delayed startup deterministically, and retain a separate direct startup-bound check. Production sandbox behavior and deadlines remain unchanged.
 

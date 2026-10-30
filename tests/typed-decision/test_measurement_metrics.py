@@ -98,7 +98,10 @@ def test_search_does_not_mix_legacy_rank_or_block_current_metric_attempt(tmp_pat
     monkeypatch.setattr(sys, 'argv', ['research', '--phase', 'search', '--manifest', str(split / 'manifest.json'),
                                     '--train', str(split / 'train.jsonl'), '--validation', str(split / 'validation.jsonl'),
                                     '--candidates', str(candidates), '--ledger', str(ledger)])
-    monkeypatch.setattr(research, 'local_call', lambda _url, request: provider()(request))
+    def local_call(_url, request, *, admission_wait_ms):
+        assert admission_wait_ms == 2000
+        return provider()(request)
+    monkeypatch.setattr(research, 'local_call', local_call)
     assert research.main() == 0
     entries = research.read_ledger(ledger)
     assert entries[0] == old and entries[1]['status'] == 'keep'

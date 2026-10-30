@@ -2,6 +2,18 @@
 
 ## Verified facts
 
+- 2026-10-30: Laya reliability investigation found the exact overnight skill-fit demotion
+  was operational 10/98 above 10%, with timeouts 4/98 reported separately. Existing MPS
+  timing shows slow forwards as well as admission contention; the private diagnostic log
+  stopped at its 8 MiB cap on October 28. Native 800 ms budgets, shadow authority, original
+  captures and failed experiments remain unchanged. Python transport now supports bounded
+  opt-in background admission; only development research CLI opts in, with no request retries.
+  Operational benchmarks retain default immediate admission. Private admission leases survive
+  caller cancellation, pending background work is bounded, and timing uses two private 8 MiB
+  segments while preserving the original trace. Source fixtures and service activation do not
+  establish natural recovery from hardware forward stalls. Lesson: separate demotion causes
+  and bounded capture availability from timeout rates and health probes.
+
 - 2026-10-27: The AmesMedia enhancement adds opt-in exact-source completeness reports to
   memory preview, separate private task/grading inputs to the existing paired gauntlet,
   hash-bound blind reviewer imports and an offline full-admissible-source control. The

@@ -4,8 +4,13 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Fixed
+
+- Add bounded opt-in background admission metadata to the shared local transport; default native admission, request deadlines and fail-closed transport rules stay unchanged. Development search opts in without retrying rejected calls.
+
 ### Added
 
+- _2026-10-30_ version bump — 1.15.0 → 1.15.1 (patch); marketplace 2.114.2 → 2.114.3.
 - _2026-10-16_ Laya advise everywhere (see the GSD directive entry below). `gsd-directive` is a critical decision that may reach `advise` through the baseline gate with zero critical misses; it ships in `shadow` and nothing is advised until the gate earns it. `install --local-laya` writes the local advisory env and copies the shared `typed_advice.py`.
 - _2026-10-16_ version bump — 1.14.0 → 1.15.0 (minor); marketplace 2.107.0 → 2.108.0.
 - _2026-10-16_ GSD directive advice: local-Laya `supervise` now asks the `gsd-directive` decision through the shared `typed_advice.py` (fixes the dead advisory path that sent only noul questions), suppresses `finish_candidate` until checks and review pass, records `critical_if_wrong` from trusted state, and shows advice only when the registry earns `advise`. `install` copies `typed_advice.py` and takes `--local-laya`; new `outcome` command; SubagentStart text is mode-aware; SubagentStop records no outcome and never adds a block; `status` reports the effective mode. Hosted Jev is unchanged.

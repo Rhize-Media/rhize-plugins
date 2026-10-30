@@ -24,8 +24,13 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Fixed
+
+- Add bounded opt-in background admission metadata to the shared local transport; default native admission, request deadlines and fail-closed transport rules stay unchanged. Development search opts in without retrying rejected calls.
+
 ### Added
 
+- _2026-10-30_ version bump — 0.50.1 → 0.50.2 (patch); marketplace 2.114.1 → 2.114.2.
 - _2026-10-27_ version bump — 0.50.0 → 0.50.1 (patch); marketplace 2.114.0 → 2.114.1.
 - Add `preview --requirements` for advisory exact-source coverage, retaining scope, pack identity and incumbent ranking. Extend the existing paired gauntlet with separated private criteria, bound blind reviews and an offline full-source control; do not infer quality from source coverage or static grades.
 

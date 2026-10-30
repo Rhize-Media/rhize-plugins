@@ -27,25 +27,25 @@ Version 1.9.0. Teaches Claude to read, write, organize, and search notes in your
 
 ### project-launcher
 
-Version 1.15.0. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
+Version 1.15.1. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
 
 [README](../project-launcher/README.md) · [GUIDE](../project-launcher/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#project-launcher)
 
 ### rhize-devflow
 
-Version 2.30.3. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
+Version 2.30.4. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
 
 [README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [10 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
 
 ### rhize-context-manager
 
-Version 0.50.1. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
+Version 0.50.2. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
 
 [README](../rhize-context-manager/README.md) · [GUIDE](../rhize-context-manager/GUIDE.md) · [16 skills](../generated/SKILL-CATALOG.md#rhize-context-manager)
 
 ### rhize-ops
 
-Version 0.33.1. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
+Version 0.33.2. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [5 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
