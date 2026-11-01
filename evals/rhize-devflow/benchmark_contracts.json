@@ -30,6 +30,20 @@
   },
   "skills": [
     {
+      "skill": "frontend-development",
+      "applicability": "offline_fixture",
+      "taskClass": "conditional-frontend-workflow",
+      "armA": {
+        "variant": "existing-global-frontend-policy",
+        "implementation": "Use the same installed upstream skills and project instructions without loading rhize-devflow:frontend-development."
+      },
+      "armB": {
+        "variant": "rhize-devflow-frontend-development",
+        "implementation": "Load rhize-devflow:frontend-development on the same brief, source and host capability snapshot."
+      },
+      "judge": "Correct conditional selection, preserved brand/stack, actual skill loading, observed browser/state evidence and honest unavailable checks; no backend over-triggering. Native selection cases alone do not establish visual benefit."
+    },
+    {
       "skill": "chrome-devtools-mcp",
       "applicability": "paired_replay",
       "taskClass": "chrome-devtools-mcp-configuration",

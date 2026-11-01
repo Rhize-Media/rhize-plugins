@@ -15,9 +15,9 @@
       }
     },
     {
-      "name": "Integrated external skills (obsidian-second-brain:vault-search/vault-research, grill-me, write-a-prd, seo-aeo-geo:*, brand-voice:*, n8n-automation, engineering:system-design/architecture, tdd, prd-to-issues, simplify)",
+      "name": "Integrated external skills (rhize-devflow:frontend-development, obsidian-second-brain:vault-search/vault-research, grill-me, write-a-prd, seo-aeo-geo:*, brand-voice:*, n8n-automation, engineering:system-design/architecture, tdd, prd-to-issues, simplify)",
       "kind": "plugin",
-      "purpose": "Each skill is invoked at a specific pipeline phase to do that phase's specialized work — see README § Integrated Skills for the full phase mapping.",
+      "purpose": "Each skill is invoked at a specific pipeline phase to do that phase's specialized work — see README § Integrated Skills. Frontend work conditionally uses rhize-devflow:frontend-development and the relevant enabled upstream skills; backend-only work skips that branch.",
       "required": false,
       "degradedBehavior": "If the plugin providing a skill isn't installed or enabled, that phase's step is skipped, or done with the launcher's own generic prompting instead of the specialist skill's tuned workflow.",
       "replacement": {

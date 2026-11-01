@@ -63,6 +63,15 @@ Use this structure when generating PRDs in Phase 3. Adapt sections based on proj
 ### NFR-05: Observability
 - {Error tracking, performance monitoring, alerting}
 
+### Frontend acceptance (UI projects only)
+
+- Existing brand/design authority, audience/task and primary action
+- Approved direction/reference and reusable components/tokens
+- Affected loading, empty, error, success and permission states
+- Responsive, keyboard/focus, reduced-motion and performance constraints
+- Selected installed capabilities from `rhize-devflow:frontend-development`, with missing ones explicit
+- Browser acceptance: URL/build, viewport, state/action, expected result and screenshot/trace evidence
+
 ## 6. Multi-Tenancy Design (if applicable)
 
 ### Tenant Configuration

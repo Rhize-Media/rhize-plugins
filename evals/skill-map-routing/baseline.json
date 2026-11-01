@@ -47,9 +47,9 @@
     "silent": 7
    },
    "eval_positives": {
-    "hit": 1,
+    "hit": 2,
     "n": 5,
-    "silent": 3,
+    "silent": 2,
     "wrong": 1
    }
   },
@@ -107,15 +107,15 @@
   "rhize-devflow": {
    "eval_negatives": {
     "false_trigger": 0,
-    "n": 22,
+    "n": 24,
     "other_cross_plugin": 0,
     "other_same_plugin": 0,
-    "silent": 22
+    "silent": 24
    },
    "eval_positives": {
     "hit": 3,
-    "n": 15,
-    "silent": 12,
+    "n": 16,
+    "silent": 13,
     "wrong": 0
    },
    "long_negative_fires": 1,
@@ -1272,6 +1272,33 @@
   },
   {
    "group": "eval",
+   "id": "rhize-devflow/trigger-frontend-development-neg-mechanical",
+   "outcome": "silent",
+   "prompt": "Rename an internal CSS custom property without changing rendered values or behavior.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/frontend-development",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-frontend-development-pos",
+   "outcome": "silent",
+   "prompt": "Help with frontend design and UI polish for our existing dashboard.",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/frontend-development",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-frontend-development-neg-backend",
+   "outcome": "silent",
+   "prompt": "Rename an internal SQL helper only.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/frontend-development",
+   "top": null
+  },
+  {
+   "group": "eval",
    "id": "rhize-devflow/trigger-dev-flow-foundations-pos",
    "outcome": "silent",
    "prompt": "I keep hitting the same anti-patterns every sprint on this large codebase -- can you help ",
@@ -1687,11 +1714,11 @@
   {
    "group": "eval",
    "id": "procedural-memory/graph-build-positive",
-   "outcome": "silent",
+   "outcome": "hit",
    "prompt": "Build a reusable graph workflow with bounded dynamic research workers and named completion",
    "should_trigger": true,
    "target": "skill:procedural-memory/graph-workflow-builder",
-   "top": null
+   "top": "skill:procedural-memory/graph-workflow-builder"
   },
   {
    "group": "eval",
@@ -2747,19 +2774,19 @@
    "top": null
   }
  ],
- "rows_sha": "f2d744abc77d539f",
+ "rows_sha": "b2e248a937ac2e7d",
  "schema": 1,
  "summary": {
   "eval_negatives": {
    "false_trigger": 0,
-   "n": 114,
+   "n": 116,
    "other_cross_plugin": 0,
    "other_same_plugin": 0,
-   "silent": 114
+   "silent": 116
   },
   "eval_positives": {
-   "hit": 15,
-   "n": 75,
+   "hit": 16,
+   "n": 76,
    "silent": 55,
    "wrong": 5
   },

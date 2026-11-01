@@ -235,3 +235,9 @@ For an explicitly requested Skylos integration, follow [the evidence contract](.
 Map invariant clauses to owning symbols, structural evidence, independent acceptance checks and named
 gaps. Static findings supplement that map; they never become structural truth, executable contracts
 from prose, permission to remove code, or regression/release proof. Context Pack remains WATCH.
+
+## Frontend work
+
+For user-visible design, implementation, motion or review, use [frontend-development](../frontend-development/SKILL.md)
+to select the relevant installed family and carry browser evidence into check/review. Preserve
+project design authority; backend-only and mechanical nonvisual work do not need this path.

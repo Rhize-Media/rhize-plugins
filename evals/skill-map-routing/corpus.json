@@ -1,7 +1,7 @@
 {
  "counts": {
-  "eval:neg": 114,
-  "eval:pos": 75,
+  "eval:neg": 116,
+  "eval:pos": 76,
   "probe:pos": 17
  },
  "rows": [
@@ -1102,6 +1102,33 @@
    "should_trigger": false,
    "source": "evals/rhize-context-manager/routing_cases.json",
    "target": "skill:rhize-context-manager/tool-design"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-frontend-development-neg-mechanical",
+   "prompt": "Rename an internal CSS custom property without changing rendered values or behavior.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/frontend-development"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-frontend-development-pos",
+   "prompt": "Help with frontend design and UI polish for our existing dashboard.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/frontend-development"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-frontend-development-neg-backend",
+   "prompt": "Rename an internal SQL helper only.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/frontend-development"
   },
   {
    "authored": "eval",

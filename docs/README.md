@@ -9,7 +9,7 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### rhize-core
 
-Version 1.0.10. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
+Version 1.0.11. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
 
 [README](../rhize-core/README.md) · [GUIDE](../rhize-core/GUIDE.md) · [0 skills](../generated/SKILL-CATALOG.md#rhize-core)
 
@@ -27,15 +27,15 @@ Version 1.9.0. Teaches Claude to read, write, organize, and search notes in your
 
 ### project-launcher
 
-Version 1.15.1. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
+Version 1.15.2. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
 
 [README](../project-launcher/README.md) · [GUIDE](../project-launcher/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#project-launcher)
 
 ### rhize-devflow
 
-Version 2.30.4. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
+Version 2.31.0. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
 
-[README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [10 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
+[README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [11 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
 
 ### rhize-context-manager
 
@@ -45,7 +45,7 @@ Version 0.50.2. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.33.2. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
+Version 0.33.3. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [5 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
@@ -69,7 +69,7 @@ Version 0.10.0. Lets Claude find and reuse previously verified scripts and autom
 
 ### rhize-outreach
 
-Version 0.4.0. Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.
+Version 0.4.1. Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.
 
 [README](../rhize-outreach/README.md) · [GUIDE](../rhize-outreach/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#rhize-outreach)
 

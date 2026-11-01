@@ -92,63 +92,14 @@ this skill does not restate its configuration surface.
 
 ---
 
-## Tool Reference
+## Tool mechanics
 
-### Input Automation
-
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `click` | Click element | `selector`, `button`, `clickCount` |
-| `fill` | Fill input field | `selector`, `value` |
-| `fill_form` | Fill multiple fields | `fields[]`, `submit` |
-| `hover` | Hover over element | `selector` |
-| `press_key` | Send keyboard event | `key`, `modifiers[]` |
-| `drag` | Drag between elements | `sourceSelector`, `targetSelector` |
-| `upload_file` | Upload to file input | `selector`, `filePath` |
-| `handle_dialog` | Handle JS dialogs | `action`, `promptText` |
-
-### Navigation
-
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `navigate_page` | Go to URL | `url`, `waitUntil` |
-| `new_page` | Open new tab | `url` |
-| `close_page` | Close tab | `pageId` |
-| `list_pages` | List open tabs | - |
-| `select_page` | Switch tab | `pageId` |
-| `wait_for` | Wait for condition | `selector`, `timeout`, `state` |
-
-### Performance
-
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `performance_start_trace` | Begin recording | `categories` |
-| `performance_stop_trace` | Stop and get data | - |
-| `performance_analyze_insight` | Analyze specific insight | `insightType` |
-
-### Network
-
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `list_network_requests` | Get all requests | `filter` |
-| `get_network_request` | Get request details | `requestId` |
-
-### Debugging
-
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `list_console_messages` | Get console output | `level` |
-| `get_console_message` | Get message details | `messageId` |
-| `evaluate_script` | Run JS in page | `expression` |
-| `take_screenshot` | Capture image | `fullPage`, `selector`, `format` |
-| `take_snapshot` | Accessibility tree | `saveToDisk` |
-
-### Emulation
-
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `emulate` | Emulate device | `device` or `{width, height, ...}` |
-| `resize_page` | Change viewport | `width`, `height` |
+Use the active tool schema for exact names and parameters. Read a fresh page snapshot before
+interacting and use the element/page references supplied by that server. Do not translate
+selectors or old parameter tables into guessed calls. Consult the
+[official tool reference](https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/main/docs/tool-reference.md)
+when needed; installed schemas govern version-specific behavior. Detect screenshot, accessibility,
+network, console and performance capabilities individually and report unsupported checks.
 
 ---
 

@@ -1245,6 +1245,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "skill:rhize-devflow/frontend-development",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "skill:rhize-devflow/sanity-development",
       "type": "contains"
     },
@@ -2575,6 +2581,90 @@
       "from": "skill:rhize-devflow/error-lifecycle-management",
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/browser-qa",
+      "type": "precedes"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "external:frontend-designlang",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "external:frontend-gsap",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "external:frontend-impeccable",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "external:frontend-playwright",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "external:frontend-react-bits",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "external:frontend-taste",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "external:frontend-transitions",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "skill:project-launcher/project-launcher",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/review-outreach-package",
+      "type": "augments"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "frontmatter",
+      "to": "tag:topic/frontend",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "frontmatter",
+      "to": "tag:topic/ui",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "source": "frontmatter",
+      "to": "tag:topic/visual-design",
       "type": "topic-tag"
     },
     {
@@ -3952,6 +4042,55 @@
       "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "id": "external:frontend-designlang",
+      "kind": "external",
+      "name": "Designlang / extract-design",
+      "url": "https://github.com/Manavarya09/design-extract"
+    },
+    {
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "id": "external:frontend-gsap",
+      "kind": "external",
+      "name": "GSAP skill family",
+      "url": "https://gsap.com/docs/"
+    },
+    {
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "id": "external:frontend-impeccable",
+      "kind": "external",
+      "name": "Impeccable / impeccable",
+      "url": "https://impeccable.style"
+    },
+    {
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "id": "external:frontend-playwright",
+      "kind": "external",
+      "name": "Playwright CLI / playwright-cli",
+      "url": "https://playwright.dev/agent-cli/skills"
+    },
+    {
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "id": "external:frontend-react-bits",
+      "kind": "external",
+      "name": "React Bits / react-bits",
+      "url": "https://reactbits.dev"
+    },
+    {
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "id": "external:frontend-taste",
+      "kind": "external",
+      "name": "Taste / design-taste-frontend",
+      "url": "https://github.com/Leonxlnx/taste-skill"
+    },
+    {
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "id": "external:frontend-transitions",
+      "kind": "external",
+      "name": "Transitions / transitions-dev and transitions-polish",
+      "url": "https://transitions.dev"
+    },
+    {
       "id": "external:github.com/duriantaco/skylos",
       "kind": "external",
       "name": "dev-flow-foundations",
@@ -4894,7 +5033,7 @@
       "treeHash": "76565f8421c9a3c66359e4cba83e1f118d3ec52b77ffa06e86acf96612afc4b4"
     },
     {
-      "contentHash": "a1493efef433d583945e38917d699941cad5a7b61ca9cda2fdcf7013ee7dcde6",
+      "contentHash": "2bbc87b9c0e5f214fac1ac030cad6c30b20cacfd2d7b79370d5eedd0613f2559",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development. End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff. Triggers on: \"start a new project\", \"create a PRD\", \"plan an automation\", \"scaffold for GSD\", \"prepare for autonomous development\", \"launch a project\", \"set up a new n8n workflow project\", \"I want to build...\", \"let's plan...\", \"new project idea\", \"prepare handoff for GSD\", \"research and plan\", \"write requirements for\", \"scaffold and hand off\", \"gsd handoff\", \"project kickoff\", or any request involving turning a project idea into a structured plan ready for autonomous execution. Also triggers when users mention wanting to research a topic before building, gather requirements, interview about a project, analyze a PRD for gaps, or prepare a CLAUDE.md and .planning directory for a new codebase. Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology with integrated MCP server orchestration and GSD v2 framework knowledge.",
       "fileCount": 16,
       "id": "skill:project-launcher/project-launcher",
@@ -4902,8 +5041,8 @@
       "name": "project-launcher",
       "path": "project-launcher/skills/project-launcher/SKILL.md",
       "summary": "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder.",
-      "totalBytes": 75439,
-      "treeHash": "07e78699ab9c65d1d224ac9b5d55697d0b1980b395f0337d4927b7071c2a6735"
+      "totalBytes": 77190,
+      "treeHash": "dd2de2586e12c37573a75d038c0f7c10683173c16792ce19d0e7ded3f1d8562a"
     },
     {
       "contentHash": "3e6f92771cf781b0e05511fce37cfbe2633a0cce488cb2155985de395a935e38",
@@ -5119,15 +5258,15 @@
       "treeHash": "6ec172b1b79e5832774ea2c854a71925bb6709ed530f5a889f237ac46029c215"
     },
     {
-      "contentHash": "d96305ea8157ab5f60ff5698a97d9df2b26fdeae472c8d263442bef1952259a5",
+      "contentHash": "d0fd96c9701d784c24dad4028b4d8b7c46b792d21a9c17fc8b7f7df8a1908596",
       "description": "DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the active browser capability. Use when the user asks specifically about Chrome DevTools MCP tool names/parameters, connecting to a running Chrome instance, or MCP-level configuration/troubleshooting for that server — not for general \"test in the browser\" requests, which should go through `/rhize-devflow:browser-qa` instead.",
       "fileCount": 4,
       "id": "skill:rhize-devflow/chrome-devtools-mcp",
       "kind": "skill",
       "name": "chrome-devtools-mcp",
       "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md",
-      "totalBytes": 24267,
-      "treeHash": "d9dbfd9b1a38d02cc3f7e47356d3117b3e7a6aa0c8277fa76241d06283b8de47"
+      "totalBytes": 22795,
+      "treeHash": "89a40eea926bcf40e14a54b1474daf86241ab0788cdd5722c823125d9584c215"
     },
     {
       "contentHash": "a8f68b4b0b03dda685e9a8b0432f0e1e8d0b08a02cfd7c55ae273063a889b63a",
@@ -5168,16 +5307,16 @@
       "treeHash": "0f0eac14c08a83f33b945908580583e3095b54a671be1c2de57305a1eec55ce6"
     },
     {
-      "contentHash": "bd763a882ee08d171885c827be3fcada2f9638f07247a93bf42c227c3754fbbf",
-      "contentHashNormalized": "e4508393c63f8fcb51b3bc1dd557a2c6d28d477bf5d4708acf78ec71a2b255e9",
+      "contentHash": "9dfa8562978b1eb11664fe8926727641b19bded67dc95ac8e22c049db6ec0985",
+      "contentHashNormalized": "03bdf8e1d80110de3ed8c8a64d8721d2fbadf7ec14ad4fee7b113016afe0146b",
       "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices. For the optional simplicity ladder, defer to ponytail:ponytail after discovery, under the Ponytail integration contract.",
       "fileCount": 8,
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",
       "name": "dev-flow-foundations",
       "path": "rhize-devflow/skills/dev-flow-foundations/SKILL.md",
-      "totalBytes": 104603,
-      "treeHash": "af74b87422fcde8f498bf36e116474fa4fe3104916cf38b86d7425593f41cb64"
+      "totalBytes": 104929,
+      "treeHash": "f10eaade961628dd063a087c6d12fd151da732eb319e67df8b19c1df668741a6"
     },
     {
       "contentHash": "734f8034733f676e5775580509634afa584b7009f5f4d57b3364de4166fceb24",
@@ -5189,6 +5328,23 @@
       "path": "rhize-devflow/skills/error-lifecycle-management/SKILL.md",
       "totalBytes": 114464,
       "treeHash": "8055049e0ff13aee070f360e9972d851e9c6e0c8473cce943f921a526cddd78a"
+    },
+    {
+      "contentHash": "b2baf9906670ef660186032a9f03b88ccaae100688552532e3e29f8b27a6c267",
+      "description": "Coordinate frontend design, UI implementation, motion and visual review using the relevant installed design skills and observed browser evidence. Use for pages, dashboards, components, visual design, UI polish or frontend motion; exclude backend-only and mechanical nonvisual work.",
+      "fileCount": 1,
+      "id": "skill:rhize-devflow/frontend-development",
+      "kind": "skill",
+      "name": "frontend-development",
+      "path": "rhize-devflow/skills/frontend-development/SKILL.md",
+      "routerPhrases": [
+        "dashboard design",
+        "frontend motion",
+        "ui polish"
+      ],
+      "summary": "Selects frontend design and motion skills, preserves project authority, and connects implementation to browser acceptance.",
+      "totalBytes": 6182,
+      "treeHash": "8d5edff6e3dc20f98524f0143f80f4defa18b7eaa595b355f6eccfaa7604fde0"
     },
     {
       "contentHash": "8cfa1d5fd7ac0cfe77b81fecbee1b6389ccf62d8966ff8e9ea66876998a7fefe",
@@ -5330,15 +5486,15 @@
       "treeHash": "60c8426071117e1e0f762386b6713c660a40c059688d2accdbe580f445880e9d"
     },
     {
-      "contentHash": "1676fd80836f1acb6e27dac25a1cb517e1388afde3b5bd231b56b7a7ac26d462",
+      "contentHash": "8381b0efe62a1b44369320af1217b16bab2c0c02c4c54cc0bd715a63f304b984",
       "description": "Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and rendering checks.",
       "fileCount": 1,
       "id": "skill:rhize-outreach/review-outreach-package",
       "kind": "skill",
       "name": "review-outreach-package",
       "path": "rhize-outreach/skills/review-outreach-package/SKILL.md",
-      "totalBytes": 1242,
-      "treeHash": "843a70f40660e74cc8fb53ab1c1d9b1e071741180b79edf1642bc1b229d83fd8"
+      "totalBytes": 1912,
+      "treeHash": "47be5d142bdad7e4dd3dba9cd6d1d41224b1d9b565b90cb725263a5a16391f23"
     },
     {
       "contentHash": "43b34a8dc76b8542154fa0b2e5e5834fe306ceebd05b2022af19d17a3b1c1b8d",
@@ -5676,6 +5832,12 @@
       "name": "evidence"
     },
     {
+      "description": "User-facing web interfaces: visual design, components, interaction states and motion",
+      "id": "tag:topic/frontend",
+      "kind": "tag",
+      "name": "frontend"
+    },
+    {
       "description": "Keyword discovery and opportunity scoring",
       "id": "tag:topic/keyword-research",
       "kind": "tag",
@@ -5764,6 +5926,18 @@
       "id": "tag:topic/tool-design",
       "kind": "tag",
       "name": "tool-design"
+    },
+    {
+      "description": "User interface design and interaction work",
+      "id": "tag:topic/ui",
+      "kind": "tag",
+      "name": "ui"
+    },
+    {
+      "description": "Visual interface hierarchy, typography, color and layout",
+      "id": "tag:topic/visual-design",
+      "kind": "tag",
+      "name": "visual-design"
     },
     {
       "description": "Diagrams, canvases, dashboards, visual plans",

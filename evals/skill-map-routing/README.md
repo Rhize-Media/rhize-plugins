@@ -66,13 +66,13 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
 
 ## Committed artifacts
 
-- `baseline.json`: the 286-row corpus run against an immutable, unmodified source snapshot
-  of `369627dc84943991c58308e66690e92494833da3` (2026-10-23). Three graph-builder cases were
-  added. Of the 283 previous rows, 281 control predictions are unchanged; the two credential
-  positives now reach `credential-access` in current main. Those upstream gains are separate
-  from this feature. Candidate versus current control changes only the new builder positive
-  from silent to hit; both added negatives stay silent. Thresholds are unchanged.
-  `inferred_baseline.json` is byte-identical to the prior credential refresh (`6203848`).
+- `baseline.json`: the 289-row corpus run against unmodified `d1502d70476088e355413403c128a625e97d5fcc`
+  (2026-11-01), using the clean control checkout at `7d51bee6cbca6ae91aac346720ce50af1963b182`
+  with the identical Git tree. Three conditional frontend cases were added. Candidate versus
+  this control changes only the new frontend positive from silent to hit; both added negatives
+  stay silent. All other predictions and existing thresholds are unchanged.
+  `inferred_baseline.json` is copied from the same control run. A discarded generic dashboard
+  topic increased third-party negative triggers; narrower metadata preserves the existing gate.
   These are deterministic development fixtures, not pilot or task-benefit evidence.
   Refresh with `run.py --checkout <unmodified-control>` and copy
   `out/results.json` and `out/inferred_signals.json`.

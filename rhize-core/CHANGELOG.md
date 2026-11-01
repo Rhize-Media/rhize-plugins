@@ -4,6 +4,8 @@
 
 ### Added
 
+- Include frontend-development in the 70-skill evaluation catalog and exact inventory guard; retain capture and benchmark authority.
+- _2026-11-01_ version bump — 1.0.10 → 1.0.11 (patch); marketplace 2.115.2 → 2.115.3.
 - Graph workflow builder evaluation coverage: synchronize the 69-skill catalog/validator mirrors, add the manual subscription-native authoring benchmark, and preserve setup/capture consent and authority.
 - _2026-10-23_ version bump — 1.0.9 → 1.0.10 (patch); marketplace 2.113.0 → 2.113.1.
 - _2026-10-17_ version bump — 1.0.8 → 1.0.9 (patch); marketplace 2.110.1 → 2.111.0.

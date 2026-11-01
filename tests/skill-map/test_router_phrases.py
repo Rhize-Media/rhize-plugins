@@ -113,6 +113,7 @@ def test_router_index_is_deterministic_regardless_of_phrase_order():
 # --- committed artifacts ---------------------------------------------------
 
 EXPECTED = {
+    "skill:rhize-devflow/frontend-development": ["dashboard design", "frontend motion", "ui polish"],
     "skill:procedural-memory/graph-workflow-builder": ["build graph workflow", "completion gates"],
     "skill:rhize-devflow/credential-access": ["keychain access", "keychain credentials", "stored credentials"],
     "skill:obsidian-second-brain/defuddle": ["web clipping"],

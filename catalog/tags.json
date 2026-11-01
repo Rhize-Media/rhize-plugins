@@ -1,4 +1,7 @@
 [
+  { "slug": "ui", "kind": "topic", "gloss": "User interface design and interaction work" },
+  { "slug": "visual-design", "kind": "topic", "gloss": "Visual interface hierarchy, typography, color and layout" },
+  { "slug": "frontend", "kind": "topic", "gloss": "User-facing web interfaces: visual design, components, interaction states and motion" },
   { "slug": "knowledge-management", "kind": "topic", "gloss": "Organizing PKM vaults, note structure, database-like views" },
   { "slug": "content-authoring", "kind": "topic", "gloss": "Writing, formatting, and modeling content: notes, docs, templates, CMS schemas, and clean text extracted from web pages" },
   { "slug": "visualization", "kind": "topic", "gloss": "Diagrams, canvases, dashboards, visual plans" },

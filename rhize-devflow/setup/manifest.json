@@ -43,6 +43,24 @@
   ],
   "dependencies": [
     {
+      "name": "Designlang CLI",
+      "kind": "cli",
+      "binary": "designlang",
+      "capability": "reference-design-extraction",
+      "purpose": "Optional CLI used by extract-design for a supplied reference URL.",
+      "required": false,
+      "degradedBehavior": "Reference extraction cannot run; use existing project tokens or report the missing capability. Other frontend work remains available."
+    },
+    {
+      "name": "Playwright CLI",
+      "kind": "cli",
+      "binary": "playwright-cli",
+      "capability": "isolated-browser-qa",
+      "purpose": "Optional isolated browser adapter selected by frontend-development/browser-qa.",
+      "required": false,
+      "degradedBehavior": "Use a sufficient connected native browser capability; otherwise report affected browser checks unavailable."
+    },
+    {
       "name": "Sentry MCP server",
       "kind": "mcp",
       "capability": "error-lifecycle",

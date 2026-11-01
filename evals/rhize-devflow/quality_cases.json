@@ -1,5 +1,36 @@
 [
   {
+    "id": "quality-frontend-conditional-selection-and-evidence",
+    "target_file": "rhize-devflow/skills/frontend-development/SKILL.md",
+    "assertions": [
+      {
+        "type": "contains",
+        "value": "Do not load every family.",
+        "name": "Conditional family selection"
+      },
+      {
+        "type": "contains",
+        "value": "Respect host overrides",
+        "name": "Disabled capabilities remain disabled"
+      },
+      {
+        "type": "contains",
+        "value": "Inspect screenshots",
+        "name": "Observed visual evidence"
+      },
+      {
+        "type": "contains",
+        "value": "guard re-entry",
+        "name": "Async backpressure"
+      },
+      {
+        "type": "contains",
+        "value": "global skills such as `impeccable` are bare",
+        "name": "Native global callable names"
+      }
+    ]
+  },
+  {
     "id": "quality-check-exact-verdict-vocabulary",
     "target_file": "rhize-devflow/commands/check.md",
     "assertions": [

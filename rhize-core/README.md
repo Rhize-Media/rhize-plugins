@@ -302,3 +302,7 @@ or decision-quality evidence. Existing evaluation domains and baseline policy ar
 Perplexity Research is registered in the setup/evaluation catalog. Its free offline suite
 checks packaging and durable lifecycle behavior; it never submits a live query or refreshes
 credentials. See [Perplexity setup](../perplexity-research/README.md).
+
+The shared evaluation inventory includes `rhize-devflow:frontend-development` (70 marketplace
+skills total). Its conditional seven-family native cases are manual; coverage does not establish
+rendered quality, host activation or measured benefit.

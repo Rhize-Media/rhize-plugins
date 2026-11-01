@@ -626,3 +626,23 @@ research may opt into at most 2,000 ms of admission waiting inside its existing 
 deadline. The local service must support that header; no request is retried. Native routing
 and operational deadline benchmarks retain their existing budgets and default admission.
 Waiting and unavailable responses do not establish model speed, acceptance or earned authority.
+
+## Conditional frontend development
+
+`rhize-devflow:frontend-development` selects the relevant installed skill families for design,
+UI implementation, motion and visual review. Taste supplies direction, Designlang extracts a
+supplied reference, React Bits supplies current component source, Transitions handles ordinary
+CSS motion, GSAP handles justified choreography, Impeccable supplies craft review, and Playwright
+CLI is one browser adapter. Upstream skills remain independently installed; read their actual
+host-discovered files/names, respect disabled state, and do not infer native invocation from disk presence.
+
+Keep the existing design system and framework authoritative. Backend-only and mechanical
+nonvisual changes skip this workflow. Substantive UI changes enter `review`'s UI risk category;
+`browser-qa` observes affected states, screenshots, keyboard/focus and reduced-motion behavior.
+Its output binds URL/build, viewport, action/state and observed result. Static detectors, local
+performance traces and approved visual plans do not establish rendered-product or field acceptance.
+
+`doctor` reports optional Designlang and Playwright CLI availability independently. The command's
+frontend follow-up uses native skill discovery; CLI PATH checks do not prove enabled skills or
+hook execution. See `evals/rhize-devflow/frontend_cases.json` in the source repository for the
+manual cross-host case matrix; source contracts and native observations are separate evidence.

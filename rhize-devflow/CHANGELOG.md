@@ -4,6 +4,11 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Added
+
+- Add conditional frontend skill selection, UI review routing and observed browser-state acceptance. Remove stale DevTools parameters, distinguish lab/field Web Vitals, and declare optional Designlang/Playwright CLI capabilities.
+- _2026-11-01_ version bump — 2.30.4 → 2.31.0 (minor); marketplace 2.114.5 → 2.115.0.
+
 ### Fixed
 
 - Add bounded opt-in background admission metadata to the shared local transport; default native admission, request deadlines and fail-closed transport rules stay unchanged. Development search opts in without retrying rejected calls.

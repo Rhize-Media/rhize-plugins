@@ -115,5 +115,12 @@
     "macos keychain",
     "keychain access",
     "authenticating a cli"
+  ],
+  "skill:frontend-development": [
+    "frontend design",
+    "ui implementation",
+    "visual review",
+    "ui polish",
+    "frontend motion"
   ]
 }

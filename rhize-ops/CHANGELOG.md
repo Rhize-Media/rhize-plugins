@@ -9,6 +9,11 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Added
+
+- Keep the fallback evaluation catalog and validator byte-identical with Core at 70 skills; separate frontend selection evidence from rendered-quality benefit.
+- _2026-11-01_ version bump — 0.33.2 → 0.33.3 (patch); marketplace 2.115.3 → 2.115.4.
+
 ### Fixed
 
 - Add bounded opt-in background admission metadata to the shared local transport; default native admission, request deadlines and fail-closed transport rules stay unchanged. Development search opts in without retrying rejected calls.

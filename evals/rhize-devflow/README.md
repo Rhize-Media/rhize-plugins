@@ -163,3 +163,18 @@ Task 11 (3.0 cleanup) has a single checklist to work from:
 | `quality_cases.json` | Assertion fixtures against `check.md`, `review.md`, `simplify/SKILL.md`, and `completed-branch-promotion/SKILL.md`, covering validation/review vocabulary plus promotion authority and failure boundaries. |
 
 `evals/results/rhize-devflow-*.json` (gitignored) holds one timestamped snapshot per run.
+
+## Frontend native verification (manual)
+
+`frontend_cases.json` covers seven conditional families plus backend-only and unavailable-capability
+controls. It is input for bounded native Claude/Codex sessions, not an automatic paid test. Use the
+same candidate frontend skill, brief and capability snapshot in each host. Read the coordinator,
+then allow the host to select/load the applicable upstream files; do not feed grader expectations
+to the model. Save terminal status, actual model when exposed, tool/file-read evidence, result,
+limitations and source hashes. Require concrete task output and assess the case's criteria.
+
+These read-only cases verify selection and use, not rendered-product benefit. Run separate actual
+CLI/browser checks on an inert local fixture for runtime claims. No client content, credential
+values, external writes, automatic installs or hook-trust bypass belongs in the fixture. Native
+service use needs established task authorization; unavailable transport stays unavailable.
+Compare paired rendered tasks under `benchmark_contracts.json` before claiming a quality gain.

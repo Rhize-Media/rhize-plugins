@@ -54,6 +54,14 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor --json
 The `doctor --json` output contract (`devflow-doctor-v1`) is documented in
 `scripts/devflow.py`'s own module docstring.
 
+## Frontend capability follow-up
+
+CLI dependency checks establish PATH availability only. For frontend work, use the current host
+skill inventory to confirm the families selected by `frontend-development` are enabled and
+callable. Respect overrides; file presence and a healthy doctor do not prove skill selection,
+browser scenario support or hook execution. Report unavailable families without installing or
+reenabling them.
+
 ## Related Workflows
 
 - `/rhize-devflow:check` — mid-implementation evidence-driven validation for a repository under

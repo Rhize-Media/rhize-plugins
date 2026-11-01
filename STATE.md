@@ -2,6 +2,21 @@
 
 ## Verified facts
 
+- 2026-11-01: Conditional frontend integration adds one Dev Flow coordinator for the seven
+  optional upstream skill families, with Launcher PRD/handoff and host-side Outreach review
+  consumers. UI risk review and browser QA now require affected-state, screenshot, keyboard,
+  reduced-motion and async backpressure evidence. Browser mechanics defer to active schemas;
+  lab traces do not establish field Web Vitals compliance. Core/Ops catalogs and exact guards
+  retain byte-identical 70-skill coverage. A 289-row resolved-router comparison against unchanged
+  main changes only the new frontend positive; all existing predictions and thresholds remain.
+  Separate source review passes. Local Chrome assertions cover pending/re-entry/recovery,
+  keyboard, reduced motion and mobile overflow; Designlang extraction, both host-specific
+  Impeccable detector controls, Taste CLI entrypoints and a GSAP core/timeline/media smoke pass.
+  These fixture checks do not prove native model selection or rendered-product quality.
+  Native Claude/Codex trials await specific provider-transfer approval after automatic review
+  rejected the model calls. Loaded plugin caches remain unchanged; activation requires the
+  closed-host update procedure and fresh-session verification. Final release results follow below.
+
 - 2026-10-30: Laya reliability investigation found the exact overnight skill-fit demotion
   was operational 10/98 above 10%, with timeouts 4/98 reported separately. Existing MPS
   timing shows slow forwards as well as admission contention; the private diagnostic log
@@ -568,6 +583,10 @@
 
 ## Lessons learned
 
+- A new global routing tag can change inferred tags for third-party skills. The generic dashboard
+  tag increased an unrelated long-negative trigger; precise visual-design/phrase metadata
+  preserved the existing resolved-router gate. Test the whole resolved corpus, not only the new skill.
+
 - Vault prose cannot be recognized from software-repository folder prefixes alone. Use a filesystem vault marker with project/runtime boundaries, and exercise the same classification in write, reconciliation and release paths.
 
 - Native eval scaffolds must require explicit fixture mode and refuse pre-existing or symlinked write targets before any write. Grade staging separately from checks, and bound regex lookaheads to the current command so valid chained operations are not penalized.
@@ -595,6 +614,10 @@
   not change.
 
 ## Last session
+
+- 2026-11-01 frontend integration: source review passed; final local release checks running. Native
+  provider trials are approval-held, and installed activation is deferred. Check the task report
+  before treating source readiness, host activation or actual skill use as complete.
 
 - 2026-10-10: Diagnosed the daily labeler warning as a 348 MiB regular transcript excluded by the 256 MiB ceiling. The minimal 512 MiB candidate preserves all binding checks, passes 139 reader tests (one existing skip), and verifies the original immutable request in 1.608 seconds without labeling/importing it. Independent review found no code blocker but requires supported test-evidence; the current runner is unavailable for this repository. Missing enum captures and image/referent mismatches remain deferred. No model labeler, holdout, promotion, historical runtime change or native-cache reload occurred. Publication and current-runtime pin remain held.
 
