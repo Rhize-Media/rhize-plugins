@@ -15,7 +15,9 @@
   These fixture checks do not prove native model selection or rendered-product quality.
   Native Claude/Codex trials await specific provider-transfer approval after automatic review
   rejected the model calls. Loaded plugin caches remain unchanged; activation requires the
-  closed-host update procedure and fresh-session verification. Final release results follow below.
+  closed-host update procedure and fresh-session verification. Local qualification passes 4,648 tests and 27 subtests with seven declared skips;
+  the separate Dev Flow release gate passes all 852 tests. Strict marketplace/all-plugin
+  validation, doctor, config lint, map/setup freshness and documentation idempotence pass.
 
 - 2026-10-30: Laya reliability investigation found the exact overnight skill-fit demotion
   was operational 10/98 above 10%, with timeouts 4/98 reported separately. Existing MPS
@@ -615,7 +617,7 @@
 
 ## Last session
 
-- 2026-11-01 frontend integration: source review passed; final local release checks running. Native
+- 2026-11-01 frontend integration: source review and local release checks passed. Native
   provider trials are approval-held, and installed activation is deferred. Check the task report
   before treating source readiness, host activation or actual skill use as complete.
 
