@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Require current-source evidence for component behavior claims and preserve collapsed-content focus/accessibility during disclosure motion.
+- Native frontend trials: reapply project authority after upstream skill loading; reject unrequested media/motion quotas and invented content/signup fallbacks; distinguish pending UI from handler re-entry evidence.
 - Add conditional frontend skill selection, UI review routing and observed browser-state acceptance. Remove stale DevTools parameters, distinguish lab/field Web Vitals, and declare optional Designlang/Playwright CLI capabilities.
 - _2026-11-01_ version bump — 2.30.4 → 2.31.0 (minor); marketplace 2.114.5 → 2.115.0.
 

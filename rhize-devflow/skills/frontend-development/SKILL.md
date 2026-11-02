@@ -53,6 +53,9 @@ from skill discovery. Use the skill's documented help/probe when execution is ne
 | UX/craft/accessibility review or polish | `impeccable` and its relevant command reference | Load actual project context; use audit/critique/polish as appropriate. A detector pass is not visual or accessibility acceptance. |
 | Rendered page/interaction verification | `playwright-cli` for an isolated CLI browser, or a sufficient available native browser connector | Use `/rhize-devflow:browser-qa` for acceptance sequencing and the chosen tool's own skill/schema for mechanics. |
 
+Current component behavior and dependencies require current source/help evidence. If a live registry
+fetch or probe cannot run, keep those details unverified; catalog expectations are not findings.
+
 If an existing ECC design/a11y/motion skill or repository workflow better fits, use it and explain
 the choice. Select one primary direction owner; avoid conflicting aesthetic defaults. SEO, CMS
 and mutation/cache correctness remain with their existing specialist workflows when affected.
@@ -61,9 +64,24 @@ React Bits registry setup belongs in the actual app's `components.json` only whe
 preserve other registries. Impeccable product context belongs in the product, never a global
 placeholder PRODUCT.md. Do not invent claims, force a framework, or add decorative motion.
 
+## Reconcile upstream defaults with the brief
+
+After loading the selected skills, re-read this section before producing the design. The project
+brief and real content override upstream house styles and inspector scores. Do not turn upstream
+image counts, motion counts or decorative effects into requirements; omit them unless the brief
+or user task needs them. A static, image-free design can be the correct result. Name any conflicting
+defaults you rejected. Keep unsupplied claims, capacity, services and signup destinations unresolved;
+propose content fields to confirm, never present invented facts as copy. Use labeled field names
+in examples, not made-up times or counts. Do not select a mailto/form fallback when the signup
+destination is unsupplied; leave that integration decision open.
+
 ## Implement and verify affected behavior
 
-Keep motion purposeful and honor `prefers-reduced-motion`. For async controls, guard re-entry
+Keep motion purposeful and honor `prefers-reduced-motion`. Preserve disclosure/dialog semantics:
+clipping or opacity alone does not remove hidden controls from keyboard or assistive technology.
+Keep closing content mounted for its animation, prevent focus in collapsed content (for example
+with `inert`), and restore focus before hiding it. Preserve the existing semantic component.
+For async controls, guard re-entry
 inside the handler, set the guard immediately before its try/finally, and always clear it in
 finally. Disable/show pending feedback on a control that stays mounted; test failure recovery.
 

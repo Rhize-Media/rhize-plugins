@@ -51,6 +51,10 @@ result). Report what was exercised and whether it reached the expected end state
 Exercise affected loading, empty, error, success and permission states. For async controls,
 check handler re-entry protection, visible pending feedback on a mounted control, guard cleanup
 and failure recovery; a disabled attribute alone does not establish duplicate-request protection.
+Hold or delay the save response to establish a real in-flight window; an immediate success stub
+cannot test overlap. Check the handler source and exercise re-entry separately in an authorized
+fixture: disabled-button clicks may never reach the handler, so one request alone is not proof
+that its guard works. Record UI backpressure and handler-guard evidence separately.
 
 ### 2. Console and network errors
 

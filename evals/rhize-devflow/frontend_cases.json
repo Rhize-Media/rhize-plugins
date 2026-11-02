@@ -10,7 +10,9 @@
     "criteria": [
       "preserves supplied brand and primary action",
       "concrete visual decisions",
-      "does not force animation or a framework"
+      "does not force animation or a framework",
+      "no mandatory upstream media or motion quotas",
+      "unsupplied facts and signup destinations stay unresolved"
     ]
   },
   {
@@ -38,7 +40,8 @@
     "criteria": [
       "live registry required",
       "TS/Tailwind variant matches",
-      "inspect source/dependencies and reduced motion"
+      "inspect source/dependencies and reduced motion",
+      "no current component behavior claim without live source evidence"
     ]
   },
   {
@@ -69,7 +72,9 @@
     "criteria": [
       "concrete CLI browser instructions",
       "affected state evidence",
-      "unexecuted checks not reported passed"
+      "unexecuted checks not reported passed",
+      "holds a real in-flight window for duplicate-submit checks",
+      "does not infer a handler guard solely from disabled-button clicks"
     ]
   },
   {
@@ -100,7 +105,8 @@
     "criteria": [
       "CSS solution with appropriate timing/easing",
       "closing state and reduced motion handled",
-      "no new animation dependency"
+      "no new animation dependency",
+      "collapsed content is not focusable; preserves keyboard and accessibility semantics"
     ]
   },
   {

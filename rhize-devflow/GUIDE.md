@@ -629,6 +629,10 @@ Waiting and unavailable responses do not establish model speed, acceptance or ea
 
 ## Conditional frontend development
 
+Project briefs override upstream house styles, media/motion quotas and inspector scores.
+The coordinator rechecks these constraints after skill loading and leaves unsupported facts unresolved.
+Current component claims need source evidence, and disclosure motion must preserve collapsed-content accessibility.
+
 `rhize-devflow:frontend-development` selects the relevant installed skill families for design,
 UI implementation, motion and visual review. Taste supplies direction, Designlang extracts a
 supplied reference, React Bits supplies current component source, Transitions handles ordinary

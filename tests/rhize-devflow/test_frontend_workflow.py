@@ -20,6 +20,8 @@ def test_browser_evidence_covers_visible_and_async_states():
     for contract in ["inspect screenshots", "keyboard", "focus", "reduced-motion", "re-entry", "pending", "empty", "unavailable", "playwright-cli", "75th percentile"]:
         assert contract in text, contract
     assert "inp/fid" not in text
+    assert "immediate success stub" in text
+    assert "disabled-button clicks may never reach the handler" in text
 
 
 def test_mechanics_defer_to_active_schema():

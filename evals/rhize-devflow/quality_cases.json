@@ -27,6 +27,11 @@
         "type": "contains",
         "value": "global skills such as `impeccable` are bare",
         "name": "Native global callable names"
+      },
+      {
+        "type": "contains",
+        "value": "After loading the selected skills, re-read this section",
+        "name": "Post-load project authority check"
       }
     ]
   },
