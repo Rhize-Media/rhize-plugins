@@ -2,6 +2,55 @@
   "schemaVersion": "1.1.0",
   "nodes": [
     {
+      "id": "external:frontend-taste",
+      "kind": "external",
+      "name": "Taste / design-taste-frontend",
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "url": "https://github.com/Leonxlnx/taste-skill"
+    },
+    {
+      "id": "external:frontend-designlang",
+      "kind": "external",
+      "name": "Designlang / extract-design",
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "url": "https://github.com/Manavarya09/design-extract"
+    },
+    {
+      "id": "external:frontend-react-bits",
+      "kind": "external",
+      "name": "React Bits / react-bits",
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "url": "https://reactbits.dev"
+    },
+    {
+      "id": "external:frontend-gsap",
+      "kind": "external",
+      "name": "GSAP skill family",
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "url": "https://gsap.com/docs/"
+    },
+    {
+      "id": "external:frontend-playwright",
+      "kind": "external",
+      "name": "Playwright CLI / playwright-cli",
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "url": "https://playwright.dev/agent-cli/skills"
+    },
+    {
+      "id": "external:frontend-impeccable",
+      "kind": "external",
+      "name": "Impeccable / impeccable",
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "url": "https://impeccable.style"
+    },
+    {
+      "id": "external:frontend-transitions",
+      "kind": "external",
+      "name": "Transitions / transitions-dev and transitions-polish",
+      "description": "Optional installed frontend capability selected conditionally by frontend-development; native host discovery and enabled state govern use. No upstream skill content is bundled.",
+      "url": "https://transitions.dev"
+    },
+    {
       "id": "external:ecc-suggest-compact",
       "kind": "external",
       "name": "ecc pre:edit-write:suggest-compact hook",
@@ -204,6 +253,72 @@
     }
   ],
   "edges": [
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "external:frontend-taste",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "external:frontend-designlang",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "external:frontend-react-bits",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "external:frontend-gsap",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "external:frontend-playwright",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "external:frontend-impeccable",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "external:frontend-transitions",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "skill:project-launcher/project-launcher",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "skill:rhize-outreach/review-outreach-package",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/frontend-development",
+      "to": "command:rhize-devflow/browser-qa",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
     {
       "from": "hook:rhize-context-manager/context-window-monitor",
       "to": "external:ecc-suggest-compact",

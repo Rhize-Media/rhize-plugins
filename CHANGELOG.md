@@ -35,6 +35,12 @@ point-in-time record.
 
 ### Added
 
+- Conditional frontend integration across Dev Flow, Launcher and host-side Outreach review; optional upstream families, UI/browser evidence, mirrored 70-skill evaluation coverage and unchanged router confidence gates.
+- _2026-11-01_ version bump — **rhize-ops** 0.33.2 → 0.33.3 (patch); marketplace 2.115.3 → 2.115.4.
+- _2026-11-01_ version bump — **rhize-core** 1.0.10 → 1.0.11 (patch); marketplace 2.115.2 → 2.115.3.
+- _2026-11-01_ version bump — **rhize-outreach** 0.4.0 → 0.4.1 (patch); marketplace 2.115.1 → 2.115.2.
+- _2026-11-01_ version bump — **project-launcher** 1.15.1 → 1.15.2 (patch); marketplace 2.115.0 → 2.115.1.
+- _2026-11-01_ version bump — **rhize-devflow** 2.30.4 → 2.31.0 (minor); marketplace 2.114.5 → 2.115.0.
 - _2026-10-30_ version bump — **rhize-devflow** 2.30.3 → 2.30.4 (patch); marketplace 2.114.4 → 2.114.5.
 - _2026-10-30_ version bump — **rhize-ops** 0.33.1 → 0.33.2 (patch); marketplace 2.114.3 → 2.114.4.
 - _2026-10-30_ version bump — **project-launcher** 1.15.0 → 1.15.1 (patch); marketplace 2.114.2 → 2.114.3.

@@ -4,6 +4,11 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Added
+
+- Carry frontend design authority, affected UI states and browser acceptance from PRD through implementation handoff; skip the branch for nonvisual work.
+- _2026-11-01_ version bump — 1.15.1 → 1.15.2 (patch); marketplace 2.115.0 → 2.115.1.
+
 ### Fixed
 
 - Add bounded opt-in background admission metadata to the shared local transport; default native admission, request deadlines and fail-closed transport rules stay unchanged. Development search opts in without retrying rejected calls.

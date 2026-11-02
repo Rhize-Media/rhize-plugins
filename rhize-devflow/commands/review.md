@@ -116,6 +116,7 @@ resulting risk is low; a category with no signal is stated as unaffected, not om
 | Migration | `migrations/`, `alembic/`, `.sql` files, schema-generation output |
 | Cache | Cache keys, invalidation, CDN/edge cache config, query-key changes |
 | External-write | Any call that writes to a system outside this repository (webhook, third-party API, ticket system) |
+| UI/browser-facing changes | Substantive user-visible layout, interaction, accessibility, responsive behavior or animation changes; not formatting-only or mechanical nonvisual edits |
 
 A change is **trivial** only when no risk category above is matched — for example a
 documentation-, comment-, or formatting-only diff. Any matched category makes the change
@@ -140,9 +141,14 @@ protected-file touch).
 |---|---|
 | Security, authorization, billing | Security reviewer (e.g. `ecc:security-reviewer`) |
 | Data, migration | Database/migration reviewer (e.g. `ecc:database-reviewer`) |
-| UI/browser-facing changes | Accessibility/browser reviewer (e.g. `ecc:a11y-architect`, `/rhize-devflow:browser-qa`) |
+| UI/browser-facing changes | `frontend-development` for relevant craft/accessibility review, plus `/rhize-devflow:browser-qa` evidence; use an available accessibility specialist when needed |
 | Deployment | Delivery/CI reviewer, informed by repository push/deploy policy |
 | Security (tracing/PII scrubbing) | Security reviewer, informed by this plugin's `sentry-instrumentation` conventions |
+
+For UI findings, inspect evidence for the current build and affected states: screenshots actually
+viewed, keyboard/focus and reduced-motion checks where affected, and observed interactions.
+A static detector pass, rendered plan or unavailable browser is not visual acceptance. Missing
+required browser evidence is a fixable gap; preserve the command's existing verdict vocabulary.
 
 For the finer-grained, stack-based routing table (React/TypeScript/Python/Go/Rust/Java/
 database/test/error-handling/type-design specialists) and the technique that produces

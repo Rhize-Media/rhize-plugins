@@ -1366,6 +1366,46 @@
           "weight": 2
         }
       ],
+      "skill:rhize-devflow/frontend-development": [
+        {
+          "kind": "name",
+          "label": "frontend-development",
+          "weight": 1
+        },
+        {
+          "kind": "phrase",
+          "label": "dashboard design",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "frontend motion",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "ui polish",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "frontend",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "ui",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "visual-design",
+          "weight": 2
+        }
+      ],
       "skill:rhize-devflow/sanity-development": [
         {
           "kind": "name",
@@ -2087,6 +2127,10 @@
       "follows": [],
       "precedes": []
     },
+    "command:rhize-devflow/browser-qa": {
+      "follows": [],
+      "precedes": []
+    },
     "command:rhize-devflow/check": {
       "follows": [],
       "precedes": [
@@ -2118,6 +2162,12 @@
     "skill:rhize-devflow/error-lifecycle-management": {
       "follows": [],
       "precedes": []
+    },
+    "skill:rhize-devflow/frontend-development": {
+      "follows": [],
+      "precedes": [
+        "command:rhize-devflow/browser-qa"
+      ]
     },
     "skill:rhize-ops/delegate-to-teammate": {
       "follows": [],

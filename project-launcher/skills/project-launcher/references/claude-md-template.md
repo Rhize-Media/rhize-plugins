@@ -37,6 +37,10 @@ Generate a project-specific CLAUDE.md using this template. Every section should 
 |-------|-------------|
 | `{skill-name}` | {specific workflow/phase where this skill applies} |
 
+For UI projects, include `rhize-devflow:frontend-development` when available and carry the
+PRD's design authority, affected states and browser acceptance into these instructions. Use
+the host's actual callable skill names in Claude and Codex; preserve host-specific policy.
+
 ## Key Files
 ```
 {project-name}/

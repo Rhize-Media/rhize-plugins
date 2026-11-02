@@ -286,3 +286,7 @@ research may opt into at most 2,000 ms of admission waiting inside its existing 
 deadline. The local service must support that header; no request is retried. Native routing
 and operational deadline benchmarks retain their existing budgets and default admission.
 Waiting and unavailable responses do not establish model speed, acceptance or earned authority.
+
+The shared evaluation inventory includes `rhize-devflow:frontend-development` (70 marketplace
+skills total). Its conditional seven-family native cases are manual; coverage does not establish
+rendered quality, host activation or measured benefit.

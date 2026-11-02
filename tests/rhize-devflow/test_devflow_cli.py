@@ -253,7 +253,7 @@ def test_doctor_text_output_is_not_json_but_runs_cleanly() -> None:
 def test_doctor_real_plugin_manifest_dependencies_are_optional() -> None:
     """Every dependency in rhize-devflow/setup/manifest.json is plugin-level optional
     (required: false) and names the capability it enables. Covers both `kind: "mcp"`
-    dependencies and the `kind: "cli"` CodeGraph entry."""
+    dependencies and the optional `kind: "cli"` entries."""
     manifest = json.loads((REPO_ROOT / "rhize-devflow" / "setup" / "manifest.json").read_text())
     deps = manifest["dependencies"]
     expected_capabilities = {
@@ -262,6 +262,8 @@ def test_doctor_real_plugin_manifest_dependencies_are_optional() -> None:
         "GitHub MCP server": "commit-pr-correlation",
         "Chrome DevTools MCP server": "browser-qa",
         "CodeGraph CLI": "codegraph-index",
+        "Designlang CLI": "reference-design-extraction",
+        "Playwright CLI": "isolated-browser-qa",
     }
     assert len(deps) == len(expected_capabilities)
     assert {dep["name"] for dep in deps} == set(expected_capabilities)

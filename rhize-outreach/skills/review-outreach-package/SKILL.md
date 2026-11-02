@@ -14,3 +14,11 @@ Invoke the pinned runtime workflow for the selected candidate revision. The curr
 The website package requires a homepage and focused offer/service page plus an optional third page when justified. Run separate visual, conversion-design, factual, responsive and functional checks with at most two automatic repair passes. The public audit follows the bundled deliverable contract and preserves measured, partial and unavailable coverage.
 
 Open the website and audit together for human review. Feedback invalidates only dependent outputs; acceptance binds every route, shared asset, report HTML/PDF and evidence digest.
+
+For a tool-equipped Claude or Codex host, use the available `rhize-devflow:frontend-development`
+skill to select direction/extraction/components/motion and craft review only where relevant.
+Use `/rhize-devflow:browser-qa` for actual rendered evidence. Preserve the prospect's brand and
+factual constraints; do not add all seven families to every concept. Record selected skill names
+and observed URL/build, viewport, state/action and artifact references for the current candidate
+revision. Missing or disabled capabilities remain unavailable. This host-side review does not
+upgrade the background graph's capabilities, change its runtime pin or clear human acceptance.

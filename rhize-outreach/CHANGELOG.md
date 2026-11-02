@@ -2,6 +2,8 @@
 
 ### Added
 
+- Route host-side visible package review through the conditional frontend workflow and browser evidence while preserving constrained background execution and human clearance.
+- _2026-11-01_ version bump — 0.4.0 → 0.4.1 (patch); marketplace 2.115.1 → 2.115.2.
 - _2026-10-10_ version bump — 0.3.0 → 0.4.0 (minor); marketplace 2.101.1 → 2.102.0.
 - _2026-10-10_ Router: review-outreach-businesses regains the `prospecting` topic and the phrase "candidate businesses"; review-outreach-package drops `seo-audit`/`visualization`, which tied it with unrelated skills.
 - _2026-10-10_ version bump — 0.2.0 → 0.3.0 (minor); marketplace 2.100.4 → 2.101.0.

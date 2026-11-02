@@ -122,6 +122,11 @@ Before telling the user the project is ready:
    - [ ] Important notes include credential locations and gotchas
    - [ ] Post-Phase Verification section includes `/sc:reflect` + `/simplify` command
 
+For UI projects, confirm the PRD and executor instructions carry the existing design authority,
+affected states/motion, selected frontend capabilities and observable browser acceptance.
+Use `rhize-devflow:frontend-development` when available. A wireframe or approved plan does not
+establish rendered-product verification; hand off actual browser checks to the executor.
+
 2. **Planning docs consistency**
    - [ ] PROJECT.md vision matches PRD executive summary
    - [ ] REQUIREMENTS.md covers every PRD requirement

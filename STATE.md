@@ -2,6 +2,30 @@
 
 ## Verified facts
 
+- 2026-11-01: Conditional frontend integration adds one Dev Flow coordinator for the seven
+  optional upstream skill families, with Launcher PRD/handoff and host-side Outreach review
+  consumers. UI risk review and browser QA now require affected-state, screenshot, keyboard,
+  reduced-motion and async backpressure evidence. Browser mechanics defer to active schemas;
+  lab traces do not establish field Web Vitals compliance. Core/Ops catalogs and exact guards
+  retain byte-identical 70-skill coverage. A 289-row resolved-router comparison against unchanged
+  main changes only the new frontend positive; all existing predictions and thresholds remain.
+  Separate source review passes. Local Chrome assertions cover pending/re-entry/recovery,
+  keyboard, reduced motion and mobile overflow; Designlang extraction, both host-specific
+  Impeccable detector controls, Taste CLI entrypoints and a GSAP core/timeline/media smoke pass.
+  User-approved subscription-native trials now qualify all 18 cases (seven families and two
+  controls per host), with failed attempts, targeted reruns and one Claude Taste review repair
+  retained. The coordinator reapplies project authority after upstream loading, keeps unsupplied
+  facts/current component behavior unresolved, and preserves disclosure focus semantics. Browser
+  QA separates held-request UI backpressure from actual handler re-entry evidence. A shared GSAP
+  priority explanation and accordion padding/accessibility reference were corrected locally for
+  both hosts; the corrected accordion passes seven real-browser assertions. Codex explicit reads
+  worked despite skill-context truncation; two interrupted wrappers have recovered successful
+  host terminal events but unknown process exits. These are bounded qualification results, not
+  unchanged-candidate first-pass rates or rendered-product benefit. Loaded plugin caches remain
+  unchanged; activation requires a closed-host update and fresh-session verification. Local qualification passes 4,648 tests and 27 subtests with seven declared skips;
+  the separate Dev Flow release gate passes all 852 tests. Strict marketplace/all-plugin
+  validation, doctor, config lint, map/setup freshness and documentation idempotence pass.
+
 - 2026-10-30: Laya reliability investigation found the exact overnight skill-fit demotion
   was operational 10/98 above 10%, with timeouts 4/98 reported separately. Existing MPS
   timing shows slow forwards as well as admission contention; the private diagnostic log
@@ -568,6 +592,16 @@
 
 ## Lessons learned
 
+- Native skill selection alone does not establish correct application. Reconcile upstream defaults
+  with the actual brief after loading, inspect current source before factual component claims,
+  and retain review-repair evidence. Disabled controls cannot prove a handler re-entry guard;
+  hold the request and test the handler separately. A padded direct grid child cannot fully
+  collapse to 0fr; put padding on a descendant and retain inert/focus semantics.
+
+- A new global routing tag can change inferred tags for third-party skills. The generic dashboard
+  tag increased an unrelated long-negative trigger; precise visual-design/phrase metadata
+  preserved the existing resolved-router gate. Test the whole resolved corpus, not only the new skill.
+
 - Vault prose cannot be recognized from software-repository folder prefixes alone. Use a filesystem vault marker with project/runtime boundaries, and exercise the same classification in write, reconciliation and release paths.
 
 - Native eval scaffolds must require explicit fixture mode and refuse pre-existing or symlinked write targets before any write. Grade staging separately from checks, and bound regex lookaheads to the current command so valid chained operations are not penalized.
@@ -595,6 +629,12 @@
   not change.
 
 ## Last session
+
+- 2026-11-01 frontend integration: all 18 native cases accepted after documented repairs;
+  final narrow corrections passed cold self-review, 28 focused checks and the 852-test release
+  gate. Earlier independent source review remains valid for the integration. Exact-head hosted
+  CI and merge are separate release steps; installed activation and measured product benefit
+  remain unverified. No protected files, installed caches or model authority changed.
 
 - 2026-10-10: Diagnosed the daily labeler warning as a 348 MiB regular transcript excluded by the 256 MiB ceiling. The minimal 512 MiB candidate preserves all binding checks, passes 139 reader tests (one existing skip), and verifies the original immutable request in 1.608 seconds without labeling/importing it. Independent review found no code blocker but requires supported test-evidence; the current runner is unavailable for this repository. Missing enum captures and image/referent mismatches remain deferred. No model labeler, holdout, promotion, historical runtime change or native-cache reload occurred. Publication and current-runtime pin remain held.
 

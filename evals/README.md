@@ -487,3 +487,7 @@ arrays; environment-invalid attempts and turn truncations are retained separatel
 `aggregate_results.py` also recognizes native `aggregate-result.json` inputs, reports their actual
 arm counts separately from legacy trigger/quality scores, and reports unsupported source shapes.
 Neither command launches benchmarks, mutates prior receipts, or invents task-quality results.
+
+Frontend conditional workflow cases live in `rhize-devflow/frontend_cases.json`. They are manual
+Claude/Codex selection-and-use observations; `tests/rhize-devflow/test_frontend_workflow.py` checks
+packaging and real compiled routing locally. Neither substitutes for rendered-product evaluation.

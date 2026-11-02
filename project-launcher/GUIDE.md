@@ -227,3 +227,12 @@ research may opt into at most 2,000 ms of admission waiting inside its existing 
 deadline. The local service must support that header; no request is retried. Native routing
 and operational deadline benchmarks retain their existing budgets and default admission.
 Waiting and unavailable responses do not establish model speed, acceptance or earned authority.
+
+## Frontend handoff
+
+For UI projects, use the available `rhize-devflow:frontend-development` workflow when writing
+the PRD, executor instructions and handoff. Carry design authority, audience/task, reusable
+components, affected states, accessibility/motion constraints, selected capabilities and observable
+browser acceptance. Non-UI projects skip this path; missing skills remain explicit. A rendered
+visual plan is an approval surface, not proof of the rendered product. Use native callable names
+in Claude and Codex and preserve each host's policy.

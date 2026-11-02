@@ -17,7 +17,7 @@ It's built for anyone running a Claude Code/Cowork setup who regularly delegates
 
 ## Graph workflow evaluation coverage
 
-The shared evaluation catalog covers 69 marketplace skills, including Procedural Memory's
+The shared evaluation catalog covers 70 marketplace skills, including Procedural Memory's
 `graph-workflow-builder`. Its authoring benchmark uses the separate cross-domain protocol and
 requires an explicitly confirmed baseline and subscription-native trials; it is not eligible
 for automatic natural capture. An existing component-level registry baseline does not confirm

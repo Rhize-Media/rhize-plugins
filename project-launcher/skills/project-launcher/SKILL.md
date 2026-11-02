@@ -176,6 +176,15 @@ Use the template at `references/prd-template.md`. Key sections:
 13. **Open Questions** — Anything still unresolved
 14. **Appendix** — API reference notes, schema definitions, cost estimates
 
+### Frontend projects
+
+When the product has UI, use the available `rhize-devflow:frontend-development` skill to record
+design authority, audience/task, direction/reference, reusable components, affected states,
+responsive/accessibility/motion constraints, selected capabilities and observable browser
+acceptance in the PRD. Carry them into scaffolding instructions and the execution handoff.
+If the skill is unavailable, capture the same project requirements and state the capability gap.
+A rendered visual plan is not rendered-product verification. Non-UI projects skip this section.
+
 ### Writing the PRD
 
 - Number every requirement (FR-01.1, NFR-03, etc.) so they're referenceable

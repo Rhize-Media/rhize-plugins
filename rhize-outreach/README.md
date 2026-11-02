@@ -42,3 +42,12 @@ The current background Codex executor has no browser, MCP, shell, or installed e
 - `skills/` contains the host-invocable setup, doctor, and run instructions.
 
 No setup or doctor output includes the authenticated session URL or provider credentials. The local session URL is opened in the default browser and should be treated as sensitive.
+
+## Frontend package review
+
+A tool-equipped Claude or Codex host can use `rhize-devflow:frontend-development` to select
+relevant design/motion/craft skills and `browser-qa` to inspect the current candidate's rendered
+pages. Record actual skill use and URL/build, viewport, state/action and artifact evidence.
+Missing or disabled capabilities remain unavailable. The background executor still cannot run
+these external design/browser workflows; installing host skills does not upgrade it or clear
+the existing human package acceptance gate.

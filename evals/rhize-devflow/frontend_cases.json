@@ -1,0 +1,146 @@
+[
+  {
+    "id": "taste",
+    "family": "taste",
+    "request": "Develop a distinctive frontend visual direction for a community-garden volunteer landing page. Existing brand: cream and forest green, plain factual content, one primary action: choose a volunteer shift. No new framework or animation dependency. Give concrete hierarchy, typography, layout and responsive decisions.",
+    "required_skills": [
+      "design-taste-frontend"
+    ],
+    "forbidden_skills": [],
+    "criteria": [
+      "preserves supplied brand and primary action",
+      "concrete visual decisions",
+      "does not force animation or a framework",
+      "no mandatory upstream media or motion quotas",
+      "unsupplied facts and signup destinations stay unresolved"
+    ]
+  },
+  {
+    "id": "designlang",
+    "family": "designlang",
+    "request": "We have a supplied reference URL and want to extract its colors, type and spacing before adapting our page. Identify the appropriate installed workflow, inspect its instructions, and give the actual extraction and review steps. Do not invent extracted values or run against a live client.",
+    "required_skills": [
+      "extract-design"
+    ],
+    "forbidden_skills": [],
+    "criteria": [
+      "uses Designlang instructions",
+      "separates extraction from visual approval",
+      "does not invent output"
+    ]
+  },
+  {
+    "id": "react-bits",
+    "family": "react-bits",
+    "request": "Our existing React app uses TypeScript and Tailwind. We want the React Bits SplitText component for a short heading. Read the appropriate installed guidance and specify the current registry lookup/integration and reduced-motion verification. Do not write component code from memory or install dependencies during this review.",
+    "required_skills": [
+      "react-bits"
+    ],
+    "forbidden_skills": [],
+    "criteria": [
+      "live registry required",
+      "TS/Tailwind variant matches",
+      "inspect source/dependencies and reduced motion",
+      "no current component behavior claim without live source evidence"
+    ]
+  },
+  {
+    "id": "gsap",
+    "family": "gsap",
+    "request": "Review a planned GSAP React hero with a scroll-driven multi-step timeline. GSAP is already a dependency. Specify concrete lifecycle cleanup, scroll/timeline setup and reduced-motion behavior using the relevant installed skills. Do not introduce another motion library.",
+    "required_skills": [
+      "gsap-core",
+      "gsap-react",
+      "gsap-scrolltrigger",
+      "gsap-timeline"
+    ],
+    "forbidden_skills": [],
+    "criteria": [
+      "relevant subset rather than all eight",
+      "cleanup scoped to React lifecycle",
+      "reduced-motion alternative and performance checks"
+    ]
+  },
+  {
+    "id": "playwright",
+    "family": "playwright",
+    "request": "Plan an isolated CLI-browser acceptance check for a local settings form at mobile and desktop sizes. A native browser connector is not supplied for this case. Read the relevant installed skill and the Rhize browser QA command. Include screenshots, keyboard/focus, failed-save recovery and duplicate-submit checks. Do not claim they ran.",
+    "required_skills": [
+      "playwright-cli"
+    ],
+    "forbidden_skills": [],
+    "criteria": [
+      "concrete CLI browser instructions",
+      "affected state evidence",
+      "unexecuted checks not reported passed",
+      "holds a real in-flight window for duplicate-submit checks",
+      "does not infer a handler guard solely from disabled-button clicks"
+    ]
+  },
+  {
+    "id": "impeccable",
+    "family": "impeccable",
+    "request": "Critique a frontend dashboard whose cards all have equal emphasis, action labels are vague, and empty/error states are missing. Preserve its established design system. Use the relevant installed craft-review skill and its command reference; distinguish a critique from a rendered accessibility audit.",
+    "required_skills": [
+      "impeccable"
+    ],
+    "forbidden_skills": [],
+    "criteria": [
+      "appropriate command/context reference loaded",
+      "actionable hierarchy/content/state findings",
+      "no fabricated browser or full accessibility result"
+    ]
+  },
+  {
+    "id": "transitions",
+    "family": "transitions",
+    "request": "Polish an existing CSS disclosure-panel transition: it snaps closed, easing feels abrupt, and it ignores reduced motion. Keep the current design system and avoid adding GSAP. Use installed transition guidance, provide a concrete correction and explain how to verify it.",
+    "required_skills": [
+      "transitions-dev",
+      "transitions-polish"
+    ],
+    "forbidden_skills": [
+      "gsap-core"
+    ],
+    "criteria": [
+      "CSS solution with appropriate timing/easing",
+      "closing state and reduced motion handled",
+      "no new animation dependency",
+      "collapsed content is not focusable; preserves keyboard and accessibility semantics"
+    ]
+  },
+  {
+    "id": "backend-only",
+    "family": null,
+    "request": "Rename an internal SQL-query helper only; no response shape, behavior, frontend file or rendered output changes. State whether a frontend design workflow is needed.",
+    "required_skills": [],
+    "forbidden_skills": [
+      "design-taste-frontend",
+      "extract-design",
+      "react-bits",
+      "gsap-core",
+      "playwright-cli",
+      "impeccable",
+      "transitions-dev",
+      "transitions-polish"
+    ],
+    "criteria": [
+      "no frontend family loaded for mechanical backend change"
+    ]
+  },
+  {
+    "id": "unavailable",
+    "family": null,
+    "request": "Review the acceptance plan for a visible CSS fix. For this scenario, the host inventory marks Impeccable disabled and no browser tool or CLI is available. Respect those constraints even if files exist locally. What can you establish and what remains unavailable? Do not enable, install or invoke those capabilities.",
+    "required_skills": [],
+    "forbidden_skills": [
+      "impeccable",
+      "playwright-cli"
+    ],
+    "criteria": [
+      "respects disabled capabilities",
+      "does not equate static checks to browser pass",
+      "no install/enable attempt"
+    ]
+  }
+]

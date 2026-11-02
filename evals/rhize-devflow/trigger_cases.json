@@ -1,5 +1,23 @@
 [
   {
+    "id": "trigger-frontend-development-neg-mechanical",
+    "target": "skill:frontend-development",
+    "prompt": "Rename an internal CSS custom property without changing rendered values or behavior.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-frontend-development-pos",
+    "target": "skill:frontend-development",
+    "prompt": "Help with frontend design and UI polish for our existing dashboard.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-frontend-development-neg-backend",
+    "target": "skill:frontend-development",
+    "prompt": "Rename an internal SQL helper only.",
+    "should_trigger": false
+  },
+  {
     "id": "trigger-dev-flow-foundations-pos",
     "target": "skill:dev-flow-foundations",
     "prompt": "I keep hitting the same anti-patterns every sprint on this large codebase -- can you help with dependency mapping and workflow optimization before I touch it?",

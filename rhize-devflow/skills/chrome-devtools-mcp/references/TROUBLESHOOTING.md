@@ -103,7 +103,8 @@
 1. **Use appropriate wait conditions:**
    ```markdown
    Bad:  "Navigate to http://slow-site.com"
-   Good: "Navigate to http://slow-site.com with waitUntil: networkidle2"
+   Good: "Navigate using the active tool schema, then wait with a bounded timeout
+          for the expected page content to become visible."
    ```
 
 2. **Add explicit waits:**
