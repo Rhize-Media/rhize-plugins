@@ -278,3 +278,8 @@ validation and version contracts. The former separate `version-check / check` jo
 `Validate version bumps` step of `validate`; required-check settings need separate review.
 
 CI acceptance (2026-09-27): [reviewed PR run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36345891442) and [main control run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36346107124). This separate narrative-only README change is the push/PR docs-filter acceptance case; settled run results are recorded in the cross-repository hardening report.
+
+Shared tooling note: the harvest noise filter compares structured `skill-fit-report`
+queue findings within their skill/subtype key. Common report wording across different
+skills is not duplicate evidence; ordinary queue and document filtering, thresholds
+and all-status decisions remain unchanged.

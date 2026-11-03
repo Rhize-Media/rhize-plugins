@@ -122,14 +122,25 @@ def load_jsonish(path: str) -> list[dict]:
     return [json.loads(l) for l in raw.splitlines() if l.strip()]
 
 
-class Reference:
-    __slots__ = ("origin", "label", "text", "tokens")
+def report_signal_key(row: dict):
+    """Shared aggregate wording is comparable only within the same skill and finding."""
+    target, subtype = row.get("target_skill"), row.get("subtype")
+    if (row.get("source") == "skill-fit-report" and row.get("signal_type") == "routing-miss"
+            and isinstance(target, str) and re.fullmatch(r"[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*", target)
+            and subtype in ("baseline-miss", "baseline-false-fire")):
+        return target, subtype
+    return None
 
-    def __init__(self, origin: str, label: str, text: str):
+
+class Reference:
+    __slots__ = ("origin", "label", "text", "tokens", "signal_key")
+
+    def __init__(self, origin: str, label: str, text: str, signal_key=None):
         self.origin = origin          # 'queue' | 'doc'
         self.label = label            # entry id, or "<file>:<block#>"
         self.text = text
         self.tokens = set(normalize(text))
+        self.signal_key = signal_key
 
 
 def build_references(queue_path: str | None, doc_paths: list[str],
@@ -144,7 +155,7 @@ def build_references(queue_path: str | None, doc_paths: list[str],
             if not pattern.strip():
                 continue
             label = f"{rid} [{row.get('status', '?')}]"
-            refs.append(Reference("queue", label, pattern))
+            refs.append(Reference("queue", label, pattern, report_signal_key(row)))
     for doc in doc_paths:
         p = os.path.expanduser(doc)
         if not os.path.exists(p):
@@ -229,7 +240,9 @@ def main() -> int:
     kept, suppressed, thin, flagged = [], [], [], []
     for c in candidates:
         tokset = set(normalize(c.get("pattern") or ""))
-        score, used = score_candidate(tokset, refs, args.max_blocks)
+        key = report_signal_key(c)
+        comparable = [r for r in refs if key is None or r.signal_key is None or r.signal_key == key]
+        score, used = score_candidate(tokset, comparable, args.max_blocks)
         origins = sorted({r.origin for r in used})
         rec = {
             "id": c.get("id"),
