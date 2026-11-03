@@ -489,3 +489,31 @@ def test_cli_requires_candidates_or_self_audit(tmp_path: Path) -> None:
     result = run("--queue", str(queue))
     assert result.returncode == 2
     assert "need --candidates or --self-audit" in result.stderr
+
+
+@pytest.mark.parametrize("target,subtype,expected", [
+    ("owned/another", "baseline-miss", 1),
+    ("owned/fixture", "baseline-false-fire", 1),
+    ("owned/fixture", "baseline-miss", 0),
+])
+def test_aggregate_boilerplate_compares_same_signal_only(tmp_path, target, subtype, expected):
+    pattern = "Baseline routing review repeated observations inspect routing tags trigger phrases"
+    existing = {"id": "existing", "source": "skill-fit-report", "signal_type": "routing-miss",
+                "target_skill": "owned/fixture", "subtype": "baseline-miss", "status": "rejected", "pattern": pattern}
+    incoming = dict(existing, id="incoming", status="pending", target_skill=target, subtype=subtype)
+    queue, candidates, kept = [tmp_path/name for name in ("queue.jsonl", "candidates.jsonl", "kept.jsonl")]
+    queue.write_text(json.dumps(existing)+"\n")
+    candidates.write_text(json.dumps(incoming)+"\n")
+    subprocess.run([sys.executable, str(SCRIPT), "--candidates", str(candidates), "--queue", str(queue), "--keep-out", str(kept)], check=True, capture_output=True)
+    assert len(kept.read_text().splitlines()) == expected
+
+
+def test_aggregate_identity_keeps_document_noise_checks(tmp_path):
+    pattern = "Baseline routing review repeated observations inspect routing tags trigger phrases"
+    candidate = {"id": "incoming", "source": "skill-fit-report", "signal_type": "routing-miss", "target_skill": "owned/fixture", "subtype": "baseline-miss", "pattern": pattern}
+    queue, candidates, kept, doc = [tmp_path/name for name in ("queue.jsonl", "candidates.jsonl", "kept.jsonl", "reference.md")]
+    queue.write_text("")
+    candidates.write_text(json.dumps(candidate)+"\n")
+    doc.write_text(pattern)
+    subprocess.run([sys.executable, str(SCRIPT), "--candidates", str(candidates), "--queue", str(queue), "--reference", str(doc), "--keep-out", str(kept)], check=True, capture_output=True)
+    assert kept.read_text() == ""

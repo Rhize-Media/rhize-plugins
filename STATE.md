@@ -1041,3 +1041,12 @@ classification is wrong; exercise the real wrapper and its non-success branches.
 The full local run passed 4,613 tests with two nested-Python/PyYAML environment
 failures; both passed after putting the verified interpreter's bin directory on
 PATH. An explicit parent interpreter alone does not select nested `python3` calls.
+
+## Skill-fit aggregate queue coverage — 2026-11-03
+
+Repeated report findings have stable skill/subtype identity; generic prose containment
+across different identities would suppress useful new signals. The shared filter now
+scopes only aggregate-to-aggregate comparison to that identity, retaining all ordinary
+queue/document references, thresholds and thin checks. Regression coverage includes
+different skills, different subtypes, rejected same-key rows and document suppression.
+No router, evaluator, raw decision data, existing queue decisions or schedule changed.
