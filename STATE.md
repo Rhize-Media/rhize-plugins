@@ -2,6 +2,19 @@
 
 ## Verified facts
 
+- 2026-11-03: Ops 0.34.0 adds `rhize-ops/scripts/install_bridge.py`, which replaces the
+  hand-run bridge release ritual (0.25.0, 0.28.1, 0.33.4). It copies a version from a git
+  ref only after checking that ref's plugin version, probes the new copy in both origins
+  before any host edit, and changes only `rhize-bridge` `args[0]` in each host, carrying
+  each host's own arguments forward (they differ on purpose). Any other Codex TOML or Claude
+  MCP-entry change restores both hosts. Installed versions re-activate from their pinned
+  copy after a SHA-256 check; `--rollback` follows `previous_release`. The fake-HOME tests
+  caught a restore bug before release: after a failed `add-json` the entry is already gone,
+  so the restore must not `remove` first. Dry runs against the live 0.33.4 install: re-activation
+  is a no-op, rollback plans 0.28.1 with its hash verified, and a wrong version is refused.
+  Host config hashes were unchanged. Not run live: a real install (the next bridge release
+  is the first) and the fresh-parent delegation check, which stays manual.
+
 - 2026-11-02: Ops 0.33.4 reports Codex served-model identity as unattested. Codex
   0.163.0 `exec --json` carries completion usage but no served-model field, so Codex jobs
   keep `observed_model` null and record source `unavailable`, status `unattested` and a

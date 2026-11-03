@@ -8,6 +8,27 @@ the coordinator to test and integrate. Workers have no tools in either direction
 
 ## Install and verify
 
+Once `rhize-bridge` is registered in both hosts, install each new release with one command
+from an up-to-date rhize-plugins checkout (`git fetch` first; the script does not fetch):
+
+```bash
+python3 rhize-ops/scripts/install_bridge.py 0.34.0 --dry-run
+python3 rhize-ops/scripts/install_bridge.py 0.34.0 --codex-model gpt-6-luna --claude-model claude-haiku-5-5
+```
+
+It checks that `--ref` (default `origin/main`) is that `rhize-ops` version, checks both
+subscription logins (step 1), copies `scripts/agent_bridge.py` to
+`~/.rhize/agent-bridge-releases/<version>/` (700/600), handshakes both origins against the
+new copy before touching any host, backs up `~/.claude.json` and `~/.codex/config.toml`, and
+changes only the `rhize-bridge` script path in each host. Each host's other arguments, such
+as its `--claude-bin` and Codex tool approvals, are carried forward unchanged. If either host
+ends up with any other change, both are restored and it fails. With `--codex-model` and
+`--claude-model` it also runs one synthetic review in each direction. It writes
+`installation.json` with the hash, source commit, release tags, previous release and probe
+results. An already-installed version is re-activated from its pinned copy after a SHA-256
+check. Step 4's fresh-session check remains manual, and `installation.json` records it as
+not run. The first install, or a host whose entry is missing, follows steps 1-3 by hand.
+
 1. Verify `claude --version`, `codex --version`, `claude auth status --json` and
    `codex login status`. Require Claude's first-party `claude.ai` login and Codex's
    ChatGPT login. This server does not log in, install or upgrade either CLI.
@@ -136,9 +157,11 @@ be requested through that connection.
 
 1. Let jobs finish or cancel them through their original connections and confirm terminal
    states. Save required results privately.
-2. Remove only the `rhize-bridge` MCP registration from each host, or restore that entry's
-   previous versioned script path. Preserve unrelated configuration edits; whole-file
-   backup restoration is appropriate only when the rest of the file is unchanged.
+2. Run `python3 rhize-ops/scripts/install_bridge.py --rollback` to re-point both hosts at
+   the `previous_release` recorded by the active version (or name an installed version to
+   re-activate it). Alternatively, remove only the `rhize-bridge` MCP registration from each host.
+   Preserve unrelated configuration edits; whole-file backup restoration is appropriate
+   only when the rest of the file is unchanged.
 3. Restart hosts and verify discovery matches the intended prior state. The existing
    Codex CLI and any retained legacy MCP entry continue at their prior version.
 4. Retain job evidence until reviewed. Remove the unused versioned script afterward.

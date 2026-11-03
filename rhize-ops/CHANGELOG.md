@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-03_ version bump — 0.33.4 → 0.34.0 (minor); marketplace 2.115.5 → 2.116.0.
+- Add `scripts/install_bridge.py` to install, re-activate or roll back a pinned bridge release in Claude and Codex. It changes only each host's script path, probes the new copy first and restores both hosts on any other change.
 - _2026-11-02_ version bump — 0.33.3 → 0.33.4 (patch); marketplace 2.115.4 → 2.115.5.
 - Keep the fallback evaluation catalog and validator byte-identical with Core at 70 skills; separate frontend selection evidence from rendered-quality benefit.
 - _2026-11-01_ version bump — 0.33.2 → 0.33.3 (patch); marketplace 2.115.3 → 2.115.4.

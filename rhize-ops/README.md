@@ -167,6 +167,9 @@ Completed Codex jobs explicitly report the served model as unattested with a rea
 keeping the requested model separate from the null observed model. Claude retains
 native model-usage attestation. See [identity fields](docs/agent-bridge.md#model-identity).
 
+`scripts/install_bridge.py <version>` installs a release's pinned bridge copy in both hosts,
+changing only the script path, and `--rollback` returns to the previous release.
+
 ## Commands
 
 ### `/parallel-optimize`
