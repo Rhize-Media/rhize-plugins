@@ -59,13 +59,15 @@ the move except where noted.*
   canonical remote raw URLs — add a source there rather than inline in a SKILL.md.
 - The installed plugin cache `~/.claude/plugins/marketplaces/rhize-plugins` is a git clone that
   pins BEHIND this repo. When it goes stale, `rhize-context-manager:*` skills report
-  "Unknown skill" and **scheduled tasks fail silently**. Refresh with
-  `claude plugin marketplace update rhize-plugins` then `claude plugin update`. (Diagnosed
-  2026-08-05; `ai-stack-version-drift` introduced twice-weekly marketplace/plugin updates.) Installed updates must
-  run from a separate terminal with all Claude/Codex hosts closed, after durable checkpoints;
-  warnings alone do not unload hooks. Dev Flow's pre/post update guard holds changed sessions
-  for restart and its shell fallback prevents its missing Stop script becoming a retry loop.
-  See `rhize-devflow/docs/plugin-update-safety.md`; do not hot-update to activate that safeguard.
+  "Unknown skill" and **scheduled tasks fail silently**. (Diagnosed 2026-08-05;
+  `ai-stack-version-drift` introduced twice-weekly marketplace/plugin updates.) After saving
+  checkpoints, the coordinator queues approved exact versions and source through Dev Flow's
+  stable updater. Each host's LaunchAgent waits for that app/native sessions to close, updates
+  through its native CLI and verifies inventory/doctor. The user can quit apps separately;
+  no Terminal handoff is needed. The initial legacy migration is Codex-first. Stable global
+  hooks hold sessions crossing maintenance; interrupted/partial updates require reconciliation.
+  See `rhize-devflow/docs/plugin-update-safety.md` for setup, native trust and startup-race limits;
+  do not hot-update to activate the safeguard or disable guards to clear a hold.
 
 ### Git workflow
 - Stale `.git/index.lock` mid-session: `rm -f .git/index.lock` (verify no live git process
