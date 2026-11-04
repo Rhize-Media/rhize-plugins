@@ -16,8 +16,9 @@ import time
 
 MAX_BYTES = 65536
 MAX_INPUT = 16 * 1024 * 1024
-RESTART = ('Rhize plugin restart required. Save the task checkpoint and stop tools. Close all Claude/Codex '
-           'sessions before updating installed plugins from a separate terminal, then restart the hosts. '
+RESTART = ('Rhize plugin restart required. Save the task checkpoint and stop tools. Have the coordinator '
+           'queue approved updates with the Rhize update helper, then close the affected host sessions. '
+           'Reopen after its completion receipt. '
            'Never retry missing-hook errors or disable required guards.')
 
 
@@ -76,7 +77,10 @@ def mutates_plugins(command, depth=0):
 def fingerprint(home):
     """Version/content metadata only; never inspect prompts, credentials or host approvals."""
     files = []
-    for host in ('.claude', '.codex'):
+    # A native install belongs to one cache; source-only probes conservatively watch both.
+    installed = next((name for name in ('.claude', '.codex')
+                      if home / name in Path(__file__).resolve().parents), None)
+    for host in (installed,) if installed else ('.claude', '.codex'):
         files.extend((home / host / 'plugins/cache/rhize-plugins').glob('*/*/.claude-plugin/plugin.json'))
     if len(files) > 256:
         raise ValueError('package_inventory_limit')
