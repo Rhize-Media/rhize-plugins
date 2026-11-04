@@ -57,7 +57,7 @@ _No skills._
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
 | `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
-| `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, review, testing |
+| `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, testing |
 
 ## rhize-context-manager
 
@@ -78,7 +78,7 @@ _No skills._
 | `memory-context` | Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, c… | context-engineering, memory-systems, provenance |
 | `memory-systems` | This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal val… | knowledge-graph, memory-systems |
 | `refinement-pipeline` | Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged… | memory-systems, workflow-patterns |
-| `tool-design` | This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, desi… | context-engineering, tool-design |
+| `tool-design` | This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, desi… | tool-design |
 
 ## rhize-ops
 

@@ -24,6 +24,10 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Added
+
+- _2026-11-03_ version bump — 0.50.2 → 0.50.3 (patch); marketplace 2.116.0 → 2.116.1.
+
 ### Fixed
 
 - Add bounded opt-in background admission metadata to the shared local transport; default native admission, request deadlines and fail-closed transport rules stay unchanged. Development search opts in without retrying rejected calls.

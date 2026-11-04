@@ -1,5 +1,9 @@
 # rhize-context-manager
 
+## Routing scope
+
+Tool-design routing uses its specific `tool-design` topic; generic `context-engineering` no longer contributes a declared match. Skill instructions and explicit-name routing are unchanged. This precision candidate passed the static routing harness; prospective paired real-traffic evaluation must still check false fires and legitimate recall.
+
 Long AI coding sessions get messy: context fills up, background tooling starts repeating
 itself, and nobody remembers where a decision or a lesson learned was supposed to be
 recorded. This plugin gives a session one place that watches for that, tells you when
