@@ -13,6 +13,8 @@ spec = importlib.util.spec_from_file_location('plugin_updates', SCRIPT)
 updates = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(updates)
 COMMIT = 'a' * 40
+TREE = 'c' * 40
+ENTRY = {'name': 'rhize-devflow', 'version': '1.1.0', 'source': './rhize-devflow'}
 
 
 @pytest.fixture
@@ -24,15 +26,19 @@ def worker(tmp_path, monkeypatch):
     before = {'rhize-devflow': {'version': '1.0.0', 'enabled': True, 'path': '/fake/old'}}
     after = {'rhize-devflow': {'version': '1.1.0', 'enabled': True, 'path': '/fake/new'}}
     state = {'schema': updates.SCHEMA, 'host': 'codex', 'phase': 'pending', 'targets': {'rhize-devflow': '1.1.0'},
-             'commit': COMMIT, 'before': before, 'queuedAt': 1, 'quietSince': 1,
+             'commit': COMMIT, 'approvedPackages': {'rhize-devflow': {'entry': ENTRY, 'tree': TREE}}, 'before': before, 'queuedAt': 1, 'quietSince': 1,
              'generation': 0, 'attempts': 0, 'after': None, 'mutationStarted': False}
     updates.write(tmp_path / 'codex/status.json', state)
-    updates.write(tmp_path / 'catalog/.claude-plugin/marketplace.json', {'plugins': [{'name': 'rhize-devflow', 'version': '1.1.0'}]})
+    updates.write(tmp_path / 'catalog/.claude-plugin/marketplace.json', {'plugins': [ENTRY]})
     calls = []
     def run(args, timeout=120):
         calls.append(args)
+        if 'show' in args:
+            return json.dumps({'plugins': [ENTRY]})
+        if 'status' in args:
+            return ''
         if 'rev-parse' in args:
-            return COMMIT
+            return TREE if ':' in args[-1] else COMMIT
         if 'doctor' in args:
             return '{"healthy":true}'
         return '{}'
@@ -111,18 +117,22 @@ def test_interrupted_mutation_holds_without_replaying(worker):
     assert not calls
 
 
-@pytest.mark.parametrize('kind', ['version', 'commit', 'enabled', 'doctor', 'timeout'])
+@pytest.mark.parametrize('kind', ['version', 'tree', 'entry', 'dirty', 'enabled', 'doctor', 'timeout'])
 def test_verification_failure_never_claims_success(worker, monkeypatch, kind):
     root, calls, state, before, after = worker
     original_run = updates.run
     if kind == 'version':
         updates.write(root / 'catalog/.claude-plugin/marketplace.json', {'plugins': []})
+    elif kind == 'entry':
+        updates.write(root / 'catalog/.claude-plugin/marketplace.json', {'plugins': [dict(ENTRY, source='./other')]})
     elif kind == 'enabled':
         after['rhize-devflow']['enabled'] = False
     def run(args, timeout=120):
         result = original_run(args, timeout)
-        if kind == 'commit' and 'rev-parse' in args:
+        if kind == 'tree' and 'rev-parse' in args and ':' in args[-1]:
             return 'b' * 40
+        if kind == 'dirty' and 'status' in args:
+            return ' M rhize-devflow/changed.py'
         if kind == 'doctor' and 'doctor' in args:
             return '{"healthy":false}'
         if kind == 'timeout' and 'add' in args:
@@ -131,7 +141,7 @@ def test_verification_failure_never_claims_success(worker, monkeypatch, kind):
     monkeypatch.setattr(updates, 'run', run)
     updates.worker('codex')
     assert status(root)['phase'] == 'held'
-    if kind in {'version', 'commit'}:
+    if kind in {'version', 'tree', 'entry', 'dirty'}:
         assert not any('add' in a for a in calls)
 
 
@@ -351,3 +361,36 @@ def test_missing_interpreter_denies_even_when_helper_exists(tmp_path, monkeypatc
     monkeypatch.undo()
     result = subprocess.run(['/bin/sh', '-c', command], capture_output=True, text=True)
     assert json.loads(result.stdout)['hookSpecificOutput']['permissionDecision'] == 'deny'
+
+
+def test_unrelated_catalog_release_keeps_exact_approved_targets(worker, monkeypatch):
+    root, calls, _, _, _ = worker
+    original = updates.run
+    def run(args, timeout=120):
+        result = original(args, timeout)
+        return 'b' * 40 if args[-1] == 'HEAD' else result
+    monkeypatch.setattr(updates, 'run', run)
+    updates.worker('codex')
+    assert status(root)['phase'] == 'complete'
+    assert status(root)['commit'] == COMMIT
+    assert status(root)['resolvedCommit'] == 'b' * 40
+
+
+def test_queue_binds_real_committed_trees_and_rejects_wrong_version(tmp_path, monkeypatch):
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(tmp_path), *args], text=True).strip()
+    git('init', '-q')
+    (tmp_path / '.claude-plugin').mkdir()
+    (tmp_path / '.claude-plugin/marketplace.json').write_text(json.dumps({'plugins': [ENTRY]}))
+    (tmp_path / 'rhize-devflow').mkdir()
+    (tmp_path / 'rhize-devflow/skill.md').write_text('reviewed content')
+    git('add', '.')
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'fixture')
+    commit = git('rev-parse', 'HEAD')
+    monkeypatch.chdir(tmp_path)
+    expected = updates.approved_packages(commit, {'rhize-devflow': '1.1.0'})
+    (tmp_path / 'rhize-devflow/skill.md').write_text('uncommitted change')
+    assert updates.approved_packages(commit, {'rhize-devflow': '1.1.0'}) == expected
+    assert expected['rhize-devflow']['tree'] == git('rev-parse', commit + ':rhize-devflow')
+    with pytest.raises(ValueError, match='reviewed_package_mismatch'):
+        updates.approved_packages(commit, {'rhize-devflow': '2.0.0'})

@@ -42,7 +42,7 @@ Two user LaunchAgents (`media.rhize.plugin-updates.codex` and `.claude`) check p
 call runs in the background. No user Terminal command is required when closing an app.
 
 For each approved release, the coordinator queues exact versions from a JSON object and the
-reviewed marketplace commit:
+reviewed marketplace commit, running from the source Git checkout containing that commit:
 
 ```bash
 python3 scripts/plugin_updates.py queue codex --targets /absolute/reviewed-targets.json --commit REVIEWED_COMMIT
@@ -50,19 +50,23 @@ python3 scripts/plugin_updates.py queue claude --targets /absolute/reviewed-targ
 ```
 
 These are coordinator setup commands, not instructions for the user to run after closing apps.
-Queueing only records existing installations and approval-bound targets; it does not update a
-cache. The helper waits for **that host's** native processes to exit and for a 15-second quiet
+Queueing reads the approved commit objects and freezes each target's full catalog entry and Git
+tree hash, alongside existing installations; it does not refresh or update a live host cache. The helper waits for **that host's** native processes to exit and for a 15-second quiet
 period. The user can quit Codex and Claude separately. An idle chat or a turn's Stop event does
 not release a cache. Codex app-server processes may persist until the app quits. Native CLI and
 embedded desktop sessions count; recognized MCP-only Codex workers and unrelated helpers do not.
 Unsupported/custom host installations require a new process-detection qualification.
 
 Under an exclusive per-host lock, the worker rechecks owners and installed state, uses only the
-supported native marketplace refresh and package update commands, verifies the exact source
-commit and versions, then checks native installed versions, enabled states and Dev Flow doctor.
+supported native marketplace refresh and package update commands, verifies exact approved target
+versions, catalog entries and Git trees, then checks installed versions, enabled states and doctor.
+An unrelated later catalog release may proceed only when every queued target remains identical to
+its approved committed content. A modified target or catalog working tree is refused. The original
+approval commit and actual resolved commit are retained separately; shallow host catalogs do not
+need to retain the original commit because queueing freezes its target identities.
 Codex's add command has no disabled-preservation option: a requested disabled Codex package is
 rejected before any mutation. No new package, unrelated marketplace or host trust is changed.
-A changed release, unknown process state, interrupted update, native failure or failed check
+A changed target, unknown process state, interrupted update, native failure or failed check
 produces a durable `held` receipt; it is never blindly retried or silently declared complete.
 The coordinator diagnoses/requeues held work from a healthy host. A held partial mutation
 requires explicit `queue --reconcile`, records the previous receipt digest, and keeps guards held

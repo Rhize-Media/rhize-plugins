@@ -201,6 +201,22 @@ def validate_targets(targets):
             raise ValueError('invalid_target')
 
 
+
+def approved_packages(commit, targets):
+    # Read committed objects from the coordinator checkout, never refresh a live host catalog.
+    catalog = json.loads(run(['/usr/bin/git', 'show', commit + ':.claude-plugin/marketplace.json']))
+    result = {}
+    for name, version in targets.items():
+        entries = [p for p in catalog['plugins'] if p.get('name') == name]
+        if len(entries) != 1 or entries[0].get('version') != version or entries[0].get('source') != './' + name:
+            raise ValueError('reviewed_package_mismatch:' + name)
+        tree = run(['/usr/bin/git', 'rev-parse', commit + ':' + name]).strip()
+        if not re.fullmatch('[0-9a-f]{40}', tree):
+            raise ValueError('reviewed_tree_unavailable:' + name)
+        result[name] = {'entry': entries[0], 'tree': tree}
+    return result
+
+
 def queue(host, targets, commit, after=None, reconcile=False):
     validate_targets(targets)
     if not re.fullmatch('[0-9a-f]{40}', commit):
@@ -221,8 +237,9 @@ def queue(host, targets, commit, after=None, reconcile=False):
         if host == 'codex' and any(not row['enabled'] for row in before.values()):
             raise ValueError('disabled_codex_plugin_requires_native_preservation_support')
         marketplace(host, cli)
+        approved = approved_packages(commit, targets)
         value = {'schema': SCHEMA, 'host': host, 'phase': 'pending', 'targets': targets,
-                 'commit': commit, 'before': before, 'queuedAt': time.time(),
+                 'commit': commit, 'approvedPackages': approved, 'before': before, 'queuedAt': time.time(),
                  'generation': read(path)['generation'] if path.exists() else 0,
                  'after': after, 'mutationStarted': False,
                  'repairRequired': bool(reconcile and path.exists() and previous.get('mutationStarted')),
@@ -296,8 +313,17 @@ def worker(host):
             state['resolvedCommit'] = resolved
             catalog = read(catalog_root / '.claude-plugin/marketplace.json')
             versions = {p['name']: p.get('version') for p in catalog['plugins']}
-            if resolved != state['commit'] or any(versions.get(n) != v for n, v in state['targets'].items()):
+            if any(versions.get(n) != v for n, v in state['targets'].items()):
                 raise ValueError('reviewed_release_changed')
+            for name in state['targets']:
+                expected = state['approvedPackages'][name]
+                entries = [p for p in catalog['plugins'] if p.get('name') == name]
+                tree = run(['/usr/bin/git', '-C', str(catalog_root), 'rev-parse', 'HEAD:' + name]).strip()
+                if entries != [expected['entry']] or tree != expected['tree']:
+                    raise ValueError('reviewed_package_changed:' + name)
+            if run(['/usr/bin/git', '-C', str(catalog_root), 'status', '--porcelain', '--',
+                    '.claude-plugin/marketplace.json', *state['targets']]).strip():
+                raise ValueError('catalog_worktree_changed')
             for name, version in state['targets'].items():
                 if owners(host):
                     raise ValueError('host_started_during_maintenance')

@@ -1071,3 +1071,6 @@ No router, evaluator, raw decision data, existing queue decisions or schedule ch
 
 ## Automatic updater CI repair — 2026-11-04 UTC
 First PR75 CI ran 4,707 passing tests/27 subtests with eight skips and one failure: generated root README/docs version tables still said Dev Flow2.31.1. Regenerated both through render_skill_map_docs.py; all three render-contract tests pass. No updater code or tests changed. Full exact-head CI remains required before merge and queue activation. Final cold review also corrected the obsolete all-host Terminal instruction in docs/session-guardrails.md.
+
+## Concurrent release approval binding — 2026-11-04 UTC
+The exact-head candidate3389850 passed full hosted CI after generated-doc repair. A real concurrent Outreach release revealed that whole-catalog HEAD equality could unnecessarily hold unchanged queued targets before later app closure. Queue now freezes approved Git package trees/full catalog entries from the reviewed commit in the coordinator checkout. Worker compares refreshed target identities and refuses dirty target/catalog paths; approval/resolved commits remain separate. Native catalog writes remain outside host ownership and through native CLI only. Focused updater/guard81passed; a bounded independent delta review and new full CI are pending.

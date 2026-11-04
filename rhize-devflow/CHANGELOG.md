@@ -1,6 +1,6 @@
 # Changelog — rhize-devflow
 
-- Add approved per-host macOS update queues and LaunchAgents outside plugin caches. Automatically update and verify when each app closes independently; preserve enabled state, retain receipts, hold interrupted/mismatched work, and detect startup races with stable global hooks. Scope existing cache fingerprints to the loaded host.
+- Add approved per-host macOS update queues and LaunchAgents outside plugin caches. Automatically update and verify when each app closes independently; preserve enabled state, retain receipts, hold interrupted/mismatched work, and detect startup races with stable global hooks. Scope existing cache fingerprints to the loaded host. Freeze approved package trees and complete catalog entries so unrelated intervening releases do not block app-close updates; changed targets or dirty catalog worktrees still hold.
 
 Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/release/CHANGELOG-history.md).
 
