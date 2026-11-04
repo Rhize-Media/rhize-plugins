@@ -69,7 +69,7 @@ Version 0.10.0. Lets Claude find and reuse previously verified scripts and autom
 
 ### rhize-outreach
 
-Version 0.4.1. Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.
+Version 0.4.2. Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.
 
 [README](../rhize-outreach/README.md) · [GUIDE](../rhize-outreach/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#rhize-outreach)
 

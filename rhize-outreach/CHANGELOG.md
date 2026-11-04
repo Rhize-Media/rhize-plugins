@@ -2,6 +2,8 @@
 
 ### Added
 
+- Separate package review from email review using accepted-audit, booking-link and sender/recipient evidence; retain all 24 authored outreach assertions, including package-only requests and email revisions. All 14 positives and 10 email-specific negatives pass; no live outcome benefit is inferred.
+- _2026-11-03_ version bump — 0.4.1 → 0.4.2 (patch); marketplace 2.117.0 → 2.117.1.
 - Route host-side visible package review through the conditional frontend workflow and browser evidence while preserving constrained background execution and human clearance.
 - _2026-11-01_ version bump — 0.4.0 → 0.4.1 (patch); marketplace 2.115.1 → 2.115.2.
 - _2026-10-10_ version bump — 0.3.0 → 0.4.0 (minor); marketplace 2.101.1 → 2.102.0.
