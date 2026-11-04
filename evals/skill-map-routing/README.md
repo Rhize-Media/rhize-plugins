@@ -66,16 +66,16 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
 
 ## Committed artifacts
 
-- `baseline.json`: the 289-row corpus run against unmodified `d1502d70476088e355413403c128a625e97d5fcc`
-  (2026-11-01), using the clean control checkout at `7d51bee6cbca6ae91aac346720ce50af1963b182`
-  with the identical Git tree. Three conditional frontend cases were added. Candidate versus
-  this control changes only the new frontend positive from silent to hit; both added negatives
-  stay silent. All other predictions and existing thresholds are unchanged.
-  `inferred_baseline.json` is copied from the same control run. A discarded generic dashboard
-  topic increased third-party negative triggers; narrower metadata preserves the existing gate.
-  These are deterministic development fixtures, not pilot or task-benefit evidence.
-  Refresh with `run.py --checkout <unmodified-control>` and copy
-  `out/results.json` and `out/inferred_signals.json`.
+- `baseline.json`: the 301-row corpus measured against unmodified routing source
+  `846ba7ade6bf732834d4fd972e43d699643fe3a8` (2026-11-03). Twelve independently
+  reviewed synthetic outreach cases add six positives and six skill-specific negatives.
+  The added cases expose three positive misses and three target false fires in Arm A;
+  the zero-false-fire gate intentionally remains red. All 289 previously measured main
+  outcomes are unchanged. The third-party snapshot is unchanged; inferred_baseline.json
+  is refreshed from this actual control run (21 skill signal records differ from the old
+  committed inference artifact). Both experiment arms use the identical snapshot and
+  inference implementation. This is a development experiment baseline, not a production
+  qualification or traffic claim. Do not weaken thresholds or relabel fixtures to pass.
 - `corpus.json`: the corpus as built from the repo, for review; `run.py` rebuilds it.
 - `third_party_snapshot.json`: **a point-in-time snapshot of the third-party (marketplace)
   skill, command and plugin nodes from the maintainer's machine** (Oct 2026), reduced to

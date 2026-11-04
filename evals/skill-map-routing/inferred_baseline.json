@@ -21,12 +21,16 @@
   "supabase"
  ],
  "skill:claude-plugins-official/expo/expo-module": [],
- "skill:claude-plugins-official/expo/expo-native-ui": [],
+ "skill:claude-plugins-official/expo/expo-native-ui": [
+  "ui"
+ ],
  "skill:claude-plugins-official/expo/expo-project-structure": [],
  "skill:claude-plugins-official/expo/expo-router": [],
  "skill:claude-plugins-official/expo/expo-skill-feedback": [],
  "skill:claude-plugins-official/expo/expo-tailwind-setup": [],
- "skill:claude-plugins-official/expo/expo-ui": [],
+ "skill:claude-plugins-official/expo/expo-ui": [
+  "ui"
+ ],
  "skill:claude-plugins-official/expo/expo-upgrade": [],
  "skill:claude-plugins-official/expo/expo-web-to-native": [],
  "skill:claude-plugins-official/hookify/writing-rules": [],
@@ -276,7 +280,9 @@
  "skill:claude-plugins-official/vercel/runtime-cache": [
   "vercel"
  ],
- "skill:claude-plugins-official/vercel/shadcn": [],
+ "skill:claude-plugins-official/vercel/shadcn": [
+  "ui"
+ ],
  "skill:claude-plugins-official/vercel/turbopack": [],
  "skill:claude-plugins-official/vercel/vercel-agent": [
   "review",
@@ -359,7 +365,8 @@
  ],
  "skill:everything-claude-code/ecc/browser-qa": [
   "automation",
-  "testing"
+  "testing",
+  "ui"
  ],
  "skill:everything-claude-code/ecc/bun-runtime": [
   "vercel"
@@ -371,7 +378,9 @@
  ],
  "skill:everything-claude-code/ecc/ck": [],
  "skill:everything-claude-code/ecc/claude-devfleet": [],
- "skill:everything-claude-code/ecc/click-path-audit": [],
+ "skill:everything-claude-code/ecc/click-path-audit": [
+  "ui"
+ ],
  "skill:everything-claude-code/ecc/clickhouse-io": [],
  "skill:everything-claude-code/ecc/code-tour": [],
  "skill:everything-claude-code/ecc/codebase-onboarding": [],
@@ -379,11 +388,14 @@
   "review"
  ],
  "skill:everything-claude-code/ecc/coding-standards": [
+  "frontend",
   "review"
  ],
  "skill:everything-claude-code/ecc/competitive-platform-analysis": [],
  "skill:everything-claude-code/ecc/competitive-report-structure": [],
- "skill:everything-claude-code/ecc/compose-multiplatform-patterns": [],
+ "skill:everything-claude-code/ecc/compose-multiplatform-patterns": [
+  "ui"
+ ],
  "skill:everything-claude-code/ecc/config-gc": [],
  "skill:everything-claude-code/ecc/configure-ecc": [],
  "skill:everything-claude-code/ecc/connections-optimizer": [
@@ -426,7 +438,8 @@
   "workflow-patterns"
  ],
  "skill:everything-claude-code/ecc/design-system": [
-  "review"
+  "review",
+  "visual-design"
  ],
  "skill:everything-claude-code/ecc/django-celery": [
   "testing",
@@ -487,12 +500,22 @@
   "review"
  ],
  "skill:everything-claude-code/ecc/foundation-models-on-device": [],
- "skill:everything-claude-code/ecc/frontend-a11y": [],
- "skill:everything-claude-code/ecc/frontend-design-direction": [
-  "tool-design"
+ "skill:everything-claude-code/ecc/frontend-a11y": [
+  "frontend",
+  "ui"
  ],
- "skill:everything-claude-code/ecc/frontend-patterns": [],
- "skill:everything-claude-code/ecc/frontend-slides": [],
+ "skill:everything-claude-code/ecc/frontend-design-direction": [
+  "frontend",
+  "tool-design",
+  "visual-design"
+ ],
+ "skill:everything-claude-code/ecc/frontend-patterns": [
+  "frontend",
+  "ui"
+ ],
+ "skill:everything-claude-code/ecc/frontend-slides": [
+  "frontend"
+ ],
  "skill:everything-claude-code/ecc/fsharp-testing": [
   "testing"
  ],
@@ -516,6 +539,7 @@
  "skill:everything-claude-code/ecc/growth-log": [],
  "skill:everything-claude-code/ecc/healthcare-cdss-patterns": [],
  "skill:everything-claude-code/ecc/healthcare-emr-patterns": [
+  "ui",
   "workflow-patterns"
  ],
  "skill:everything-claude-code/ecc/healthcare-eval-harness": [],
@@ -591,7 +615,9 @@
  "skill:everything-claude-code/ecc/mailtrap-email-integration": [
   "testing"
  ],
- "skill:everything-claude-code/ecc/make-interfaces-feel-better": [],
+ "skill:everything-claude-code/ecc/make-interfaces-feel-better": [
+  "ui"
+ ],
  "skill:everything-claude-code/ecc/manim-video": [],
  "skill:everything-claude-code/ecc/market-research": [],
  "skill:everything-claude-code/ecc/marketing-campaign": [],
@@ -604,7 +630,9 @@
  "skill:everything-claude-code/ecc/motion-advanced": [],
  "skill:everything-claude-code/ecc/motion-foundations": [],
  "skill:everything-claude-code/ecc/motion-patterns": [],
- "skill:everything-claude-code/ecc/motion-ui": [],
+ "skill:everything-claude-code/ecc/motion-ui": [
+  "ui"
+ ],
  "skill:everything-claude-code/ecc/mysql-patterns": [],
  "skill:everything-claude-code/ecc/nanoclaw-repl": [],
  "skill:everything-claude-code/ecc/nestjs-patterns": [],
@@ -785,7 +813,9 @@
  "skill:everything-claude-code/ecc/swift-protocol-di-testing": [
   "testing"
  ],
- "skill:everything-claude-code/ecc/swiftui-patterns": [],
+ "skill:everything-claude-code/ecc/swiftui-patterns": [
+  "ui"
+ ],
  "skill:everything-claude-code/ecc/taste": [],
  "skill:everything-claude-code/ecc/tdd-workflow": [],
  "skill:everything-claude-code/ecc/team-agent-orchestration": [],
@@ -796,8 +826,12 @@
  ],
  "skill:everything-claude-code/ecc/tinystruct-patterns": [],
  "skill:everything-claude-code/ecc/token-budget-advisor": [],
- "skill:everything-claude-code/ecc/ui-demo": [],
- "skill:everything-claude-code/ecc/ui-to-vue": [],
+ "skill:everything-claude-code/ecc/ui-demo": [
+  "ui"
+ ],
+ "skill:everything-claude-code/ecc/ui-to-vue": [
+  "ui"
+ ],
  "skill:everything-claude-code/ecc/uncloud": [],
  "skill:everything-claude-code/ecc/unified-memory": [],
  "skill:everything-claude-code/ecc/unified-notifications-ops": [],
@@ -809,7 +843,8 @@
  "skill:everything-claude-code/ecc/vue-patterns": [],
  "skill:everything-claude-code/ecc/windows-desktop-e2e": [
   "automation",
-  "testing"
+  "testing",
+  "ui"
  ],
  "skill:everything-claude-code/ecc/workspace-surface-audit": [],
  "skill:everything-claude-code/ecc/x-api": [
@@ -824,9 +859,12 @@
  "skill:sanity-agent-toolkit/sanity/portable-text-conversion": [
   "sanity"
  ],
- "skill:sanity-agent-toolkit/sanity/portable-text-serialization": [],
+ "skill:sanity-agent-toolkit/sanity/portable-text-serialization": [
+  "frontend"
+ ],
  "skill:sanity-agent-toolkit/sanity/sanity-best-practices": [
-  "sanity"
+  "sanity",
+  "visual-design"
  ],
  "skill:sanity-agent-toolkit/sanity/seo-aeo-best-practices": [
   "search",
