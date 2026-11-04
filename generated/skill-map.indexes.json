@@ -1699,7 +1699,17 @@
         },
         {
           "kind": "phrase",
-          "label": "audit package",
+          "label": "accepted audit",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "booking link",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "sender recipient",
           "weight": 2
         },
         {

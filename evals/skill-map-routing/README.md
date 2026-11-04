@@ -71,12 +71,14 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
   assertions and adds 12 assertions for eight fresh requests: four package requests
   each require package selection and forbid email selection, plus four email revision
   and paraphrase requests. Package pairs are not independent samples.
-  The unchanged package-phrase candidate fails fresh validation: two baseline-positive
-  requests regress and the strict false-fire/wrong-route gates fail. All 301 prior
-  outcomes remain unchanged within their respective baseline/candidate arms.
-  The third-party snapshot and inferred baseline are unchanged. This is an experimental
-  control artifact with known failures, not release qualification. Keep thresholds and
-  labels unchanged; publication is held.
+  The earlier package-phrase candidate failed fresh validation. The repaired email-task
+  evidence preserves all original 289 non-outreach outcomes and passes all 14 outreach
+  positives plus 10 skill-specific negatives with unchanged strict gates. The original
+  control retains its measured failures; it is not rewritten to match the candidate.
+  The third-party snapshot and all case labels remain unchanged. The inferred baseline
+  was refreshed from actual control A: its 21 changed skill entries predate this treatment;
+  control A and repaired candidate D have identical inferred signals.
+  These are authored development checks, not real-world outcome evidence.
 - `corpus.json`: the corpus as built from the repo, for review; `run.py` rebuilds it.
 - `third_party_snapshot.json`: **a point-in-time snapshot of the third-party (marketplace)
   skill, command and plugin nodes from the maintainer's machine** (Oct 2026), reduced to

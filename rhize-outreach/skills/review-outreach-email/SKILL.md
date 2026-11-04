@@ -6,7 +6,7 @@ metadata:
     topics: [outreach, content-authoring]
     stacks: []
     router:
-      phrases: [audit package]
+      phrases: [accepted audit, booking link, sender recipient]
 ---
 
 # Review the Outreach Email

@@ -13,6 +13,13 @@ Run `/rhize-outreach:setup`. Review the prerequisite check and selected private 
 
 The graph saves progress and resumes after a service restart. If the task is blocked, run `/rhize-outreach:doctor` and follow the reported cause.
 
+## Choose the review checkpoint
+
+Use `review-outreach-package` for the website concept and audit. Use `review-outreach-email`
+for the personalized message, sender/recipient, booking link and accepted-package consistency.
+Name the checkpoint explicitly when a request covers both. Reviewing or accepting copy never
+sends the message or publishes a website.
+
 ## What this does not do
 
 The current plugin is local and draft-only: no shared Supabase data, no GHL/Gmail delivery, no Vercel publishing, and no automated post-call bottleneck report. An audit or a draft is not proof of prospect consent or of any promised marketing result.

@@ -56,6 +56,18 @@ def test_graph_workflow_builder_selection(harness_run):
         assert rows[f"procedural-memory/{name}@graph-workflow-builder"]["outcome"] == "silent"
 
 
+def test_outreach_email_and_package_selection(harness_run):
+    rows = [row for row in json.loads((harness_run / "results.json").read_text())["rows"]
+            if row["id"].startswith("rhize-outreach/")]
+    assert sum(row["should_trigger"] for row in rows) == 14
+    assert sum(not row["should_trigger"] for row in rows) == 10
+    for row in rows:
+        if row["should_trigger"]:
+            assert row["outcome"] == "hit", row["id"]
+        else:
+            assert row["outcome"] != "false_trigger", row["id"]
+
+
 def test_corpus_is_fresh_and_deterministic(harness_run):
     committed = (HARNESS / "corpus.json").read_text()
     assert (harness_run / "corpus.json").read_text() == committed, (

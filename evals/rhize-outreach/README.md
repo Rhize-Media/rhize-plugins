@@ -30,10 +30,24 @@ A separate validation pass appends eight new synthetic requests without changing
 
 Labels are reviewed and locked before running the unchanged package-phrase candidate. Routing metadata, all old cases, the completed workflow and existing monitor remain unchanged. Candidate qualification requires correct package/email disambiguation and legitimate email selection on the added cases, in addition to existing gates. A failed result holds publication; cases are not relabeled or tuned after results.
 
-#### Fresh result: publication held
+#### Historical candidate C: fresh validation held publication
 
 On the eight fresh requests, package selection is 2/4 for both arms, but this aggregate hides a regression and a gain. `package-pages-positive` changes from correct package selection to the email skill; `package-natural-positive` improves in the opposite direction. The explicit email-exclusion request still wrongly selects email in both arms.
 
 Fresh email selection falls from 2/4 to 1/4: `email-review-revision-fresh-positive` changes from email review to package review. The natural message paraphrase remains silent, while the audit-context variant misroutes to decision-premortem in both arms. The original two positive misses are retained.
 
 Candidate inputs and all fixture labels remained locked. Both arms used the identical 313 rows, and their respective old 301 outcomes are unchanged. The candidate fails the existing gates: target false fires 2 versus 0 required; wrong positives 9 versus the limit 5 (baseline already has 8). Independent regression checks also reject the two lost baseline hits. Keep this fresh coverage and hold publication; no routing edits, workflow replay or monitor changes were made during validation.
+
+### Repair D: email-task evidence
+
+The repair replaces the ambiguous audit-package phrase with accepted-audit context, booking-link and sender/recipient phrases. The package skill, skill instructions, fixture text and thresholds remain unchanged.
+
+| Expanded outreach assertions | Baseline A | Repaired D |
+| --- | --- | --- |
+| Correct email positives | 5 / 10 | 10 / 10 |
+| Correct package positives | 2 / 4 | 4 / 4 |
+| Email false fires on negatives | 5 / 10 | 0 / 10 |
+
+Both arms use the same 313 rows. All original 289 non-outreach outcomes and all third-party inferred signals are unchanged; only the email skill's routing signals differ. Normal strict gates pass. A dedicated harness assertion now protects every outreach positive and negative label, rather than relying only on global aggregate thresholds. The strategy-only negative still selects the package sibling; its contract excludes the email skill, not every possible suggestion.
+
+This is development-tuned authored coverage, not independent real-world benefit. Earlier failed variants and their outcomes remain historical evidence. Source publication and installed activation are separate; this release does not change the completed workflow, existing monitor or frozen comparison.

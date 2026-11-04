@@ -9,7 +9,7 @@ Internal Claude/Codex plugin for a local, review-gated prospecting and deliverab
 | --- | --- | --- |
 | `reconcile-outreach-delivery` | Explain the current email delivery boundary for Rhize Outreach and identify when a reviewed draft is ready for a separately configured send… | data-consistency, outreach |
 | `review-outreach-businesses` | Review researched candidate businesses or add a manually found business before selecting one for deliverables. | outreach, prospecting |
-| `review-outreach-email` | Open, revise and accept the personalized outreach email bound to the accepted website and audit package. | content-authoring, outreach, review |
+| `review-outreach-email` | Open, revise and accept the personalized outreach email bound to the accepted website and audit package. | content-authoring, outreach |
 | `review-outreach-package` | Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and render… | outreach, review |
 | `rhize-outreach-doctor` | Diagnose local Rhize Outreach setup, runtime pin, private data directories, Codex CLI sign-in, and operator UI health without changing stat… | automation, observability |
 | `rhize-outreach-run` | Start the local Rhize Outreach operator and resume the selected-business agent graph. | automation, workflow-patterns |
@@ -27,6 +27,13 @@ The runtime revision currently pinned is `c8778dda0bba65380bee5d8a7bf99e214a8b22
 - `/rhize-outreach:doctor` checks the runtime pin, prerequisites, private data directories, and loopback UI.
 - `/rhize-outreach:run` starts the local server in the foreground and opens its authenticated UI in the default browser. Keep the terminal open; Ctrl-C stops the service.
 - Select a candidate in the UI to start or resume the selected-business graph. Human review holds remain in place before email drafting and before final email acceptance.
+
+## Package and email review routing
+
+`review-outreach-package` handles the website concept and public audit. `review-outreach-email`
+handles the personalized draft tied to accepted deliverables, including sender/recipient and
+booking-link checks. Email routing uses this task evidence instead of a generic review or
+unqualified audit-package match. Both skills retain their human approval and delivery boundaries.
 
 ## Workflow and limits
 
