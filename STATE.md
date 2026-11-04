@@ -1052,3 +1052,29 @@ scopes only aggregate-to-aggregate comparison to that identity, retaining all or
 queue/document references, thresholds and thin checks. Regression coverage includes
 different skills, different subtypes, rejected same-key rows and document suppression.
 No router, evaluator, raw decision data, existing queue decisions or schedule changed.
+
+## Automatic per-host plugin maintenance — 2026-11-04T03:10:13.141412+00:00
+
+- User explicitly replaced the manual all-hosts-closed Terminal handoff and clarified that quitting each app separately is sufficient. Source changes are isolated on codex/session-aware-plugin-updates.
+- Added standard-library plugin_updates.py: exact reviewed-release queues, one LaunchAgent per host, native-owner census/quiet period, native CLI updates, durable before/after/doctor receipts and local completion/hold notifications. Stable global maintenance hooks catch a newly starting session crossing an update; no cache copying, session termination, guard disabling or trust-hash mutation.
+- Existing guard now fingerprints only its installed host cache. Both-host source-only fallback remains conservative. Live macOS census verified native owners and excludes codex mcp-server; signed system UID -2 is a tested parser case.
+- Regression verification: focused guard/updater tests passing; full Dev Flow/repository release checks and native Fable5.1 code review still running. No installed cache has been changed.
+- Deployment order: current Claude2.30.1 has no combined guard; current Codex2.31.1 does. Queue new Codex first, then Claude after that receipt completes, allowing different app-close times. Global hook trust/activation must be read back before any queue is armed.
+- Known boundary: process startup and cache replacement cannot be atomically locked across native binaries; stable global hooks detect the crossing and require that newly started session to reopen. Installer/runtime activation and eventual closed-host installation are separate evidence.
+
+### Update helper qualification — 2026-11-04T03:35:30.497946+00:00
+
+- Independent native Fable5.1 review completed, attested, exit0. Fixed its concrete interpreter-fallback, exception handling, stale-dependency and partial-requeue findings; added explicit guarded --reconcile repair, isolated Python invocations and native bootstrap retry. Extra local review fixed timeout child-group cleanup and malformed envelopes. The final updater-focused set has38 passing tests, plus39 existing/new guard tests.
+- Source Dev Flow release checks passed887 tests at the earlier checkpoint, manifest validation, healthy doctor, skill-map/setup-artifact freshness and config validation. Full local suite was interrupted after7 failures/4075 passes/6 skips/21 subtests: each failure was a mise Node shim under an isolated HOME, not an updater assertion. All7 pass with the configured real Node executable on PATH; no tests or trust checks were disabled. Full clean CI is required before merge.
+- Helper and both LaunchAgents are installed outside caches, no queues yet. Codex's native hook review UI approved exactly the3 maintenance hooks; native hooks/list confirms enabled/trusted with no errors. Fresh Claude native run executed only pwd, returned READY, terminal success/exit0/no timeout; debug evidence shows all3 global maintenance hooks exited0. Native approval-only daemon was stopped through its own CLI after the agent UI showed zero working/ready/attention-needed sessions. No native CLI package upgrade was requested.
+- Actual installed plugin update remains pending source merge and per-host queue activation. User only needs to quit each app independently; no manual command handoff.
+
+## Automatic updater CI repair — 2026-11-04 UTC
+First PR75 CI ran 4,707 passing tests/27 subtests with eight skips and one failure: generated root README/docs version tables still said Dev Flow2.31.1. Regenerated both through render_skill_map_docs.py; all three render-contract tests pass. No updater code or tests changed. Full exact-head CI remains required before merge and queue activation. Final cold review also corrected the obsolete all-host Terminal instruction in docs/session-guardrails.md.
+
+## Concurrent release approval binding — 2026-11-04 UTC
+The exact-head candidate3389850 passed full hosted CI after generated-doc repair. A real concurrent Outreach release revealed that whole-catalog HEAD equality could unnecessarily hold unchanged queued targets before later app closure. Queue now freezes approved Git package trees/full catalog entries from the reviewed commit in the coordinator checkout. Worker compares refreshed target identities and refuses dirty target/catalog paths; approval/resolved commits remain separate. Native catalog writes remain outside host ownership and through native CLI only. Focused updater/guard81passed; a bounded independent delta review and new full CI are pending.
+
+Independent native Fable5.1 delta review completed (76.909s, attested). Fixed pre-refresh legacy/malformed approval validation, explicit ignored/untracked status detection and replacement-object exclusion; queue requires directory tree objects. Added real Git tests for ignored/untracked files despite status.showUntrackedFiles=no, replacement refs and blob/source mismatches. Original pending-release checks remain required.
+
+Final cold review tightened the frozen tree hash to a JSON string, rejecting a 40-digit numeric lookalike before any native command. Combined updater/guard regressions87passed. No other behavior changed.

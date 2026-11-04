@@ -1,11 +1,14 @@
 # Changelog — rhize-devflow
 
+- Add approved per-host macOS update queues and LaunchAgents outside plugin caches. Automatically update and verify when each app closes independently; preserve enabled state, retain receipts, hold interrupted/mismatched work, and detect startup races with stable global hooks. Scope existing cache fingerprints to the loaded host. Freeze approved package trees and complete catalog entries so unrelated intervening releases do not block app-close updates; changed targets or dirty catalog worktrees still hold.
+
 Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/release/CHANGELOG-history.md).
 
 ## [Unreleased]
 
 ### Added
 
+- _2026-11-03_ version bump — 2.31.1 → 2.32.0 (minor); marketplace 2.116.1 → 2.117.0.
 - _2026-11-03_ version bump — 2.31.0 → 2.31.1 (patch); marketplace 2.116.0 → 2.116.1.
 - Require current-source evidence for component behavior claims and preserve collapsed-content focus/accessibility during disclosure motion.
 - Native frontend trials: reapply project authority after upstream skill loading; reject unrequested media/motion quotas and invented content/signup fallbacks; distinguish pending UI from handler re-entry evidence.

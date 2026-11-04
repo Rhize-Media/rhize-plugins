@@ -238,3 +238,25 @@ def test_actual_manifest_preserves_credential_denial_and_allowed_control(tmp_pat
         credential = next(v for k, v in results.items() if 'credential_guard.py' in k)
         assert (guard.returncode, guard.stdout, guard.stderr) == (0, '', '')
         assert credential.returncode == (2 if should_deny else 0)
+
+
+@pytest.mark.parametrize('host,other', [('codex', 'claude'), ('claude', 'codex')])
+def test_installed_guard_ignores_other_hosts_cache(tmp_path, host, other):
+    scripts = tmp_path / ('.' + host) / 'plugins/cache/rhize-plugins/rhize-devflow/9.0.0/scripts'
+    scripts.mkdir(parents=True)
+    for name in ('plugin_update_guard.py', 'credential_guard.py', 'refactor_gate.py'):
+        shutil.copyfile(PLUGIN / 'scripts' / name, scripts / name)
+    def invoke():
+        return subprocess.run([sys.executable, str(scripts / 'plugin_update_guard.py'), 'PreToolUse'],
+            input=json.dumps({'session_id': 'host-scope', 'hook_event_name': 'PreToolUse'}),
+            env=dict(os.environ, HOME=str(tmp_path), XDG_DATA_HOME=str(tmp_path / 'data')),
+            text=True, capture_output=True, timeout=5)
+    assert invoke().stdout == ''
+    metadata = tmp_path / ('.' + other) / 'plugins/cache/rhize-plugins/rhize-ops/1.0.0/.claude-plugin/plugin.json'
+    metadata.parent.mkdir(parents=True)
+    metadata.write_text('{}')
+    assert invoke().stdout == ''
+    own = scripts.parent / '.claude-plugin/plugin.json'
+    own.parent.mkdir()
+    own.write_text('{}')
+    denied(invoke())
