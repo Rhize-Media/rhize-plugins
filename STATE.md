@@ -2,6 +2,8 @@
 
 ## Verified facts
 
+- 2026-11-03: Combined routing candidate removes context-engineering from tool-design and review from test-evidence, preserving skill instructions and router code. Both isolated candidates and their combination pass the 289-case static harness with unchanged top routes and scores. A clean baseline and combined candidate are frozen before rollout for paired future-traffic evaluation. The original completed weekly run and 515-row refinement queue remain unchanged. Release and compiled-map activation require separate readback; no false-fire reduction is claimed yet. Lesson: aggregate error counts prioritize experiments but cannot identify a causal tag or prove benefit; track legitimate recall alongside false fires. Release qualification must preflight both pytest and PyYAML in its exact interpreter: the registry venv lacked PyYAML (839passed/13dependency failures), while the existing system Python3.14 has the pinned pytest9.1.1/PyYAML6.0.3. Keep that failed run separate from the corrected-runtime result.
+
 - 2026-11-03: Ops 0.34.0 adds `rhize-ops/scripts/install_bridge.py`, which replaces the
   hand-run bridge release ritual (0.25.0, 0.28.1, 0.33.4). It copies a version from a git
   ref only after checking that ref's plugin version, probes the new copy in both origins

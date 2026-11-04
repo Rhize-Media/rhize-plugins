@@ -1,5 +1,9 @@
 # rhize-devflow
 
+## Routing scope
+
+Test-evidence routing retains `evidence` and `testing`; generic `review` no longer contributes a declared match. Regression-test evidence instructions and explicit-name routing are unchanged. This precision candidate passed the static routing harness; prospective paired real-traffic evaluation must still check false fires and legitimate recall.
+
 Keeps a change honest from the moment you start touching code to the moment it ships: plan the
 impact, implement it, simplify, check, get it independently reviewed, and release — one enforced
 workflow instead of separate ad hoc steps.
@@ -192,7 +196,7 @@ mutation-analyze · mutation-fix
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
 | `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
-| `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, review, testing |
+| `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, testing |
 <!-- SKILL-MAP:END -->
 
 Each of these ten packaged skills carries only Rhize-specific policy or convention, not

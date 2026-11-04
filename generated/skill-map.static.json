@@ -2347,12 +2347,6 @@
     {
       "from": "skill:rhize-context-manager/tool-design",
       "source": "frontmatter",
-      "to": "tag:topic/context-engineering",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:rhize-context-manager/tool-design",
-      "source": "frontmatter",
       "to": "tag:topic/tool-design",
       "type": "topic-tag"
     },
@@ -2784,12 +2778,6 @@
       "from": "skill:rhize-devflow/test-evidence",
       "source": "frontmatter",
       "to": "tag:topic/evidence",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:rhize-devflow/test-evidence",
-      "source": "frontmatter",
-      "to": "tag:topic/review",
       "type": "topic-tag"
     },
     {
@@ -5235,7 +5223,7 @@
       "treeHash": "8b0e00d188ce91235fefd5fc53cf00c9f49e4f6893c7dbeb183eb4288fdb1c80"
     },
     {
-      "contentHash": "566e61415fc9521d5bd1703c96fd6b3aa7d5e03bb6b6b6208749e60bb888a3f5",
+      "contentHash": "719fca2e34cba3224e15a5011020703d99a4b75027ea16c140813419f465f75e",
       "contentHashNormalized": "14f5a12b69113bc6450da69c5b4d408fe91601832ab1055ae25311339c84a06b",
       "description": "This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, designing tool schemas and response formats, naming conventions, actionable error recovery messages, MCP server design, tool-set consolidation, and deciding when to add or remove an individual tool. Use this when the unit of work is a single tool or a set of tools. Route project-shape, pipeline architecture, and task-model-fit decisions to project-development; route deciding whether to introduce sub-agents to multi-agent-patterns.",
       "fileCount": 4,
@@ -5243,8 +5231,8 @@
       "kind": "skill",
       "name": "tool-design",
       "path": "rhize-context-manager/skills/tool-design/SKILL.md",
-      "totalBytes": 56876,
-      "treeHash": "4df511b22b27da1aa8607bcb43ae2c93c5c36c718463eaf48a0cb8e4933defa7"
+      "totalBytes": 56855,
+      "treeHash": "6be15290c2ce8b2fab7f47c38129ffeb6c1fbb6704808d0c7a80d714d6e7849c"
     },
     {
       "contentHash": "3d14f04c5f4f0bdcd8fe092bf9826c7f9270203985e77ee3fe56cfb95e50bf0b",
@@ -5384,15 +5372,15 @@
       "treeHash": "2ff430378e54f84b8142778350a9d55f2265c4780749f81326b8d2c325ac3287"
     },
     {
-      "contentHash": "117fbe231b15bcf00c311e9fe1bdde1b4b40b70b43839a6fc6b8644584c6bb97",
+      "contentHash": "3008ff4e3cee82d198cd3101abaf2c959400556dc28f0b9071214bd4543ecabd",
       "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, with opt-in local Docker execution or an explicit unavailable status. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
       "fileCount": 2,
       "id": "skill:rhize-devflow/test-evidence",
       "kind": "skill",
       "name": "test-evidence",
       "path": "rhize-devflow/skills/test-evidence/SKILL.md",
-      "totalBytes": 3127,
-      "treeHash": "7eab9eb510c0fe182a5ea78e004cf561a0222dd0971d43a4ebe4dd45fc40f27a"
+      "totalBytes": 3119,
+      "treeHash": "9cb18ed6ede99c6b405df2b9eb30ad84f73dc9fa24cba751d44fddd1e32d2d4f"
     },
     {
       "contentHash": "8e74c4560a743cb1890eba61fe00856a229ca935b626b1a4f4c3e29070e759b5",

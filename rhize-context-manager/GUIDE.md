@@ -1,5 +1,9 @@
 # rhize-context-manager — User Guide
 
+## Routing scope
+
+Tool-design routing uses its specific `tool-design` topic; generic `context-engineering` no longer contributes a declared match. Skill instructions and explicit-name routing are unchanged. This precision candidate passed the static routing harness; prospective paired real-traffic evaluation must still check false fires and legitimate recall.
+
 ## What problem does this solve?
 
 Long agent sessions degrade: context fills up, the same knowledge gets injected twice by

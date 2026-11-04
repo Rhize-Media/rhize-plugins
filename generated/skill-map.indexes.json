@@ -1136,12 +1136,6 @@
         {
           "facet": "topic",
           "kind": "tag",
-          "label": "context-engineering",
-          "weight": 2
-        },
-        {
-          "facet": "topic",
-          "kind": "tag",
           "label": "tool-design",
           "weight": 2
         }
@@ -1508,12 +1502,6 @@
           "facet": "topic",
           "kind": "tag",
           "label": "evidence",
-          "weight": 2
-        },
-        {
-          "facet": "topic",
-          "kind": "tag",
-          "label": "review",
           "weight": 2
         },
         {

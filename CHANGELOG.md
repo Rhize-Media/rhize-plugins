@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-11-03_ version bump — **rhize-context-manager** 0.50.2 → 0.50.3 (patch); **rhize-devflow** 2.31.0 → 2.31.1 (patch); marketplace 2.116.0 → 2.116.1.
 - _2026-11-03_ version bump — **rhize-ops** 0.33.4 → 0.34.0 (minor); marketplace 2.115.5 → 2.116.0.
 - _2026-11-02_ version bump — **rhize-ops** 0.33.3 → 0.33.4 (patch); marketplace 2.115.4 → 2.115.5.
 - Conditional frontend integration across Dev Flow, Launcher and host-side Outreach review; optional upstream families, UI/browser evidence, mirrored 70-skill evaluation coverage and unchanged router confidence gates.

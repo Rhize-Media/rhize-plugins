@@ -1,5 +1,9 @@
 # rhize-devflow Plugin — User Guide
 
+## Routing scope
+
+Test-evidence routing retains `evidence` and `testing`; generic `review` no longer contributes a declared match. Regression-test evidence instructions and explicit-name routing are unchanged. This precision candidate passed the static routing harness; prospective paired real-traffic evaluation must still check false fires and legitimate recall.
+
 This guide explains what the rhize-devflow plugin does, how its pieces fit together, and how to get the most out of it while building on Next.js/Sanity/Payload/Supabase stacks deployed on Vercel.
 
 ## What This Plugin Does
