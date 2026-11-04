@@ -70,5 +70,77 @@
     "target_skill": "rhize-outreach:review-outreach-email",
     "prompt": "Do not use review-outreach-email. Explain how mail delivery retries work at a protocol level.",
     "should_trigger": false
+  },
+  {
+    "id": "package-scope-positive",
+    "target_skill": "rhize-outreach:review-outreach-package",
+    "prompt": "Review the outreach audit package for the selected prospect. Check the website concept and public audit; the email draft is out of scope.",
+    "should_trigger": true
+  },
+  {
+    "id": "package-scope-email-negative",
+    "target_skill": "rhize-outreach:review-outreach-email",
+    "prompt": "Review the outreach audit package for the selected prospect. Check the website concept and public audit; the email draft is out of scope.",
+    "should_trigger": false
+  },
+  {
+    "id": "package-pages-positive",
+    "target_skill": "rhize-outreach:review-outreach-package",
+    "prompt": "Check the outreach audit package homepage and service page for factual consistency, responsive layout and broken links. This request concerns the website and report only.",
+    "should_trigger": true
+  },
+  {
+    "id": "package-pages-email-negative",
+    "target_skill": "rhize-outreach:review-outreach-email",
+    "prompt": "Check the outreach audit package homepage and service page for factual consistency, responsive layout and broken links. This request concerns the website and report only.",
+    "should_trigger": false
+  },
+  {
+    "id": "package-explicit-positive",
+    "target_skill": "rhize-outreach:review-outreach-package",
+    "prompt": "Use review-outreach-package to verify the website concept and public audit for the selected prospect before I accept them.",
+    "should_trigger": true
+  },
+  {
+    "id": "package-explicit-email-negative",
+    "target_skill": "rhize-outreach:review-outreach-email",
+    "prompt": "Use review-outreach-package to verify the website concept and public audit for the selected prospect before I accept them.",
+    "should_trigger": false
+  },
+  {
+    "id": "package-natural-positive",
+    "target_skill": "rhize-outreach:review-outreach-package",
+    "prompt": "Review the outreach website concept and audit report for this prospect. Open both for feedback on the visual design and factual claims; leave correspondence alone.",
+    "should_trigger": true
+  },
+  {
+    "id": "package-natural-email-negative",
+    "target_skill": "rhize-outreach:review-outreach-email",
+    "prompt": "Review the outreach website concept and audit report for this prospect. Open both for feedback on the visual design and factual claims; leave correspondence alone.",
+    "should_trigger": false
+  },
+  {
+    "id": "email-revision-fresh-positive",
+    "target_skill": "rhize-outreach:review-outreach-email",
+    "prompt": "Revise the personalized outreach email so every claim matches the accepted site concept and attached audit. Keep sending unapproved.",
+    "should_trigger": true
+  },
+  {
+    "id": "email-review-revision-fresh-positive",
+    "target_skill": "rhize-outreach:review-outreach-email",
+    "prompt": "Review and revise the outreach email against the approved website and public audit. Fix unsupported claims and verify the booking link before accepting the draft.",
+    "should_trigger": true
+  },
+  {
+    "id": "email-message-paraphrase-fresh-positive",
+    "target_skill": "rhize-outreach:review-outreach-email",
+    "prompt": "The site concept has been approved. Check the prospect message's sender, recipient, booking link and proof references before accepting its copy; do not send anything.",
+    "should_trigger": true
+  },
+  {
+    "id": "email-audit-context-fresh-positive",
+    "target_skill": "rhize-outreach:review-outreach-email",
+    "prompt": "Review the personalized email alongside the accepted audit package. Confirm the sender, recipient and evidence links, and leave the message in draft when release inputs are missing.",
+    "should_trigger": true
   }
 ]

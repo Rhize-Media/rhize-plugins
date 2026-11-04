@@ -66,16 +66,17 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
 
 ## Committed artifacts
 
-- `baseline.json`: the 301-row corpus measured against unmodified routing source
-  `846ba7ade6bf732834d4fd972e43d699643fe3a8` (2026-11-03). Twelve independently
-  reviewed synthetic outreach cases add six positives and six skill-specific negatives.
-  The added cases expose three positive misses and three target false fires in Arm A;
-  the zero-false-fire gate intentionally remains red. All 289 previously measured main
-  outcomes are unchanged. The third-party snapshot is unchanged; inferred_baseline.json
-  is refreshed from this actual control run (21 skill signal records differ from the old
-  committed inference artifact). Both experiment arms use the identical snapshot and
-  inference implementation. This is a development experiment baseline, not a production
-  qualification or traffic claim. Do not weaken thresholds or relabel fixtures to pass.
+- `baseline.json`: the 313-row corpus measured against unmodified routing source
+  `846ba7ade6bf732834d4fd972e43d699643fe3a8` (2026-11-03). It retains all 301 prior
+  assertions and adds 12 assertions for eight fresh requests: four package requests
+  each require package selection and forbid email selection, plus four email revision
+  and paraphrase requests. Package pairs are not independent samples.
+  The unchanged package-phrase candidate fails fresh validation: two baseline-positive
+  requests regress and the strict false-fire/wrong-route gates fail. All 301 prior
+  outcomes remain unchanged within their respective baseline/candidate arms.
+  The third-party snapshot and inferred baseline are unchanged. This is an experimental
+  control artifact with known failures, not release qualification. Keep thresholds and
+  labels unchanged; publication is held.
 - `corpus.json`: the corpus as built from the repo, for review; `run.py` rebuilds it.
 - `third_party_snapshot.json`: **a point-in-time snapshot of the third-party (marketplace)
   skill, command and plugin nodes from the maintainer's machine** (Oct 2026), reduced to

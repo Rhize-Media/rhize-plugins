@@ -128,17 +128,17 @@
   },
   "rhize-outreach": {
    "eval_negatives": {
-    "false_trigger": 3,
-    "n": 6,
+    "false_trigger": 5,
+    "n": 10,
     "other_cross_plugin": 0,
-    "other_same_plugin": 0,
+    "other_same_plugin": 2,
     "silent": 3
    },
    "eval_positives": {
-    "hit": 3,
-    "n": 6,
-    "silent": 3,
-    "wrong": 0
+    "hit": 7,
+    "n": 14,
+    "silent": 4,
+    "wrong": 3
    },
    "probes": {
     "hit": 1,
@@ -715,6 +715,114 @@
    "should_trigger": false,
    "target": "skill:rhize-outreach/review-outreach-email",
    "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/package-scope-positive",
+   "outcome": "wrong",
+   "prompt": "Review the outreach audit package for the selected prospect. Check the website concept and",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-package",
+   "top": "skill:rhize-outreach/review-outreach-email"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/package-scope-email-negative",
+   "outcome": "false_trigger",
+   "prompt": "Review the outreach audit package for the selected prospect. Check the website concept and",
+   "should_trigger": false,
+   "target": "skill:rhize-outreach/review-outreach-email",
+   "top": "skill:rhize-outreach/review-outreach-email"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/package-pages-positive",
+   "outcome": "hit",
+   "prompt": "Check the outreach audit package homepage and service page for factual consistency, respon",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-package",
+   "top": "skill:rhize-outreach/review-outreach-package"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/package-pages-email-negative",
+   "outcome": "other_same_plugin",
+   "prompt": "Check the outreach audit package homepage and service page for factual consistency, respon",
+   "should_trigger": false,
+   "target": "skill:rhize-outreach/review-outreach-email",
+   "top": "skill:rhize-outreach/review-outreach-package"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/package-explicit-positive",
+   "outcome": "hit",
+   "prompt": "Use review-outreach-package to verify the website concept and public audit for the selecte",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-package",
+   "top": "skill:rhize-outreach/review-outreach-package"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/package-explicit-email-negative",
+   "outcome": "other_same_plugin",
+   "prompt": "Use review-outreach-package to verify the website concept and public audit for the selecte",
+   "should_trigger": false,
+   "target": "skill:rhize-outreach/review-outreach-email",
+   "top": "skill:rhize-outreach/review-outreach-package"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/package-natural-positive",
+   "outcome": "wrong",
+   "prompt": "Review the outreach website concept and audit report for this prospect. Open both for feed",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-package",
+   "top": "skill:rhize-outreach/review-outreach-email"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/package-natural-email-negative",
+   "outcome": "false_trigger",
+   "prompt": "Review the outreach website concept and audit report for this prospect. Open both for feed",
+   "should_trigger": false,
+   "target": "skill:rhize-outreach/review-outreach-email",
+   "top": "skill:rhize-outreach/review-outreach-email"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/email-revision-fresh-positive",
+   "outcome": "hit",
+   "prompt": "Revise the personalized outreach email so every claim matches the accepted site concept an",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-email",
+   "top": "skill:rhize-outreach/review-outreach-email"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/email-review-revision-fresh-positive",
+   "outcome": "hit",
+   "prompt": "Review and revise the outreach email against the approved website and public audit. Fix un",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-email",
+   "top": "skill:rhize-outreach/review-outreach-email"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/email-message-paraphrase-fresh-positive",
+   "outcome": "silent",
+   "prompt": "The site concept has been approved. Check the prospect message's sender, recipient, bookin",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-email",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-outreach/email-audit-context-fresh-positive",
+   "outcome": "wrong",
+   "prompt": "Review the personalized email alongside the accepted audit package. Confirm the sender, re",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-email",
+   "top": "skill:rhize-ops/decision-premortem"
   },
   {
    "group": "eval",
@@ -2895,21 +3003,21 @@
    "top": null
   }
  ],
- "rows_sha": "95e52deab4dc0419",
+ "rows_sha": "9ef04d8866fa2625",
  "schema": 1,
  "summary": {
   "eval_negatives": {
-   "false_trigger": 3,
-   "n": 122,
+   "false_trigger": 5,
+   "n": 126,
    "other_cross_plugin": 0,
-   "other_same_plugin": 0,
+   "other_same_plugin": 2,
    "silent": 119
   },
   "eval_positives": {
-   "hit": 20,
-   "n": 82,
-   "silent": 57,
-   "wrong": 5
+   "hit": 24,
+   "n": 90,
+   "silent": 58,
+   "wrong": 8
   },
   "long_negatives": {
    "acceptable": 0,
