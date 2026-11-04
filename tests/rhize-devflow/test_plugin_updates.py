@@ -414,7 +414,8 @@ def test_queue_binds_real_committed_trees_and_rejects_wrong_version(tmp_path, mo
         updates.approved_packages(git('rev-parse', 'HEAD'), {'rhize-devflow': '1.1.0'})
 
 
-@pytest.mark.parametrize('bad', [None, {}, {'rhize-devflow': {'entry': ENTRY, 'tree': 'bad'}}])
+@pytest.mark.parametrize('bad', [None, {}, {'rhize-devflow': {'entry': ENTRY, 'tree': 'bad'}},
+                               {'rhize-devflow': {'entry': ENTRY, 'tree': int('1' * 40)}}])
 def test_legacy_or_malformed_approval_holds_before_any_native_command(worker, bad):
     root, calls, state, *_ = worker
     if bad is None:

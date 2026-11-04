@@ -283,7 +283,8 @@ def worker(host):
                 entry = item.get('entry', {}) if isinstance(item, dict) else {}
                 if (not isinstance(entry, dict) or entry.get('name') != name or entry.get('version') != version
                         or entry.get('source') != './' + name
-                        or not re.fullmatch('[0-9a-f]{40}', str(item.get('tree', '')))):
+                        or not isinstance(item.get('tree'), str)
+                        or not re.fullmatch('[0-9a-f]{40}', item['tree'])):
                     raise ValueError('invalid_package_approval:' + name)
             config = read(root() / 'config.json')
             cli = config['cli'][host]
