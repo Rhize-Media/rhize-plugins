@@ -37,6 +37,8 @@ def worker(tmp_path, monkeypatch):
             return json.dumps({'plugins': [ENTRY]})
         if 'status' in args:
             return ''
+        if 'cat-file' in args:
+            return 'tree'
         if 'rev-parse' in args:
             return TREE if ':' in args[-1] else COMMIT
         if 'doctor' in args:
@@ -394,3 +396,59 @@ def test_queue_binds_real_committed_trees_and_rejects_wrong_version(tmp_path, mo
     assert expected['rhize-devflow']['tree'] == git('rev-parse', commit + ':rhize-devflow')
     with pytest.raises(ValueError, match='reviewed_package_mismatch'):
         updates.approved_packages(commit, {'rhize-devflow': '2.0.0'})
+    (tmp_path / '.claude-plugin/marketplace.json').write_text(json.dumps({'plugins': [dict(ENTRY, source='./other')]}))
+    git('add', '.')
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'replacement')
+    replacement = git('rev-parse', 'HEAD')
+    git('replace', commit, replacement)
+    assert updates.approved_packages(commit, {'rhize-devflow': '1.1.0'}) == expected
+    with pytest.raises(ValueError, match='reviewed_package_mismatch'):
+        updates.approved_packages(replacement, {'rhize-devflow': '1.1.0'})
+    (tmp_path / '.claude-plugin/marketplace.json').write_text(json.dumps({'plugins': [ENTRY]}))
+    (tmp_path / 'rhize-devflow/skill.md').unlink()
+    (tmp_path / 'rhize-devflow').rmdir()
+    (tmp_path / 'rhize-devflow').write_text('not a directory')
+    git('add', '.')
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'blob target')
+    with pytest.raises(ValueError, match='reviewed_tree_unavailable'):
+        updates.approved_packages(git('rev-parse', 'HEAD'), {'rhize-devflow': '1.1.0'})
+
+
+@pytest.mark.parametrize('bad', [None, {}, {'rhize-devflow': {'entry': ENTRY, 'tree': 'bad'}}])
+def test_legacy_or_malformed_approval_holds_before_any_native_command(worker, bad):
+    root, calls, state, *_ = worker
+    if bad is None:
+        state.pop('approvedPackages')
+    else:
+        state['approvedPackages'] = bad
+    updates.write(root / 'codex/status.json', state)
+    updates.worker('codex')
+    assert status(root)['phase'] == 'held'
+    assert not calls
+    assert status(root)['mutationStarted'] is False
+
+
+@pytest.mark.parametrize('ignored', [False, True])
+def test_catalog_guard_detects_untracked_and_ignored_files(worker, monkeypatch, ignored):
+    root, calls, *_ = worker
+    catalog = root / 'catalog'
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(catalog), *args], text=True)
+    git('init', '-q')
+    (catalog / 'rhize-devflow').mkdir()
+    (catalog / 'rhize-devflow/skill.md').write_text('tracked')
+    (catalog / '.gitignore').write_text('*.local.py\n')
+    git('add', '.')
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'fixture')
+    git('config', 'status.showUntrackedFiles', 'no')
+    (catalog / 'rhize-devflow' / ('extra.local.py' if ignored else 'extra.py')).write_text('unexpected')
+    original = updates.run
+    def run(args, timeout=120):
+        result = original(args, timeout)
+        return subprocess.check_output(args, text=True) if 'status' in args else result
+    monkeypatch.setattr(updates, 'run', run)
+    updates.worker('codex')
+    assert status(root)['phase'] == 'held'
+    assert status(root)['error'] == 'catalog_worktree_changed'
+    assert not any('add' in a for a in calls)
+    assert all('--no-replace-objects' in a for a in calls if a[0] == '/usr/bin/git')

@@ -61,7 +61,9 @@ Under an exclusive per-host lock, the worker rechecks owners and installed state
 supported native marketplace refresh and package update commands, verifies exact approved target
 versions, catalog entries and Git trees, then checks installed versions, enabled states and doctor.
 An unrelated later catalog release may proceed only when every queued target remains identical to
-its approved committed content. A modified target or catalog working tree is refused. The original
+its approved committed content. A modified target or catalog working tree, including untracked and ignored files, is refused.
+Malformed or legacy approval records hold before native refresh. Git reads disable replacement
+objects so approval identifies the actual committed directory trees. The original
 approval commit and actual resolved commit are retained separately; shallow host catalogs do not
 need to retain the original commit because queueing freezes its target identities.
 Codex's add command has no disabled-preservation option: a requested disabled Codex package is

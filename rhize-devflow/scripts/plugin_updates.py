@@ -204,14 +204,15 @@ def validate_targets(targets):
 
 def approved_packages(commit, targets):
     # Read committed objects from the coordinator checkout, never refresh a live host catalog.
-    catalog = json.loads(run(['/usr/bin/git', 'show', commit + ':.claude-plugin/marketplace.json']))
+    catalog = json.loads(run(['/usr/bin/git', '--no-replace-objects', 'show', commit + ':.claude-plugin/marketplace.json']))
     result = {}
     for name, version in targets.items():
         entries = [p for p in catalog['plugins'] if p.get('name') == name]
         if len(entries) != 1 or entries[0].get('version') != version or entries[0].get('source') != './' + name:
             raise ValueError('reviewed_package_mismatch:' + name)
-        tree = run(['/usr/bin/git', 'rev-parse', commit + ':' + name]).strip()
-        if not re.fullmatch('[0-9a-f]{40}', tree):
+        tree = run(['/usr/bin/git', '--no-replace-objects', 'rev-parse', commit + ':' + name]).strip()
+        if (not re.fullmatch('[0-9a-f]{40}', tree)
+                or run(['/usr/bin/git', '--no-replace-objects', 'cat-file', '-t', commit + ':' + name]).strip() != 'tree'):
             raise ValueError('reviewed_tree_unavailable:' + name)
         result[name] = {'entry': entries[0], 'tree': tree}
     return result
@@ -273,6 +274,17 @@ def worker(host):
             notice(host, 'held after an interrupted update')
             return
         try:
+            validate_targets(state['targets'])
+            approved = state.get('approvedPackages')
+            if not isinstance(approved, dict) or approved.keys() != state['targets'].keys():
+                raise ValueError('invalid_package_approval')
+            for name, version in state['targets'].items():
+                item = approved[name]
+                entry = item.get('entry', {}) if isinstance(item, dict) else {}
+                if (not isinstance(entry, dict) or entry.get('name') != name or entry.get('version') != version
+                        or entry.get('source') != './' + name
+                        or not re.fullmatch('[0-9a-f]{40}', str(item.get('tree', '')))):
+                    raise ValueError('invalid_package_approval:' + name)
             config = read(root() / 'config.json')
             cli = config['cli'][host]
             active = owners(host)
@@ -309,7 +321,7 @@ def worker(host):
             write(path, state)
             refresh = 'upgrade' if host == 'codex' else 'update'
             run([cli, 'plugin', 'marketplace', refresh, 'rhize-plugins'], timeout=300)
-            resolved = run(['/usr/bin/git', '-C', str(catalog_root), 'rev-parse', 'HEAD']).strip()
+            resolved = run(['/usr/bin/git', '--no-replace-objects', '-C', str(catalog_root), 'rev-parse', 'HEAD']).strip()
             state['resolvedCommit'] = resolved
             catalog = read(catalog_root / '.claude-plugin/marketplace.json')
             versions = {p['name']: p.get('version') for p in catalog['plugins']}
@@ -318,10 +330,10 @@ def worker(host):
             for name in state['targets']:
                 expected = state['approvedPackages'][name]
                 entries = [p for p in catalog['plugins'] if p.get('name') == name]
-                tree = run(['/usr/bin/git', '-C', str(catalog_root), 'rev-parse', 'HEAD:' + name]).strip()
+                tree = run(['/usr/bin/git', '--no-replace-objects', '-C', str(catalog_root), 'rev-parse', 'HEAD:' + name]).strip()
                 if entries != [expected['entry']] or tree != expected['tree']:
                     raise ValueError('reviewed_package_changed:' + name)
-            if run(['/usr/bin/git', '-C', str(catalog_root), 'status', '--porcelain', '--',
+            if run(['/usr/bin/git', '--no-replace-objects', '-C', str(catalog_root), 'status', '--porcelain', '--untracked-files=all', '--ignored=matching', '--',
                     '.claude-plugin/marketplace.json', *state['targets']]).strip():
                 raise ValueError('catalog_worktree_changed')
             for name, version in state['targets'].items():
