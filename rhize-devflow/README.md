@@ -44,20 +44,11 @@ claude plugin install rhize-context-manager@rhize-plugins
 
 **Claude Code — updating an existing install:**
 
-Save active task checkpoints, close all Claude/Codex host sessions, and run updates from a
-separate ordinary terminal. Cache replacement can remove files still referenced by loaded
-hooks. The [native update safeguard](docs/plugin-update-safety.md) blocks recognizable live
-updates, checks package changes after tools, and stops affected sessions for restart.
-
-```bash
-claude plugin marketplace update rhize-plugins
-claude plugin update rhize-devflow
-claude plugin update rhize-context-manager
-```
-
-`claude plugin marketplace update` refreshes the local `rhize-plugins` marketplace snapshot to
-the latest commit; `claude plugin update` then pulls each installed plugin up to that snapshot's
-version. Running only the second command against a stale snapshot silently no-ops.
+Use the [automatic per-host update helper](docs/plugin-update-safety.md): the coordinator queues
+reviewed versions, and a macOS LaunchAgent updates and verifies each host after that app quits.
+Claude and Codex can close at different times; no after-closing Terminal command is required.
+The stable maintenance guard catches startup races, while host-scoped metadata checks preserve
+normal restart protection. Native hook trust remains owned by the host.
 
 **Codex:**
 

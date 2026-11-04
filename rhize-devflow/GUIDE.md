@@ -53,12 +53,12 @@ browser automation, subagents).
 
 ## Getting Started
 
-Before updating an installed Rhize plugin, save checkpoints and close all Claude/Codex hosts.
-Run the supported update commands from a separate terminal, then restart and review normal
-hook trust. The auto-wired [update safeguard](docs/plugin-update-safety.md) checks package
-metadata before/after tools, stops once on drift, and keeps affected sessions held for restart.
-Dev Flow's missing-file fallback denies tools and ends Stop handling without a retry loop;
-it never replaces a required guard with another version or claims verification passed.
+For installed Rhize updates, the coordinator installs the [automatic per-host helper](docs/plugin-update-safety.md)
+and queues approved versions. Quit each app independently; its LaunchAgent updates after its
+native owners exit, verifies native inventory and doctor, and records completion or a hold.
+No user Terminal handoff is required. Stable global maintenance hooks catch startup races;
+the plugin guard watches only its own host's cache. Normal host hook trust still applies.
+Dev Flow's missing-file fallback denies tools and ends Stop handling without a retry loop.
 
 If Dev Flow isn't installed yet, or you suspect a stale copy, see the [README's Install
 section](./README.md#install) for the exact commands — the short version:
