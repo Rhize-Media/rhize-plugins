@@ -3,8 +3,10 @@ name: review-outreach-email
 description: Open, revise and accept the personalized outreach email bound to the accepted website and audit package.
 metadata:
   rhize:
-    topics: [outreach, review, content-authoring]
+    topics: [outreach, content-authoring]
     stacks: []
+    router:
+      phrases: [audit package]
 ---
 
 # Review the Outreach Email

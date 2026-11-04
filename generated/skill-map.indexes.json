@@ -1698,6 +1698,11 @@
           "weight": 1
         },
         {
+          "kind": "phrase",
+          "label": "audit package",
+          "weight": 2
+        },
+        {
           "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
@@ -1707,12 +1712,6 @@
           "facet": "topic",
           "kind": "tag",
           "label": "outreach",
-          "weight": 2
-        },
-        {
-          "facet": "topic",
-          "kind": "tag",
-          "label": "review",
           "weight": 2
         }
       ],

@@ -119,6 +119,7 @@ EXPECTED = {
     "skill:obsidian-second-brain/defuddle": ["web clipping"],
     "skill:rhize-devflow/sanity-development": ["cms development"],
     "skill:rhize-outreach/review-outreach-businesses": ["candidate businesses"],
+    "skill:rhize-outreach/review-outreach-email": ["audit package"],
     "skill:rhize-context-manager/context-optimization": ["context optimization"],
     "skill:rhize-context-manager/learning-curation": ["learning curation"],
 }

@@ -2991,12 +2991,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:rhize-outreach/review-outreach-email",
-      "source": "frontmatter",
-      "to": "tag:topic/review",
-      "type": "topic-tag"
-    },
-    {
       "from": "skill:rhize-outreach/review-outreach-package",
       "source": "relations-catalog",
       "to": "external:rhize-outreach-runtime",
@@ -5463,15 +5457,18 @@
       "treeHash": "161164c7de3fc26cb6fa8469b6a5105d922487700c114a00bb6891ba99cbb6b5"
     },
     {
-      "contentHash": "95b2a51635510183b4d3e51f5d86a397ca86fa2c4f007fe8ed95c276d43f9c0f",
+      "contentHash": "b605c78d5924725a6b49d0af50b5678cd4ff6cd9f9c6880bb493c9fe5e578b27",
       "description": "Open, revise and accept the personalized outreach email bound to the accepted website and audit package.",
       "fileCount": 1,
       "id": "skill:rhize-outreach/review-outreach-email",
       "kind": "skill",
       "name": "review-outreach-email",
       "path": "rhize-outreach/skills/review-outreach-email/SKILL.md",
-      "totalBytes": 773,
-      "treeHash": "60c8426071117e1e0f762386b6713c660a40c059688d2accdbe580f445880e9d"
+      "routerPhrases": [
+        "audit package"
+      ],
+      "totalBytes": 808,
+      "treeHash": "5b00c2a34147f87917a511f85b9cb34fb00cdd1b3fc9218c68641437431acc30"
     },
     {
       "contentHash": "8381b0efe62a1b44369320af1217b16bab2c0c02c4c54cc0bd715a63f304b984",
