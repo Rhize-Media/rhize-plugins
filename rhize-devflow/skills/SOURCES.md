@@ -4,6 +4,18 @@ One entry per external-skill ingestion decision owned by Rhize Dev Flow.
 
 The optional Ponytail plugin has a separate [companion provenance record](../docs/ponytail-provenance.md); it introduces no forked skill.
 
+## frontend-development — 2026-11-04
+- **Source:** https://github.com/NiazMorshed2007/reanimate
+- **Upstream ref:** `3f7a55a2986a84ca2173e86ee9127eefe31d046d`
+- **License:** MIT (skill/tooling only; reference assets retain their owners' rights)
+- **Verb:** DEFER
+- **Graph relation:** consumes
+- **Target:** rhize-devflow:frontend-development
+- **Took:** no upstream code copied; conditional routing, rights boundaries and evidence requirements only
+- **Verification:** installed upstream files are byte-identical; native/runtime setup evidence is separate from routing contracts and is recorded in the setup handoff
+- **Drift check:** re-read upstream README/setup on update; verify dependency resolution, fresh Codex invocation and an isolated capture/compare test
+- **Notes:** global standalone installation only. Bun 1.3.12 met the documented minimum but rejected upstream lockfile version 2; never silently report installation as working runtime or alter the global runtime/lockfile to conceal a setup failure.
+
 ## completed-branch-promotion — 2026-08-30
 - **Source:** https://github.com/obra/superpowers/tree/main/skills/finishing-a-development-branch
 - **Upstream ref:** Superpowers 6.3.0

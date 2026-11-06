@@ -8,6 +8,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Route supplied reference animations to independently installed Reanimate; preserve motion-only defaults, reference-asset rights, restricted-source recordings, existing tools and separate measured-motion/browser acceptance.
+- _2026-11-06_ version bump — 2.32.0 → 2.32.1 (patch); marketplace 2.117.1 → 2.117.2.
 - _2026-11-03_ version bump — 2.31.1 → 2.32.0 (minor); marketplace 2.116.1 → 2.117.0.
 - _2026-11-03_ version bump — 2.31.0 → 2.31.1 (patch); marketplace 2.116.0 → 2.116.1.
 - Require current-source evidence for component behavior claims and preserve collapsed-content focus/accessibility during disclosure motion.

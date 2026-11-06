@@ -45,6 +45,23 @@
     ]
   },
   {
+    "id": "reanimate",
+    "family": "reanimate",
+    "request": "Recreate only the hero entrance from a supplied screen recording in our existing CSS component, keeping our fonts, images and copy. Select the installed workflow and describe how to measure and compare the motion. Do not install anything or run a client capture in this review. Explain what changes if the reference is a login page, YouTube or Loom, or we request exact visual matching.",
+    "required_skills": [
+      "reanimate"
+    ],
+    "forbidden_skills": [],
+    "criteria": [
+      "motion-only default and existing stack preserved",
+      "requested target and matching capture settings are bounded",
+      "inspect frame sheets and report measured timing/easing and deviations",
+      "exact visual matching requires explicit request and rights to reference assets",
+      "login-walled pages YouTube and Loom require supplied recordings",
+      "global setup and runtime results distinguished from native invocation"
+    ]
+  },
+  {
     "id": "gsap",
     "family": "gsap",
     "request": "Review a planned GSAP React hero with a scroll-driven multi-step timeline. GSAP is already a dependency. Specify concrete lifecycle cleanup, scroll/timeline setup and reduced-motion behavior using the relevant installed skills. Do not introduce another motion library.",
@@ -122,7 +139,8 @@
       "playwright-cli",
       "impeccable",
       "transitions-dev",
-      "transitions-polish"
+      "transitions-polish",
+      "reanimate"
     ],
     "criteria": [
       "no frontend family loaded for mechanical backend change"
