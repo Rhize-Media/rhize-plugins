@@ -644,6 +644,13 @@ CSS motion, GSAP handles justified choreography, Impeccable supplies craft revie
 CLI is one browser adapter. Upstream skills remain independently installed; read their actual
 host-discovered files/names, respect disabled state, and do not infer native invocation from disk presence.
 
+To reproduce an animation from a reference, ask for Reanimate with the source, target interaction
+or time range, and destination component. It measures and compares the motion using your existing
+tools. Motion-only is the default; ask for exact visual matching only when you have rights to the
+reference's fonts, images, code and assets. Supply a recording for login-walled pages, YouTube or
+Loom. Install it globally in a separate setup task, with Bun, ffmpeg/Chromium and a fresh-session
+invocation test; a downloaded SKILL.md alone does not establish runtime compatibility.
+
 Keep the existing design system and framework authoritative. Backend-only and mechanical
 nonvisual changes skip this workflow. Substantive UI changes enter `review`'s UI risk category;
 `browser-qa` observes affected states, screenshots, keyboard/focus and reduced-motion behavior.

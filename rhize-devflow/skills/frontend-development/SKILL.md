@@ -47,6 +47,7 @@ from skill discovery. Use the skill's documented help/probe when execution is ne
 | --- | --- | --- |
 | New interface/direction or substantial redesign | `design-taste-frontend` | Art direction and browser self-review; follow its app-screen branch for dashboards. Preserve an established identity. |
 | Extract a supplied reference website | `extract-design` | Run Designlang against the relevant URL when authorized; inspect extracted tokens/patterns before adapting them. |
+| Recreate motion from a supplied site, recording, video, GIF or Lottie file | `reanimate` | Measure the requested animation, implement in the project's existing tools, then record and compare the copy. Default to motion-only; follow the scope and rights rules below. |
 | A suitable animated React component | `react-bits` | Fetch current source from `https://reactbits.dev/r/{name}.json`; inspect code/imports/dependencies. Never reconstruct catalog components from memory. Match JS/TS and CSS/Tailwind to the project. |
 | Small CSS state transitions or existing motion refinement | `transitions-dev`; add `transitions-polish` when refining timing/easing | Prefer simple state motion; do not introduce GSAP for an ordinary transition. |
 | Existing/requested GSAP, complex timelines or scroll choreography | `gsap-core` plus the relevant subset | `gsap-timeline`, `gsap-scrolltrigger`, `gsap-react`, `gsap-frameworks`, `gsap-plugins`, `gsap-utils`, `gsap-performance`; check cleanup and reduced-motion behavior. |
@@ -63,6 +64,26 @@ and mutation/cache correctness remain with their existing specialist workflows w
 React Bits registry setup belongs in the actual app's `components.json` only when needed;
 preserve other registries. Impeccable product context belongs in the product, never a global
 placeholder PRODUCT.md. Do not invent claims, force a framework, or add decorative motion.
+
+## Reference animation with Reanimate
+
+Load the independently installed `reanimate` skill and its source-specific references. Keep the
+target to the requested section, interaction or time range. Copy motion by default, preserving the
+project's own brand, content and assets. Use "match it exactly" only when explicitly requested
+and the client has the right to use the reference's fonts, images, code and other assets; the
+skill's MIT license does not grant rights to a reference site. For login-walled pages, YouTube
+or Loom, request a supplied screen recording instead of trying to record the page directly.
+
+Follow upstream capture/spec/build/compare mechanics using the existing CSS, Framer Motion,
+GSAP or three.js stack. Compare matching viewport, crop, trigger, duration and frame rate;
+inspect the frame sheets and report measured timing/easing and remaining differences. A matching
+animation is separate from keyboard, reduced-motion and broader browser acceptance below.
+
+Installation belongs to an explicit global environment-setup task, never a client repository.
+Verify Bun and the current setup script's dependency/ffmpeg/Chromium results; the README's
+minimum Bun version alone does not prove compatibility with its current lockfile. Report setup
+errors and fallbacks, and distinguish fresh-host skill invocation from a successful file install.
+Do not upgrade global runtimes or silently replace lockfiles to make setup pass.
 
 ## Reconcile upstream defaults with the brief
 

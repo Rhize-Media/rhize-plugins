@@ -52,7 +52,7 @@ console.log(JSON.stringify(prompts.map(p=>core.routeFromIndex(index,core.tokeniz
 
 def test_native_case_contract_covers_families_and_controls():
     cases = json.loads((ROOT / "evals/rhize-devflow/frontend_cases.json").read_text())
-    assert {c["family"] for c in cases if c["family"]} == {"taste", "designlang", "react-bits", "gsap", "playwright", "impeccable", "transitions"}
+    assert {c["family"] for c in cases if c["family"]} == {"taste", "designlang", "react-bits", "gsap", "playwright", "impeccable", "transitions", "reanimate"}
     assert len({c["id"] for c in cases}) == len(cases)
     assert any(c["id"] == "backend-only" for c in cases)
     assert any(c["id"] == "unavailable" for c in cases)
