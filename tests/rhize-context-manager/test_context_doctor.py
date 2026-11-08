@@ -192,6 +192,86 @@ class DoctorContractTests(unittest.TestCase):
         health['consecutiveFailures']=1;path.write_text(json.dumps(health))
         self.assertEqual(capture(self.root,window)[:2],('PROBLEM','capture_errors_recorded'))
 
+    def test_capture_blockers_are_actionable_without_private_metadata(self):
+        import sqlite3
+        from context_doctor_probes import capture
+        directory = self.root / '.claude-mem'; directory.mkdir()
+        now = doctor.timestamp(doctor.utc_now())
+        ms = int(now.timestamp() * 1000)
+        health = {'consecutiveFailures':15, 'lastSuccessAt':ms-1000,
+                  'lastErrorAt':ms, 'failingSinceAt':ms,
+                  'lastErrorKind':'auth_invalid', 'lastErrorMessage':'secret-payload',
+                  'lastErrorAction':'secret-payload', 'lastErrorUrl':'secret-payload',
+                  'lastErrorRequestId':'secret-payload', 'lastErrorProvider':'secret-payload',
+                  'quotaCooldown':{'active':True, 'armedAt':ms-2000, 'until':ms+3600000,
+                                   'message':'secret-payload'}}
+        path = directory / 'observer-health.json'
+        with sqlite3.connect(directory / 'claude-mem.db') as conn:
+            conn.execute('CREATE TABLE observations (created_at_epoch INTEGER)')
+            conn.execute('CREATE TABLE sdk_sessions (started_at_epoch INTEGER)')
+            conn.execute('INSERT INTO observations VALUES (?)', (ms,))
+            conn.execute('INSERT INTO sdk_sessions VALUES (?)', (ms,))
+        window = (now-timedelta(days=2)).isoformat()
+        def assess():
+            path.write_text(json.dumps(health))
+            result = capture(self.root, window)
+            self.assertNotIn('secret-payload', json.dumps(result))
+            self.assertEqual(json.loads(path.read_text()), health)
+            return result
+        result = assess()
+        self.assertEqual(result[:2], ('PROBLEM', 'capture_auth_invalid'))
+        self.assertEqual(result[2]['recovery'], 'reauthenticate_claude_code')
+        health['consecutiveFailures'] = 0
+        self.assertEqual(assess()[:2], ('PROBLEM', 'capture_quota_paused'))
+        health['quotaCooldown']['until'] = ms-1000
+        self.assertEqual(assess()[:2], ('OK', 'capture_persisted'))
+        health['quotaCooldown']['until'] = 'secret-payload'
+        self.assertEqual(assess()[:2], ('NOT_RUN', 'capture_cooldown_invalid'))
+        health['quotaCooldown']['until'] = ms-1000
+        health['consecutiveFailures'] = 1
+        health['lastErrorKind'] = 'secret-payload'
+        self.assertEqual(assess()[:2], ('PROBLEM', 'capture_errors_recorded'))
+        health['lastErrorKind'] = 'auth_invalid'
+        health['lastErrorAt'] = ms-2000  # A historical auth error is not active auth failure.
+        self.assertNotIn('capture_blocker', assess()[2])
+
+    def test_failed_monitor_start_is_not_hidden_by_successful_completion(self):
+        from types import SimpleNamespace
+        from contextlib import redirect_stdout
+        import io
+        report = self.valid_report()
+        args = SimpleNamespace(state_dir=str(self.root/'run-state'), monitor_config='fixture',
+                               config='fixture', repo=str(self.root), home=str(self.root), rtk_bin=None)
+        output = io.StringIO()
+        with patch.object(doctor, 'load_json', return_value=report['config']), \
+             patch.object(doctor, 'collect_probe', return_value=report['probes'][0]), \
+             patch.object(doctor, 'validate_report'), patch.object(doctor, 'render', return_value='fixture'), \
+             patch('context_doctor_monitor.check_in', side_effect=[
+                 {'status':'failed','reason':'monitor_credential_unavailable'}, {'status':'accepted'}]), \
+             redirect_stdout(output):
+            self.assertEqual(doctor.run(args), 2)
+        self.assertIn('Monitor HTTP start: failed (monitor_credential_unavailable)', output.getvalue())
+        evidence = json.loads(next(Path(args.state_dir).glob('*/delivery.json')).read_text())
+        self.assertEqual(evidence['start']['status'], 'failed')
+        self.assertEqual(evidence['completion']['status'], 'accepted')
+
+    def test_runner_failure_retains_both_monitor_attempts_without_private_error(self):
+        from types import SimpleNamespace
+        from contextlib import redirect_stderr
+        import io
+        args = SimpleNamespace(state_dir=str(self.root/'run-state'), monitor_config='fixture', config='fixture')
+        with patch.object(doctor, 'load_json', side_effect=ValueError('secret-payload')), \
+             patch('context_doctor_monitor.check_in', side_effect=[{'status':'accepted'},
+                 {'status':'failed','reason':'monitor_credential_unavailable'}]) as check_in, \
+             redirect_stderr(io.StringIO()):
+            self.assertEqual(doctor.run(args), 2)
+        self.assertEqual([c.args[2] for c in check_in.call_args_list], ['in_progress','error'])
+        self.assertEqual(check_in.call_args_list[0].args[1], check_in.call_args_list[1].args[1])
+        self.assertFalse(list(Path(args.state_dir).glob('*/report.json')))
+        evidence = next(Path(args.state_dir).glob('*/delivery.json')).read_text()
+        self.assertEqual(json.loads(evidence)['completion']['status'], 'failed')
+        self.assertNotIn('secret-payload', ''.join(p.read_text() for p in Path(args.state_dir).glob('*/*.json')))
+
     def test_cli_persists_not_run_and_rejects_manual_render_rewrite(self):
         config = self.root / 'config.json'
         spec = dict(self.spec, kind='harness', params={})
