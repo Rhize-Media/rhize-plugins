@@ -226,11 +226,13 @@ def queue(host, targets, commit, after=None, reconcile=False):
     cli = config['cli'][host]
     with locked(host) as folder:
         path = folder / 'status.json'
-        if path.exists() and read(path)['phase'] not in {'complete', 'held'}:
-            raise ValueError('queue_already_pending')
         if path.exists():
             previous = read(path)
-            if previous.get('mutationStarted') and previous['phase'] == 'held' and not reconcile:
+            unstarted = (previous['phase'] in {'pending', 'waiting_for_host', 'waiting_for_idle', 'waiting_for_dependency', 'settling'}
+                         and previous.get('mutationStarted') is False and not previous.get('repairRequired'))
+            if previous['phase'] not in {'complete', 'held'} and not (reconcile and unstarted):
+                raise ValueError('queue_already_pending')
+            if (previous.get('mutationStarted') or previous.get('repairRequired')) and previous['phase'] == 'held' and not reconcile:
                 raise ValueError('held_partial_mutation_requires_reconcile')
             digest = hashlib.sha256(json.dumps(previous, sort_keys=True).encode()).hexdigest()
             write(folder / 'history' / (digest + '.json'), previous)
@@ -243,7 +245,7 @@ def queue(host, targets, commit, after=None, reconcile=False):
                  'commit': commit, 'approvedPackages': approved, 'before': before, 'queuedAt': time.time(),
                  'generation': read(path)['generation'] if path.exists() else 0,
                  'after': after, 'mutationStarted': False,
-                 'repairRequired': bool(reconcile and path.exists() and previous.get('mutationStarted')),
+                 'repairRequired': bool(reconcile and path.exists() and (previous.get('mutationStarted') or previous.get('repairRequired'))),
                  'reconciledFrom': digest if reconcile and path.exists() else None}
         write(path, value)
         return value
@@ -553,11 +555,18 @@ def install():
                 missing = json.dumps(hook_output(event, 'Rhize update helper is unavailable; required maintenance guard did not run. Restart and repair the helper before continuing.'))
                 command = f"if [ -f {shlex.quote(str(destination))} ] && [ -x {shlex.quote(python)} ]; then {invocation} || printf '%s\\n' {shlex.quote(missing)}; else printf '%s\\n' {shlex.quote(missing)}; fi"
                 entries = data.setdefault('hooks', {}).setdefault(event, [])
-                entries[:] = [e for e in entries if not any(str(destination) in h.get('command', '') for h in e.get('hooks', []))]
+                positions = [i for i, e in enumerate(entries)
+                             if any(str(destination) in h.get('command', '') for h in e.get('hooks', []))]
+                if len(positions) > 1 or (positions and len(entries[positions[0]]['hooks']) != 1):
+                    raise ValueError('ambiguous_helper_hook')
                 entry = {'hooks': [{'type': 'command', 'command': command, 'timeout': 5}]}
                 if event == 'PreToolUse':
                     entry['matcher'] = '*'
-                entries.insert(0, entry)
+                # Native trust keys include array positions; never move unrelated hooks.
+                if positions:
+                    entries[positions[0]] = entry
+                else:
+                    entries.append(entry)
             write(config_path, data)
             label = 'media.rhize.plugin-updates.' + host
             plist = Path.home() / 'Library/LaunchAgents' / (label + '.plist')
@@ -598,7 +607,7 @@ def main():
             sub.add_argument('--targets', type=Path, required=True)
             sub.add_argument('--commit', required=True)
             sub.add_argument('--after', choices=HOSTS)
-            sub.add_argument('--reconcile', action='store_true', help='Acknowledge a held partial update; keep guards held until repair verifies')
+            sub.add_argument('--reconcile', action='store_true', help='Archive an unstarted queue or acknowledge a held partial update; repair holds remain until verified')
         if name == 'hook':
             sub.add_argument('event', choices=EVENTS)
     args = parser.parse_args()

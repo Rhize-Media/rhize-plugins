@@ -56,6 +56,8 @@ new global hooks through each host's normal trust interface. The stable helper a
 live outside removable caches at `~/.local/share/rhize/plugin-updates/`. Two existing per-host
 LaunchAgents check queues every 15 seconds. Installation records bootstrap owners; it does not
 establish native event coverage or trust. Do not reinstall the helper merely to release a hold.
+Installation updates its own hook entries in place and appends new events, preserving existing
+native trust positions. Review only new or changed hooks in the native host before queueing.
 
 Queue reviewed target versions from the source checkout containing the reviewed commit:
 
@@ -73,6 +75,9 @@ marketplace, host permission or native CLI version is changed.
 `--after HOST` requires that host's completed receipt for the same reviewed commit. A held partial
 mutation needs explicit `queue --reconcile`; prior receipts remain in history and the hold remains
 until repair verifies. Ambiguous durable publication is not permission to overwrite a collision.
+The same explicit flag can supersede an obsolete unstarted pending/waiting/settling queue under
+the worker lock, preserving its original receipt and generation. It cannot replace staging,
+updating or repair-held pending work. Queueing alone does not release any active conversation.
 Status, staged inputs and doctor evidence remain under `~/.local/share/rhize/plugin-updates/HOST/`.
 `complete` means inventory and static doctor passed; native discovery, normal hook trust and
 fresh-session execution are separate proof. Local notifications depend on macOS settings.
