@@ -259,6 +259,31 @@ def test_queue_cannot_overwrite_pending_or_change_generation(worker):
     assert queued['generation'] == 22
 
 
+@pytest.mark.parametrize('phase', ['pending', 'waiting_for_host', 'waiting_for_idle', 'waiting_for_dependency', 'settling'])
+def test_explicit_reconcile_archives_unstarted_queue(worker, phase):
+    root, calls, state, *_ = worker
+    state.update(phase=phase, generation=22)
+    updates.write(root / 'codex/status.json', state)
+    queued = updates.queue('codex', state['targets'], COMMIT, reconcile=True)
+    assert queued['generation'] == 22 and queued['phase'] == 'pending'
+    assert queued['repairRequired'] is False and queued['mutationStarted'] is False
+    assert updates.read(root / 'codex/history' / (queued['reconciledFrom'] + '.json')) == state
+    assert not any('publish' in call or 'update' in call for call in calls)
+
+
+@pytest.mark.parametrize('changes', [
+    {'phase': 'staging'}, {'phase': 'updating'}, {'phase': 'unknown'},
+    {'mutationStarted': True}, {'repairRequired': True},
+])
+def test_reconcile_cannot_replace_ambiguous_pending_queue(worker, changes):
+    root, _, state, *_ = worker
+    state.update(changes)
+    updates.write(root / 'codex/status.json', state)
+    with pytest.raises(ValueError, match='already_pending'):
+        updates.queue('codex', state['targets'], COMMIT, reconcile=True)
+    assert status(root) == state
+
+
 def test_invalid_targets_rejected():
     for invalid in ({}, {'../escape': '1.0.0'}, {'rhize-devflow': 'latest'}, ['rhize-devflow']):
         with pytest.raises(ValueError):
@@ -298,14 +323,21 @@ def test_installer_preserves_unrelated_hooks_and_missing_helper_denies(tmp_path,
     updates.install()
     claude = updates.read(tmp_path / '.claude/settings.json')
     assert claude['custom'] is True
-    assert claude['hooks']['PreToolUse'][-1] == unrelated
+    assert claude['hooks']['PreToolUse'][0] == unrelated
+    assert updates.read(tmp_path / '.claude/codex/hooks.json')['hooks']['Stop'][0] == unrelated
     assert len(claude['hooks']['PreToolUse']) == 2
     assert (tmp_path / '.codex/hooks.json').is_symlink()
     import plistlib
     plist = plistlib.loads((tmp_path / 'Library/LaunchAgents/media.rhize.plugin-updates.codex.plist').read_bytes())
     assert plist['StartInterval'] == 15 and plist['RunAtLoad'] is True
     assert '/plugins/cache/' not in plist['ProgramArguments'][1]
-    command = claude['hooks']['PreToolUse'][0]['hooks'][0]['command']
+    command = claude['hooks']['PreToolUse'][1]['hooks'][0]['command']
+    helper = claude['hooks']['PreToolUse'][1]
+    for ambiguous in ([unrelated, helper, helper], [{'hooks': helper['hooks'] + unrelated['hooks']}]):
+        updates.write(tmp_path / '.claude/settings.json', {'hooks': {'PreToolUse': ambiguous}})
+        with pytest.raises(ValueError, match='ambiguous_helper_hook'):
+            updates.install()
+        assert updates.read(tmp_path / '.claude/settings.json')['hooks']['PreToolUse'] == ambiguous
     # Restore subprocess only for the actual shell-resident missing-helper check.
     monkeypatch.undo()
     (tmp_path / '.local/share/rhize/plugin-updates/plugin_updates.py').unlink()
@@ -339,9 +371,10 @@ def test_dependency_requires_same_reviewed_release(worker):
     assert status(root)['phase'] == 'waiting_for_dependency'
 
 
-def test_repair_requires_explicit_acknowledgment_and_stays_guarded(worker):
+@pytest.mark.parametrize('mutation_started', [True, False])
+def test_repair_requires_explicit_acknowledgment_and_stays_guarded(worker, mutation_started):
     root, _, state, *_ = worker
-    state.update(phase='held', mutationStarted=True)
+    state.update(phase='held', mutationStarted=mutation_started, repairRequired=not mutation_started)
     updates.write(root / 'codex/status.json', state)
     with pytest.raises(ValueError, match='requires_reconcile'):
         updates.queue('codex', state['targets'], COMMIT)

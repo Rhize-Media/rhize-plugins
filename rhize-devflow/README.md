@@ -50,6 +50,8 @@ without deleting old ones. Qualified idle conversations can continue on their or
 unknown/legacy lifecycle coverage and Claude retain the closed-host fallback. Apps can close
 separately. Matching turn-end evidence, a quiet interval and publication lock protect the cutover.
 Native hook trust remains owned by the host; source merge alone is not activation.
+The installer preserves existing hook positions. Explicit reconciliation can replace an obsolete
+unstarted queue while retaining its original receipt; active publication cannot be superseded.
 
 **Codex:**
 

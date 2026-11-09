@@ -54,7 +54,9 @@ browser automation, subagents).
 ## Getting Started
 
 For installed Rhize updates, the coordinator installs the [automatic per-host helper](docs/plugin-update-safety.md)
-and queues approved versions. Codex can publish at a qualified idle boundary while retaining every
+without shifting existing native hook trust positions. Explicit `queue --reconcile` can archive
+an obsolete unstarted queue; it cannot replace an active publication. The coordinator then reviews
+native trust and queues approved versions. Codex can publish at a qualified idle boundary while retaining every
 older cache version for open conversations. Missing turn IDs, unknown owners and legacy guards
 wait for host closure; Claude also retains its native closed-host path. A resumed turn restarts
 the quiet interval. No timeout declares an active chat idle, and no user Terminal handoff is
