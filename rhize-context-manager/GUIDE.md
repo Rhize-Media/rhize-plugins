@@ -24,6 +24,9 @@ is current through November 15, 2026; unavailable optional checks remain visible
   → `/context-doctor` runs bounded, read-only checks and preserves its calculated report.
   It distinguishes a measured problem from a check that could not run. Its capture check
   reads actual observation timestamps against session activity; a quiet week is unknown.
+  `capture_auth_invalid` calls for supported Claude Code sign-in; `capture_quota_paused`
+  preserves the quota guard and buffered work until allowance recovers. Historical errors
+  and expired cooldown flags alone do not establish a current authentication/quota hold.
   Expiry checks distinguish refreshable access tokens from login expiry. Each run is
   saved privately; only a compatible completed run can supply the next delta.
   Optional OpenWolf, unsupported adapters, and the host harness audit remain explicit

@@ -358,14 +358,18 @@ def run(args):
         atomic_json(directory / 'delivery.json', {'run_id':run_id, 'observed_at':utc_now(),
                                                 'start':monitor_start, 'completion':delivery})
         print(render(report, previous))
-        print('Monitor HTTP: ' + delivery['status'])
+        for phase, result in (('start', monitor_start), ('completion', delivery)):
+            print('Monitor HTTP ' + phase + ': ' + result['status'] +
+                  (' (' + result['reason'] + ')' if result.get('reason') else ''))
         print('Artifact: ' + str(directory / 'report.json'))
-        return 2 if delivery['status'] == 'failed' else (1 if unhealthy else 0)
+        return 2 if any(result['status'] == 'failed' for result in (monitor_start, delivery)) else (1 if unhealthy else 0)
     except (OSError, ValueError, TypeError, KeyError) as error:
         atomic_json(directory / 'failure.json', {'schema_version':SCHEMA, 'run_id':run_id,
                     'outcome':'NOT_RUN', 'reason':'runner_contract_failure', 'error_type':type(error).__name__,
                     'observed_at':utc_now()})
-        check_in(args.monitor_config, run_id, 'error')
+        delivery = check_in(args.monitor_config, run_id, 'error')
+        atomic_json(directory / 'delivery.json', {'run_id':run_id, 'observed_at':utc_now(),
+                                                'start':monitor_start, 'completion':delivery})
         print('NOT_RUN: runner_contract_failure (' + type(error).__name__ + ')', file=sys.stderr)
         return 2
 

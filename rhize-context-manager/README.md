@@ -23,6 +23,9 @@ safety-gated skill library.
 
 Weekly doctor optional coverage was [reviewed October 15](docs/context-doctor-review-2026-10-15.md),
 with the next review due November 15. All five required checks and their limits remain unchanged.
+The doctor identifies active capture authentication failures and quota pauses with fixed,
+private-data-free reason codes. Failed monitor start or completion delivery remains an
+operability failure, including when configuration validation prevents a report.
 
 Headroom, claude-mem, Serena, OpenWolf, RTK, and CodeGraph are living external
 tools with their own release cycles. This plugin owns the *decision layer* — which tool

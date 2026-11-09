@@ -32,6 +32,16 @@ freshness limits are unchanged. A recovered capture writer may retain its last
 quota-error metadata; current failures and persisted capture evidence determine
 health, rather than the mere presence of a historical error.
 
+Active observer authentication failure is `PROBLEM / capture_auth_invalid`, with
+`recovery=reauthenticate_claude_code`. Use the supported sign-in flow in the normal
+host; the doctor never refreshes credentials. An unexpired quota cooldown is
+`PROBLEM / capture_quota_paused`, with `recovery=wait_for_quota_recovery`. Preserve
+quota guards and buffered work. Authentication failure takes priority when both
+are recorded. Raw provider messages, actions, URLs and request identifiers are
+excluded. Cooldowns are checked by timestamps rather than a persistent active flag.
+Historical auth errors with zero failures or a newer success do not imply a new
+auth failure; unknown errors still retain the generic unhealthy result.
+
 ## Durable evidence
 
 Each attempt has a private directory in `~/.claude/context-manager/doctor/v1/`:
@@ -41,6 +51,14 @@ Each attempt has a private directory in `~/.claude/context-manager/doctor/v1/`:
   ordered evidence, calculated headline, and baseline identity/digest.
 - `delivery.json`: monitor transport outcomes, separate from assessment health.
 - `failure.json`: runner contract failure without raw exception text.
+
+Runner contract failures retain `delivery.json` with both monitor attempts even
+when no report can be generated. A failed start delivery remains exit 2 even if
+completion delivery is accepted. Normal console output includes both transport
+phases and their fixed failure codes. A Keychain lookup failure proves unavailable
+access in that execution context, not that the credential was deleted or expired.
+Check the approved host context before repairing authentication; do not alter ACLs
+or fall back to a different secret to make monitoring pass.
 
 Directories use 0700 and files 0600 with atomic replacement. A killed runner leaves
 started evidence without completion. A completed assessment can report problems.

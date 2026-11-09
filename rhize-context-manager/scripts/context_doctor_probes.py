@@ -83,6 +83,27 @@ def capture(home, window_start, maximum_age_hours=24):
         facts[key] = None if value is None else datetime.fromtimestamp(epoch(value), timezone.utc).isoformat()
         if value is not None and epoch(value) > now:
             raise ValueError('future_source_time')
+    # Only fixed codes leave observer health. Never copy provider messages, URLs,
+    # actions or request identifiers into a doctor report.
+    active_error = (failures > 0 and health.get('lastErrorAt') is not None and
+                    epoch(health['lastErrorAt']) >= epoch(health.get('lastSuccessAt') or 0))
+    if active_error and health.get('lastErrorKind') == 'auth_invalid':
+        facts.update(capture_blocker='auth_invalid', recovery='reauthenticate_claude_code')
+    cooldown = health.get('quotaCooldown')
+    if isinstance(cooldown, dict) and cooldown.get('active') is True:
+        try:
+            armed, until = epoch(cooldown.get('armedAt')), epoch(cooldown.get('until'))
+        except ValueError:
+            facts['quota_cooldown_state'] = 'invalid'
+        else:
+            if armed <= now < until:
+                facts['quota_cooldown_state'] = 'active'
+                if 'capture_blocker' not in facts:
+                    facts.update(capture_blocker='quota_paused', recovery='wait_for_quota_recovery')
+            elif armed <= until <= now:
+                facts['quota_cooldown_state'] = 'expired'
+            else:
+                facts['quota_cooldown_state'] = 'invalid'
     database = (directory / 'claude-mem.db').resolve()
     with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True, timeout=2) as conn:
         conn.execute('PRAGMA query_only=ON')
@@ -97,6 +118,12 @@ def capture(home, window_start, maximum_age_hours=24):
         raise ValueError('future_observation')
     if not sessions:
         return 'NOT_RUN', 'no_sessions_in_window', facts
+    if facts.get('capture_blocker') == 'auth_invalid':
+        return 'PROBLEM', 'capture_auth_invalid', facts
+    if facts.get('capture_blocker') == 'quota_paused':
+        return 'PROBLEM', 'capture_quota_paused', facts
+    if facts.get('quota_cooldown_state') == 'invalid':
+        return 'NOT_RUN', 'capture_cooldown_invalid', facts
     if not observations:
         return 'PROBLEM', 'no_capture_despite_sessions', facts
     if active_recently and now - epoch(latest) > maximum_age_hours * 3600:
