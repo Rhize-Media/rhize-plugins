@@ -19,10 +19,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator, NoReturn
+from urllib.parse import quote
 
 
 COMPILER_NAME = "rhize-compiled-knowledge"
-COMPILER_VERSION = "1.0.0"
+COMPILER_VERSION = "1.1.0"
 SCHEMA_VERSION = 1
 HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 ID_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$")
@@ -232,6 +233,11 @@ def atomic_write(path: Path, data: bytes, mode: int = 0o600) -> None:
             os.fsync(handle.fileno())
         os.chmod(temporary, mode)
         os.replace(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     finally:
         with contextlib.suppress(FileNotFoundError):
             os.unlink(temporary)
@@ -256,7 +262,7 @@ def restore(path: Path, saved: dict[str, Any], mode: int = 0o600) -> None:
             path.unlink()
 
 
-def load_settings(config_path: Path) -> Settings:
+def load_settings(config_path: Path, *, initialize: bool = True) -> Settings:
     raw = require_object(load_json(config_path.resolve(strict=True)), "config")
     required = {
         "schema_version", "project", "operator_id", "vault_root", "allowed_vault_roots",
@@ -290,8 +296,12 @@ def load_settings(config_path: Path) -> Settings:
         raise CompilerError("every source root must be a directory")
 
     output_root = resolve_directory_under(vault_root, raw["output_root"], "config.output_root")
-    state_root = resolve_directory_under(vault_root, raw["state_root"], "config.state_root", create=True)
-    ensure_private_dir(state_root)
+    if initialize:
+        state_root = resolve_directory_under(vault_root, raw["state_root"], "config.state_root", create=True)
+        ensure_private_dir(state_root)
+    else:
+        relative_state = is_relative_safe(raw["state_root"], "config.state_root")
+        state_root = authorized_absolute_path(str(vault_root / relative_state), vault_root, "config.state_root")
     if output_root.is_relative_to(state_root) or state_root.is_relative_to(output_root):
         raise CompilerError("output_root and state_root must not overlap")
 
@@ -300,7 +310,7 @@ def load_settings(config_path: Path) -> Settings:
     retention_classes = tuple(require_string_list(raw["retention_classes"], "config.retention_classes"))
     for gate in ("scheduled_enabled", "live_synthesis_enabled", "context_pack_enabled", "graphify_enabled", "neo4j_enabled"):
         if raw[gate] is not False:
-            raise CompilerError(f"config.{gate} must remain false in the first release")
+            raise CompilerError(f"config.{gate} must remain false until implementation is available")
     if raw["qmd_enabled"] is not False:
         raise CompilerError("config.qmd_enabled must remain false until an ACL-aware qmd adapter is implemented")
     ttl = raw["preview_ttl_seconds"]
@@ -443,12 +453,15 @@ def validate_proposal(raw: Any) -> dict[str, Any]:
     proposal = require_object(raw, "proposal")
     require_exact_keys(
         proposal,
-        {"schema_version", "source_id", "page", "claims", "links", "contradiction_candidates"},
+        ({"schema_version", "source_id", "page", "claims", "links", "contradiction_candidates"}
+         if proposal.get("schema_version") == 1 else
+         {"schema_version", "page", "claims", "links", "contradiction_candidates"}),
         "proposal",
     )
-    if proposal["schema_version"] != 1:
-        raise CompilerError("proposal.schema_version must be 1")
-    require_id(proposal["source_id"], "proposal.source_id")
+    if type(proposal["schema_version"]) is not int or proposal["schema_version"] not in {1, 2}:
+        raise CompilerError("proposal.schema_version must be 1 or 2")
+    if proposal["schema_version"] == 1:
+        require_id(proposal["source_id"], "proposal.source_id")
     page = require_object(proposal["page"], "proposal.page")
     require_exact_keys(page, {"page_id", "path", "title"}, "proposal.page")
     require_id(page["page_id"], "proposal.page.page_id")
@@ -466,9 +479,11 @@ def validate_proposal(raw: Any) -> dict[str, Any]:
             raise CompilerError(f"proposal.claims[{index}].citations must be non-empty")
         for citation_index, raw_citation in enumerate(claim["citations"]):
             citation = require_object(raw_citation, "proposal citation")
-            require_exact_keys(citation, {"start_line", "end_line"}, "proposal citation")
+            require_exact_keys(citation, {"start_line", "end_line"} | ({"source_id"} if proposal["schema_version"] == 2 else set()), "proposal citation")
+            if proposal["schema_version"] == 2:
+                require_id(citation["source_id"], "proposal citation.source_id")
             start, end = citation["start_line"], citation["end_line"]
-            if not isinstance(start, int) or not isinstance(end, int) or start < 1 or end < start:
+            if type(start) is not int or type(end) is not int or start < 1 or end < start:
                 raise CompilerError(f"claim {claim_ids[-1]} has an invalid inclusive line range")
     if len(claim_ids) != len(set(claim_ids)):
         raise CompilerError("proposal claim ids must be unique")
@@ -499,7 +514,7 @@ def manifest_validation(manifest: Any) -> dict[str, Any]:
         raise CompilerError("manifest.schema_version must be 1")
     compiler = require_object(value["compiler"], "manifest.compiler")
     require_exact_keys(compiler, {"name", "version"}, "manifest.compiler")
-    if compiler != {"name": COMPILER_NAME, "version": COMPILER_VERSION}:
+    if compiler["name"] != COMPILER_NAME or compiler["version"] not in {"1.0.0", COMPILER_VERSION}:
         raise CompilerError("manifest compiler identity/version is unsupported")
     project = require_object(value["project"], "manifest.project")
     require_exact_keys(project, {"id", "tenant_id", "scope_id"}, "manifest.project")
@@ -553,47 +568,80 @@ def validate_preview_identity(manifest: dict[str, Any]) -> None:
         raise CompilerError("preview manifest identity no longer matches its contents")
 
 
-def render_page(proposal: dict[str, Any], registration: dict[str, Any], citations: list[dict[str, Any]]) -> bytes:
+def owns_page(content: bytes, page_id: str) -> bool:
+    marker = f"{OWNERSHIP_PREFIX}{page_id} -->".encode()
+    # Accept legacy marker-first files only when also bound to the accepted hash.
+    return content.startswith(marker + b"\n") or (
+        content.startswith(b"---\n") and b"\n---\n" + marker + b"\n" in content
+    )
+
+
+def render_page(settings: Settings, proposal: dict[str, Any], registrations: dict[str, dict[str, Any]], citations: list[dict[str, Any]]) -> bytes:
     page = proposal["page"]
+    first = next(iter(registrations.values()))
     lines = [
-        f"{OWNERSHIP_PREFIX}{page['page_id']} -->",
-        "---",
-        "type: compiled-knowledge",
+        "---", "type: compiled-knowledge",
         f"rhize-page-id: {json.dumps(page['page_id'])}",
-        f"rhize-source-id: {json.dumps(registration['source_id'])}",
-        f"rhize-source-revision: {json.dumps(registration['current_revision_hash'])}",
-        f"acl: {json.dumps(registration['acl'], ensure_ascii=False)}",
-        f"egress: {json.dumps(registration['egress'])}",
-        "---",
-        "",
-        f"# {page['title']}",
-        "",
+        f"rhize-source-ids: {json.dumps(sorted(registrations))}",
+        f"acl: {json.dumps(sorted(first['acl']), ensure_ascii=False)}",
+        f"egress: {json.dumps(first['egress'])}", "status: compiled",
+        "---", f"{OWNERSHIP_PREFIX}{page['page_id']} -->", "",
+        f"# {page['title']}", "",
+        "> [!info] Evidence-bound projection",
+        "> Review the evidence before acting. Edit a separate linked note to preserve personal commentary.", "",
     ]
-    citation_by_claim = {item["claim_id"]: item["citations"] for item in citations}
-    for claim in proposal["claims"]:
-        refs = " ".join(f"[^{claim['claim_id']}-{index + 1}]" for index in range(len(citation_by_claim[claim["claim_id"]])))
+    for claim in citations:
+        refs = " ".join(f"[^{claim['claim_id']}-{i + 1}]" for i in range(len(claim["citations"])))
         lines.extend([f"{claim['text']} {refs}", ""])
     if proposal["links"]:
-        lines.extend(["## Related", ""])
-        lines.extend(f"- [[{link}]]" for link in sorted(proposal["links"]))
-        lines.append("")
+        lines.extend(["## Related", ""] + [f"- [[{link}]]" for link in sorted(proposal["links"])] + [""])
     if proposal["contradiction_candidates"]:
-        lines.extend(["## Contradiction candidates", ""])
-        lines.extend(f"- `{left}` competes with `{right}`; human review required." for left, right in proposal["contradiction_candidates"])
+        lines.extend(["> [!warning] Contradiction candidates", "> Human review required."])
+        lines.extend(f"> - `{left}` competes with `{right}`." for left, right in proposal["contradiction_candidates"])
         lines.append("")
     lines.extend(["## Evidence", ""])
-    for claim in proposal["claims"]:
-        for index, citation in enumerate(citation_by_claim[claim["claim_id"]], start=1):
+    for claim in citations:
+        for i, citation in enumerate(claim["citations"], start=1):
             anchor = citation["anchor"]
+            source = os.path.relpath(settings.vault_root / registrations[citation["source_id"]]["path"],
+                                     (settings.output_root / page["path"]).parent)
+            # Percent-encoded Markdown links avoid interpreting a source filename as wiki markup.
             lines.append(
-                f"[^{claim['claim_id']}-{index}]: `{citation['source_id']}@{citation['revision_hash']}"
-                f"#L{anchor['start_line']}-L{anchor['end_line']}` (`{anchor['content_hash']}`)"
+                f"[^{claim['claim_id']}-{i}]: [Source]({quote(source, safe='/')}) "
+                f"`{citation['source_id']}@{citation['revision_hash']}#L{anchor['start_line']}-L{anchor['end_line']}` "
+                f"(`{anchor['content_hash']}`)"
             )
     return ("\n".join(lines).rstrip() + "\n").encode("utf-8")
 
 
+def guard_target(settings: Settings, page: dict[str, Any], base: bytes | None) -> None:
+    index = load_index(settings)
+    entry = index["pages"].get(page["page_id"])
+    target = resolve_target_under(settings.output_root, page["path"], "page path")
+    for other_id, other in index["pages"].items():
+        if other_id != page["page_id"] and (other_id.casefold() == page["page_id"].casefold() or str(resolve_target_under(settings.output_root, other["path"], "indexed path")).casefold() == str(target).casefold()):
+            raise CompilerError("target path belongs to another page id")
+    if entry and entry["path"] != page["path"]:
+        raise CompilerError("page path changed; explicit migration required")
+    if base is not None:
+        if not entry or entry["status"] != "accepted" or not owns_page(base, page["page_id"]):
+            raise CompilerError("target exists without matching ownership marker and accepted compiler identity")
+        if digest(base) != entry["rendered_hash"]:
+            raise CompilerError("target changed; refusing to overwrite human edits (including before preview)")
+        load_accepted_manifest(settings, page["page_id"], entry)
+    elif entry and entry["status"] == "accepted":
+        raise CompilerError("accepted target missing; explicit recovery required")
+
+
+
 def preview_source(settings: Settings, proposal_path: Path, at: datetime) -> dict[str, Any]:
     proposal_bytes = proposal_path.resolve(strict=True).read_bytes()
+    try:
+        raw = json.loads(proposal_bytes)
+    except json.JSONDecodeError as exc:
+        raise CompilerError(f"proposal is not valid JSON: {exc}") from exc
+    if isinstance(raw, dict) and raw.get("schema_version") == 2 and "pages" in raw:
+        return preview_batch(settings, raw, at)
     return preview_payload(settings, proposal_bytes, at)
 
 
@@ -602,43 +650,52 @@ def preview_payload(settings: Settings, proposal_bytes: bytes, at: datetime) -> 
         proposal = validate_proposal(json.loads(proposal_bytes))
     except json.JSONDecodeError as exc:
         raise CompilerError(f"proposal is not valid JSON: {exc}") from exc
-    registration = load_registration(settings, proposal["source_id"])
-    if effective_source_status(registration, at) != "active":
-        raise CompilerError("source is not active under its retention/purge policy")
-    canonical = source_path(settings, registration["path"])
-    source_bytes = canonical.read_bytes()
-    if digest(source_bytes) != registration["current_revision_hash"]:
-        raise CompilerError("source changed after registration; register the new revision first")
-    snapshot = snapshot_path(settings, registration["source_id"], registration["current_revision_hash"])
-    if read_optional(snapshot) != source_bytes:
-        raise CompilerError("retained source snapshot is missing or does not match")
-    try:
-        source_text = source_bytes.decode("utf-8")
-    except UnicodeDecodeError as exc:
-        raise CompilerError("compiled sources must be UTF-8") from exc
-    source_lines = source_text.splitlines(keepends=True)
+    source_ids = sorted({reference.get("source_id", proposal.get("source_id"))
+                         for claim in proposal["claims"] for reference in claim["citations"]})
+    registrations = {source_id: load_registration(settings, source_id) for source_id in source_ids}
+    source_contents = {}
+    for source_id, item in registrations.items():
+        if effective_source_status(item, at) != "active":
+            raise CompilerError("source is not active under its retention/purge policy")
+        content = source_path(settings, item["path"]).read_bytes()
+        if digest(content) != item["current_revision_hash"]:
+            raise CompilerError("source changed after registration; register the new revision first")
+        if read_optional(snapshot_path(settings, source_id, item["current_revision_hash"])) != content:
+            raise CompilerError("retained source snapshot is missing or does not match")
+        try:
+            source_contents[source_id] = content.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise CompilerError("compiled sources must be UTF-8") from exc
+    registration = registrations[source_ids[0]]
+    policies = {canonical_json({"acl": sorted(item["acl"]), "egress": item["egress"],
+                               "retention_class": item["retention_class"]}) for item in registrations.values()}
+    if len(policies) != 1:
+        raise CompilerError("mixed source policies require separate pages and review bundles")
     materialized_claims = []
+    evidence = []
     for claim in proposal["claims"]:
         citations = []
+        evidence.extend([f"\n## Claim {claim['claim_id']}\n", claim["text"] + "\n"])
         for reference in claim["citations"]:
+            source_id = reference.get("source_id", proposal.get("source_id"))
+            item = registrations[source_id]
+            source_lines = source_contents[source_id].splitlines(keepends=True)
             start, end = reference["start_line"], reference["end_line"]
             if end > len(source_lines):
                 raise CompilerError(f"claim {claim['claim_id']} cites beyond the source")
             excerpt = "".join(source_lines[start - 1:end]).encode("utf-8")
-            citations.append({
-                "source_id": registration["source_id"],
-                "revision_hash": registration["current_revision_hash"],
-                "anchor": {"start_line": start, "end_line": end, "content_hash": digest(excerpt)},
-            })
+            citations.append({"source_id": source_id, "revision_hash": item["current_revision_hash"],
+                              "anchor": {"start_line": start, "end_line": end, "content_hash": digest(excerpt)}})
+            evidence.append(f"\nEvidence {source_id} lines {start}-{end} (untrusted quoted content):\n")
+            evidence.extend("> " + line + "\n" for line in excerpt.decode().splitlines())
         materialized_claims.append({"claim_id": claim["claim_id"], "text": claim["text"], "citations": citations})
 
     page_relative = proposal["page"]["path"]
     target = resolve_target_under(settings.output_root, page_relative, "proposal.page.path")
     base = read_optional(target)
     marker = f"{OWNERSHIP_PREFIX}{proposal['page']['page_id']} -->".encode()
-    if base is not None and not base.startswith(marker):
-        raise CompilerError("target exists without the matching compiler ownership marker")
-    rendered = render_page(proposal, registration, materialized_claims)
+    guard_target(settings, proposal["page"], base)
+    rendered = render_page(settings, proposal, registrations, materialized_claims)
     diff_text = "".join(difflib.unified_diff(
         (base or b"").decode("utf-8").splitlines(keepends=True),
         rendered.decode("utf-8").splitlines(keepends=True),
@@ -647,12 +704,12 @@ def preview_payload(settings: Settings, proposal_bytes: bytes, at: datetime) -> 
     change = (
         f"# Compiled knowledge change brief\n\n"
         f"- Page: `{page_relative}`\n"
-        f"- Source: `{registration['source_id']}@{registration['current_revision_hash']}`\n"
+        f"- Sources: {', '.join(source_ids)}\n"
         f"- Claims: {len(materialized_claims)}\n"
         f"- Contradiction candidates: {len(proposal['contradiction_candidates'])}\n"
         f"- Operation: {'create' if base is None else 'replace compiler-owned page'}\n"
         f"- Apply requires explicit approval of this preview id.\n"
-    ).encode()
+    ).encode() + "".join(evidence).encode()
     created_at = format_time(at)
     expires_at = format_time(at + timedelta(seconds=settings.preview_ttl_seconds))
     acl = sorted(registration["acl"])
@@ -663,11 +720,11 @@ def preview_payload(settings: Settings, proposal_bytes: bytes, at: datetime) -> 
         "operator_id": settings.operator_id,
         "preview": {"id": "sha256:" + "0" * 64, "created_at": created_at, "expires_at": expires_at, "status": "preview"},
         "source_revisions": [{
-            "source_id": registration["source_id"], "path": registration["path"],
-            "revision_hash": registration["current_revision_hash"], "content_bytes": len(source_bytes),
-            "captured_at": registration["captured_at"], "acl": acl, "egress": registration["egress"],
-            "retention_class": registration["retention_class"], "status": "active",
-        }],
+            "source_id": item["source_id"], "path": item["path"],
+            "revision_hash": item["current_revision_hash"], "content_bytes": len(source_contents[item["source_id"]].encode()),
+            "captured_at": item["captured_at"], "acl": sorted(item["acl"]), "egress": item["egress"],
+            "retention_class": item["retention_class"], "status": "active",
+        } for item in registrations.values()],
         "pages": [{
             "page_id": proposal["page"]["page_id"], "path": page_relative,
             "title": proposal["page"]["title"], "ownership_marker": marker.decode(),
@@ -680,9 +737,9 @@ def preview_payload(settings: Settings, proposal_bytes: bytes, at: datetime) -> 
         },
         "provenance": {
             "proposal_hash": digest(proposal_bytes),
-            "source_metadata_hash": digest(canonical_json(registration)),
-            "source_to_derived": {registration["source_id"]: [proposal["page"]["page_id"]]},
-            "inert_content_findings": source_findings(source_text),
+            "source_metadata_hash": digest(canonical_json(registrations)),
+            "source_to_derived": {source_id: [proposal["page"]["page_id"]] for source_id in source_ids},
+            "inert_content_findings": sorted({finding for content in source_contents.values() for finding in source_findings(content)}),
         },
         "diff": {
             "base_hash": digest(base) if base is not None else None, "rendered_hash": digest(rendered),
@@ -700,7 +757,7 @@ def preview_payload(settings: Settings, proposal_bytes: bytes, at: datetime) -> 
     preview_id = digest(canonical_json(identity_payload))
     manifest["preview"]["id"] = preview_id
     manifest_validation(manifest)
-    preview_dir = settings.state_root / "previews" / preview_id.removeprefix("sha256:")
+    preview_dir = authorized_absolute_path(str(settings.state_root / "previews" / preview_id.removeprefix("sha256:")), settings.state_root, "preview directory")
     with vault_lock(settings):
         recover_incomplete(settings)
         ensure_private_dir(preview_dir)
@@ -714,7 +771,7 @@ def preview_payload(settings: Settings, proposal_bytes: bytes, at: datetime) -> 
 def preview_dir(settings: Settings, preview_id: str) -> Path:
     if not HASH_PATTERN.fullmatch(preview_id):
         raise CompilerError("preview id must be a sha256 digest")
-    return settings.state_root / "previews" / preview_id.removeprefix("sha256:")
+    return authorized_absolute_path(str(settings.state_root / "previews" / preview_id.removeprefix("sha256:")), settings.state_root, "preview directory")
 
 
 def index_path(settings: Settings) -> Path:
@@ -851,7 +908,7 @@ def validate_journal(settings: Settings, path: Path, raw_journal: Any) -> tuple[
     authorized_absolute_path(str(path), settings.state_root, "transaction journal path")
     journal = require_object(raw_journal, "transaction journal")
     required = {"schema_version", "preview_id", "state", "paths", "backups"}
-    unknown = set(journal) - (required | {"recovery"})
+    unknown = set(journal) - (required | {"recovery", "after_hashes"})
     missing = required - set(journal)
     if missing or unknown:
         details = []
@@ -911,9 +968,23 @@ def validate_journal(settings: Settings, path: Path, raw_journal: Any) -> tuple[
             or accepted != accepted_manifest_path(settings, page_id)
         ):
             raise CompilerError(f"transaction journal {path.name} does not match its preview authority")
+    if "after_hashes" in journal:
+        require_exact_keys(require_object(journal["after_hashes"], "transaction after hashes"), path_keys, "transaction after hashes")
+        if any(not isinstance(value, str) or not HASH_PATTERN.fullmatch(value) for value in journal["after_hashes"].values()):
+            raise CompilerError("transaction after hashes are invalid")
     for key in path_keys:
         validate_backup(backups[key], f"transaction journal backups.{key}")
     return journal, validated
+
+
+def check_legacy_rollback(journal: dict[str, Any], paths: dict[str, Path]) -> None:
+    for key, path in paths.items():
+        saved = journal["backups"][key]
+        before = base64.b64decode(saved["data"]) if saved["exists"] else None
+        current = read_optional(path)
+        after_hash = journal.get("after_hashes", {}).get(key)
+        if current != before and (current is None or digest(current) != after_hash):
+            raise CompilerError(f"recovery conflict; human edits preserved at {path}; transaction remains pending")
 
 
 def recover_incomplete(settings: Settings) -> list[str]:
@@ -925,14 +996,17 @@ def recover_incomplete(settings: Settings) -> list[str]:
         if journal.get("state") in {"accepted", "rolled-back"}:
             continue
         backups = journal["backups"]
+        check_legacy_rollback(journal, paths)
         restore(paths["target"], backups["target"], 0o644)
         restore(paths["index"], backups["index"])
         restore(paths["log"], backups["log"])
         restore(paths["accepted_manifest"], backups["accepted_manifest"])
         journal["state"] = "rolled-back"
         journal["recovery"] = "restored-pre-transaction-bytes"
+        journal["backups"] = {key: backup(None) for key in journal["backups"]}
         write_journal(path, journal)
         recovered.append(path.stem)
+    recovered.extend(recover_batches(settings))
     recovered.extend(recover_incomplete_purges(settings))
     return recovered
 
@@ -943,6 +1017,8 @@ def maybe_crash(point: str, fault_after: str | None) -> None:
 
 
 def apply_preview(settings: Settings, preview_id: str, at: datetime, fault_after: str | None = None) -> dict[str, Any]:
+    if batch_dir(settings, preview_id).exists():
+        return apply_batch(settings, preview_id, at, fault_after)
     with vault_lock(settings):
         recovered = recover_incomplete(settings)
         directory = preview_dir(settings, preview_id)
@@ -961,26 +1037,8 @@ def apply_preview(settings: Settings, preview_id: str, at: datetime, fault_after
             return {"status": "noop", "preview_id": preview_id, "recovered": recovered}
         if at > parse_time(manifest["preview"]["expires_at"]):
             raise CompilerError("preview expired; rebuild a new preview")
-        registration = load_registration(settings, manifest["source_revisions"][0]["source_id"])
-        source_revision = manifest["source_revisions"][0]
-        registration_contract = {
-            "source_id": registration["source_id"], "path": registration["path"],
-            "revision_hash": registration["current_revision_hash"], "captured_at": registration["captured_at"],
-            "acl": sorted(registration["acl"]), "egress": registration["egress"],
-            "retention_class": registration["retention_class"],
-        }
-        manifest_contract = {key: source_revision[key] for key in registration_contract}
-        if (
-            effective_source_status(registration, at) != "active"
-            or registration_contract != manifest_contract
-            or manifest["policy"]["acl"] != registration_contract["acl"]
-            or manifest["policy"]["egress"] != registration_contract["egress"]
-            or manifest["policy"]["retention_class"] != registration_contract["retention_class"]
-        ):
-            raise CompilerError("source state changed after preview")
-        source = source_path(settings, registration["path"])
-        if digest(source.read_bytes()) != registration["current_revision_hash"]:
-            raise CompilerError("canonical source changed after preview")
+        validate_current_sources(settings, manifest, at)
+        guard_target(settings, page, current)
         expected_base = manifest["diff"]["base_hash"]
         if (digest(current) if current is not None else None) != expected_base:
             raise CompilerError("target changed after preview; refusing to overwrite human edits")
@@ -1013,10 +1071,15 @@ def apply_preview(settings: Settings, preview_id: str, at: datetime, fault_after
         journal_path = settings.state_root / "transactions" / f"{preview_id.removeprefix('sha256:')}.json"
         paths = {"target": str(target), "index": str(index_path(settings)), "log": str(log_path), "accepted_manifest": str(accepted_path)}
         backups = {key: backup(read_optional(Path(path))) for key, path in paths.items()}
-        journal = {"schema_version": 1, "preview_id": preview_id, "state": "prepared", "paths": paths, "backups": backups}
+        journal = {"schema_version": 1, "preview_id": preview_id, "state": "prepared", "paths": paths, "backups": backups,
+                   "after_hashes": {"target": digest(rendered), "accepted_manifest": digest(accepted_bytes),
+                                    "index": digest(canonical_json(index)),
+                                    "log": digest((read_optional(log_path) or b"") + log_entry)}}
         write_journal(journal_path, journal)
         maybe_crash("prepared", fault_after)
         try:
+            if read_optional(target) != current:
+                raise CompilerError("target changed during apply")
             atomic_write(target, rendered, 0o644)
             journal["state"] = "target-written"
             write_journal(journal_path, journal)
@@ -1031,15 +1094,18 @@ def apply_preview(settings: Settings, preview_id: str, at: datetime, fault_after
             maybe_crash("index-written", fault_after)
             atomic_write(log_path, (read_optional(log_path) or b"") + log_entry)
             journal["state"] = "accepted"
+            journal["backups"] = {key: backup(None) for key in journal["backups"]}
             write_journal(journal_path, journal)
             maybe_crash("accepted", fault_after)
         except Exception:
+            check_legacy_rollback(journal, {key: Path(value) for key, value in paths.items()})
             restore(target, backups["target"], 0o644)
             restore(index_path(settings), backups["index"])
             restore(log_path, backups["log"])
             restore(accepted_path, backups["accepted_manifest"])
             journal["state"] = "rolled-back"
             journal["recovery"] = "compensated-after-error"
+            journal["backups"] = {key: backup(None) for key in journal["backups"]}
             write_journal(journal_path, journal)
             raise
         return {"status": "applied", "preview_id": preview_id, "page": str(target), "recovered": recovered}
@@ -1047,64 +1113,109 @@ def apply_preview(settings: Settings, preview_id: str, at: datetime, fault_after
 
 def status_report(settings: Settings, at: datetime) -> dict[str, Any]:
     with vault_lock(settings):
-        recovered = recover_incomplete(settings)
-        index = load_index(settings)
-        pages = []
-        for page_id, entry in sorted(index["pages"].items()):
-            state = entry.get("status", "conflicting")
-            reasons = []
-            target = resolve_target_under(settings.output_root, entry["path"], "indexed page path")
-            current = read_optional(target)
-            if state == "purged":
-                reasons.append("source-purged")
-            elif current is None:
-                state, reasons = "conflicting", ["compiled-page-missing"]
-            elif digest(current) != entry["rendered_hash"]:
-                state, reasons = "conflicting", ["compiled-page-changed"]
+        return page_report(settings, at, recover_incomplete(settings))
+
+
+def inspect_report(settings: Settings, at: datetime) -> dict[str, Any]:
+    """Observe existing state without mkdir, chmod, journal recovery or new lock files."""
+    lock = authorized_absolute_path(str(settings.state_root / "compiler.lock"), settings.state_root, "inspection lock")
+    if not lock.exists():
+        return {"project": settings.project, "inspection": "uninitialized", "pages": [], "pending_transactions": []}
+    with lock.open("rb") as handle:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return {"project": settings.project, "inspection": "busy", "pages": []}
+        try:
+            pending = []
+            for folder, terminal in (("transactions", {"accepted", "rolled-back"}),
+                                     ("batch-transactions", {"accepted", "rolled-back"}), ("purges", {"purged"})):
+                root = authorized_absolute_path(str(settings.state_root / folder), settings.state_root, "inspection journals")
+                for path in sorted(root.glob("*.json")):
+                    authorized_absolute_path(str(path), settings.state_root, "inspection journal")
+                    if load_json(path).get("state") not in terminal:
+                        pending.append(f"{folder}/{path.name}")
+            if pending:
+                return {"project": settings.project, "inspection": "recovery-required", "pages": [], "pending_transactions": pending}
+            result = page_report(settings, at, [])
+            result["inspection"] = "observed"
+            return result
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def page_report(settings: Settings, at: datetime, recovered: list[str]) -> dict[str, Any]:
+    index = load_index(settings)
+    pages = []
+    for page_id, entry in sorted(index["pages"].items()):
+        state = entry.get("status", "conflicting")
+        reasons = []
+        target = resolve_target_under(settings.output_root, entry["path"], "indexed page path")
+        current = read_optional(target)
+        if state == "purged":
+            reasons.append("source-purged")
+        elif current is None:
+            state, reasons = "conflicting", ["compiled-page-missing"]
+        elif digest(current) != entry["rendered_hash"]:
+            state, reasons = "conflicting", ["compiled-page-changed"]
+        else:
+            accepted_bytes = read_optional(accepted_manifest_path_from_entry(settings, page_id, entry))
+            if accepted_bytes is None:
+                state, reasons = "conflicting", ["accepted-manifest-missing"]
+                pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
+                continue
+            if digest(accepted_bytes) != entry.get("manifest_hash"):
+                state, reasons = "conflicting", ["accepted-manifest-changed"]
+                pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
+                continue
+            try:
+                accepted_manifest = load_accepted_manifest(settings, page_id, entry, accepted_bytes)
+            except CompilerError:
+                state, reasons = "conflicting", ["accepted-manifest-invalid"]
+                pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
+                continue
+            try:
+                validate_current_sources(settings, accepted_manifest, at)
+            except (CompilerError, OSError):
+                # Preserve the specific missing/expired/changed reason in the existing loop below.
+                source_metadata_changed = True
             else:
-                accepted_bytes = read_optional(accepted_manifest_path_from_entry(settings, page_id, entry))
-                if accepted_bytes is None:
-                    state, reasons = "conflicting", ["accepted-manifest-missing"]
-                    pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
-                    continue
-                if digest(accepted_bytes) != entry.get("manifest_hash"):
-                    state, reasons = "conflicting", ["accepted-manifest-changed"]
-                    pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
-                    continue
+                source_metadata_changed = False
+            for source_id in entry["source_ids"]:
+                registration = load_registration(settings, source_id)
+                source_state = effective_source_status(registration, at)
+                if source_state != "active":
+                    state, reasons = "stale", [f"source-{source_state}"]
+                    break
                 try:
-                    accepted_manifest = load_accepted_manifest(settings, page_id, entry, accepted_bytes)
+                    current_source = source_path(settings, registration["path"])
                 except CompilerError:
-                    state, reasons = "conflicting", ["accepted-manifest-invalid"]
-                    pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
-                    continue
-                for source_id in entry["source_ids"]:
-                    registration = load_registration(settings, source_id)
-                    source_state = effective_source_status(registration, at)
-                    if source_state != "active":
-                        state, reasons = "stale", [f"source-{source_state}"]
-                        break
-                    try:
-                        current_source = source_path(settings, registration["path"])
-                    except CompilerError:
-                        state, reasons = "stale", ["source-removed"]
-                        break
-                    expected = next(item["revision_hash"] for item in accepted_manifest["source_revisions"] if item["source_id"] == source_id)
-                    if digest(current_source.read_bytes()) != expected:
-                        state, reasons = "stale", ["source-changed"]
-                        break
-                else:
-                    state, reasons = "clean", []
-            pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
-        preview_root = settings.state_root / "previews"
-        previews = []
-        if preview_root.exists():
-            for path in sorted(preview_root.glob("*/manifest.json")):
-                manifest = manifest_validation(load_json(path))
-                previews.append({
-                    "preview_id": manifest["preview"]["id"],
-                    "status": "expired" if at > parse_time(manifest["preview"]["expires_at"]) else manifest["preview"]["status"],
-                })
-        return {"project": settings.project, "recovered_transactions": recovered, "pages": pages, "previews": previews}
+                    state, reasons = "stale", ["source-removed"]
+                    break
+                expected = next(item["revision_hash"] for item in accepted_manifest["source_revisions"] if item["source_id"] == source_id)
+                if digest(current_source.read_bytes()) != expected:
+                    state, reasons = "stale", ["source-changed"]
+                    break
+            else:
+                state, reasons = ("stale", ["source-policy-or-snapshot-changed"]) if source_metadata_changed else ("clean", [])
+        pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
+    preview_root = settings.state_root / "previews"
+    previews = []
+    if preview_root.exists():
+        for path in sorted(preview_root.glob("*/manifest.json")):
+            manifest = manifest_validation(load_json(path))
+            previews.append({
+                "preview_id": manifest["preview"]["id"],
+                "status": "expired" if at > parse_time(manifest["preview"]["expires_at"]) else manifest["preview"]["status"],
+            })
+    batches = []
+    for path in sorted((settings.state_root / "batches").glob("*/batch.json")):
+        batch, children = load_batch(settings, load_json(path)["batch_id"])
+        accepted = sum(index["pages"].get(child["pages"][0]["page_id"], {}).get("preview_id") == child["preview"]["id"] for child in children)
+        batches.append({"batch_id": batch["batch_id"], "pages": len(children), "accepted_pages": accepted,
+                        "status": "accepted" if accepted == len(children) else
+                        ("expired" if at > parse_time(batch["expires_at"]) else "preview")})
+    return {"project": settings.project, "recovered_transactions": recovered, "pages": pages, "previews": previews, "batches": batches}
 
 
 def rebuild_page(settings: Settings, page_id: str, proposal_path: Path | None, at: datetime) -> dict[str, Any]:
@@ -1115,18 +1226,329 @@ def rebuild_page(settings: Settings, page_id: str, proposal_path: Path | None, a
         raise CompilerError("page has no reproducible accepted manifest")
     manifest = load_accepted_manifest(settings, page_id, entry)
     page = manifest["pages"][0]
+    validate_current_sources(settings, manifest, at)
     proposal = {
-        "schema_version": 1,
-        "source_id": manifest["source_revisions"][0]["source_id"],
+        "schema_version": 2,
         "page": {"page_id": page["page_id"], "path": page["path"], "title": page["title"]},
         "claims": [{
             "claim_id": claim["claim_id"], "text": claim["text"],
-            "citations": [{"start_line": citation["anchor"]["start_line"], "end_line": citation["anchor"]["end_line"]} for citation in claim["citations"]],
+            "citations": [{"source_id": citation["source_id"], "start_line": citation["anchor"]["start_line"], "end_line": citation["anchor"]["end_line"]} for citation in claim["citations"]],
         } for claim in page["claims"]],
         "links": page["links"],
         "contradiction_candidates": page["contradiction_candidates"],
     }
     return preview_payload(settings, canonical_json(proposal), at)
+
+
+def validate_current_sources(settings: Settings, manifest: dict[str, Any], at: datetime) -> None:
+    registrations = {}
+    for source_revision in manifest["source_revisions"]:
+        registration = load_registration(settings, source_revision["source_id"])
+        registrations[registration["source_id"]] = registration
+        contract = {"source_id": registration["source_id"], "path": registration["path"],
+                    "revision_hash": registration["current_revision_hash"], "captured_at": registration["captured_at"],
+                    "acl": sorted(registration["acl"]), "egress": registration["egress"],
+                    "retention_class": registration["retention_class"]}
+        if (effective_source_status(registration, at) != "active"
+                or contract != {key: source_revision[key] for key in contract}
+                or any(manifest["policy"][key] != contract[key] for key in ("acl", "egress", "retention_class"))):
+            raise CompilerError("source state changed after preview")
+        content = source_path(settings, registration["path"]).read_bytes()
+        if digest(content) != source_revision["revision_hash"]:
+            raise CompilerError("canonical source changed after preview")
+        if read_optional(snapshot_path(settings, registration["source_id"], source_revision["revision_hash"])) != content:
+            raise CompilerError("retained source snapshot is missing or does not match")
+    metadata = registrations
+    if manifest["compiler"]["version"] == "1.0.0":
+        if len(registrations) != 1:
+            raise CompilerError("legacy compiler manifest must have one source")
+        metadata = next(iter(registrations.values()))
+    if digest(canonical_json(metadata)) != manifest["provenance"]["source_metadata_hash"]:
+        raise CompilerError("source metadata changed after preview")
+
+
+def batch_dir(settings: Settings, batch_id: str) -> Path:
+    if not isinstance(batch_id, str) or not HASH_PATTERN.fullmatch(batch_id):
+        raise CompilerError("batch id must be a sha256 digest")
+    return authorized_absolute_path(str(settings.state_root / "batches" / batch_id.removeprefix("sha256:")),
+                                    settings.state_root, "batch directory")
+
+
+def preview_batch(settings: Settings, raw: Any, at: datetime) -> dict[str, Any]:
+    require_exact_keys(raw, {"schema_version", "pages"}, "batch proposal")
+    pages = raw["pages"]
+    if type(raw["schema_version"]) is not int or raw["schema_version"] != 2 or not isinstance(pages, list) or not 1 <= len(pages) <= 100:
+        raise CompilerError("v2 proposal requires 1 to 100 pages")
+    proposals, ids, targets = [], set(), set()
+    for page in pages:
+        page = require_object(page, "batch page")
+        require_exact_keys(page, {"page_id", "path", "title", "claims", "links", "contradiction_candidates"}, "batch page")
+        proposal = validate_proposal({"schema_version": 2,
+                    "page": {key: page[key] for key in ("page_id", "path", "title")},
+                    **{key: page[key] for key in ("claims", "links", "contradiction_candidates")}})
+        target = resolve_target_under(settings.output_root, page["path"], "batch page path")
+        # Portable vaults must also be safe on case-insensitive macOS filesystems.
+        if page["page_id"].casefold() in ids or str(target).casefold() in targets:
+            raise CompilerError("duplicate batch page id or target path")
+        ids.add(page["page_id"].casefold())
+        targets.add(str(target).casefold())
+        proposals.append(proposal)
+    results = [preview_payload(settings, canonical_json(proposal), at) for proposal in proposals]
+    manifests = [manifest_validation(load_json(Path(result["preview_dir"]) / "manifest.json")) for result in results]
+    if len({canonical_json(manifest["policy"]) for manifest in manifests}) != 1:
+        raise CompilerError("mixed source policies require separate review bundles")
+    review = ["# Batch review\n\nReview every page and its cited evidence. Hashes prove byte provenance, not semantic truth.\n"]
+    for result, manifest in zip(results, manifests):
+        directory = Path(result["preview_dir"])
+        review.append(f"\n## {manifest['pages'][0]['path']}\nPreview: `{result['preview_id']}`\n\n")
+        review.append((directory / "change-brief.md").read_text())
+        review.append("\n### Proposed diff (quoted, inert)\n")
+        review.extend("> " + line + "\n" for line in (directory / "diff.patch").read_text().splitlines())
+    review_bytes = "".join(review).encode()
+    batch = {"schema_version": 2, "project": settings.project, "operator_id": settings.operator_id,
+             "created_at": format_time(at), "expires_at": min(result["expires_at"] for result in results),
+             "preview_ids": [result["preview_id"] for result in results], "review_hash": digest(review_bytes)}
+    batch_id = digest(canonical_json(batch))
+    batch["batch_id"] = batch_id
+    directory = batch_dir(settings, batch_id)
+    with vault_lock(settings):
+        recover_incomplete(settings)
+        # Recheck all dependencies under one lock after producing the per-page previews.
+        for manifest in manifests:
+            validate_current_sources(settings, manifest, at)
+            page = manifest["pages"][0]
+            current = read_optional(resolve_target_under(settings.output_root, page["path"], "batch target"))
+            guard_target(settings, page, current)
+            if (digest(current) if current is not None else None) != manifest["diff"]["base_hash"]:
+                raise CompilerError("target changed while building batch review")
+        atomic_write(directory / "batch.json", canonical_json(batch))
+        atomic_write(directory / "review.md", review_bytes)
+    return {"preview_id": batch_id, "batch_id": batch_id, "preview_dir": str(directory),
+            "review": str(directory / "review.md"), "pages": len(results),
+            "sources": len({item["source_id"] for manifest in manifests for item in manifest["source_revisions"]}),
+            "expires_at": batch["expires_at"], "child_previews": batch["preview_ids"]}
+
+
+def load_batch(settings: Settings, batch_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    directory = batch_dir(settings, batch_id)
+    batch = require_object(load_json(directory / "batch.json"), "batch")
+    require_exact_keys(batch, {"schema_version", "project", "operator_id", "created_at", "expires_at", "preview_ids", "review_hash", "batch_id"}, "batch")
+    payload = {key: value for key, value in batch.items() if key != "batch_id"}
+    if (batch["schema_version"] != 2 or batch["batch_id"] != batch_id or digest(canonical_json(payload)) != batch_id
+            or batch["project"] != settings.project or batch["operator_id"] != settings.operator_id):
+        raise CompilerError("batch identity/project/operator mismatch")
+    parse_time(batch["created_at"])
+    parse_time(batch["expires_at"])
+    ids = batch["preview_ids"]
+    if not isinstance(ids, list) or not 1 <= len(ids) <= 100 or any(not isinstance(item, str) or not HASH_PATTERN.fullmatch(item) for item in ids) or len(set(ids)) != len(ids):
+        raise CompilerError("invalid batch preview ids")
+    if digest((directory / "review.md").read_bytes()) != batch["review_hash"]:
+        raise CompilerError("batch review artifact changed")
+    manifests, targets, page_ids, policies = [], set(), set(), set()
+    for preview_id in ids:
+        manifest = manifest_validation(load_json(preview_dir(settings, preview_id) / "manifest.json"))
+        validate_preview_identity(manifest)
+        if (manifest["preview"]["id"] != preview_id or manifest["project"] != settings.project
+                or manifest["operator_id"] != settings.operator_id):
+            raise CompilerError("batch child authority mismatch")
+        page = manifest["pages"][0]
+        target = str(resolve_target_under(settings.output_root, page["path"], "batch target")).casefold()
+        if target in targets or page["page_id"].casefold() in page_ids:
+            raise CompilerError("duplicate batch page identity/path")
+        targets.add(target)
+        page_ids.add(page["page_id"].casefold())
+        policies.add(canonical_json(manifest["policy"]))
+        manifests.append(manifest)
+    if len(policies) != 1:
+        raise CompilerError("mixed source policies in batch")
+    return batch, manifests
+
+
+def accepted_projection(manifest: dict[str, Any]) -> bytes:
+    accepted = json.loads(json.dumps(manifest))
+    accepted["preview"]["status"] = "accepted"
+    accepted["adapters"]["qmd"] = {"eligible": False, "reason": "acl-aware-qmd-adapter-not-configured"}
+    return canonical_json(accepted)
+
+
+def batch_operations(settings: Settings, manifests: list[dict[str, Any]], index: dict[str, Any], log: bytes,
+                     at: datetime) -> list[tuple[Path, bytes, int]]:
+    operations = []
+    for manifest in manifests:
+        page = manifest["pages"][0]
+        preview_id = manifest["preview"]["id"]
+        directory = preview_dir(settings, preview_id)
+        rendered = (directory / "page.md").read_bytes()
+        accepted = accepted_projection(manifest)
+        accepted_path = accepted_manifest_path(settings, page["page_id"])
+        operations.extend([(resolve_target_under(settings.output_root, page["path"], "batch target"), rendered, 0o644),
+                           (accepted_path, accepted, 0o600)])
+        index["pages"][page["page_id"]] = {
+            "preview_id": preview_id, "manifest_path": str(accepted_path), "path": page["path"],
+            "rendered_hash": manifest["diff"]["rendered_hash"],
+            "source_ids": [item["source_id"] for item in manifest["source_revisions"]],
+            "status": "accepted", "qmd_eligible": False, "manifest_hash": digest(accepted)}
+        log += canonical_json({"schema_version": 1, "event": "accepted", "at": format_time(at),
+                               "preview_id": preview_id, "page_id": page["page_id"],
+                               "operator_id": settings.operator_id, "manifest_hash": digest(accepted)})
+    operations.extend([(index_path(settings), canonical_json(index), 0o600), (accepted_log_path(settings), log, 0o600)])
+    return operations
+
+
+def write_batch_journal(path: Path, journal: dict[str, Any]) -> None:
+    journal.pop("integrity", None)
+    journal["integrity"] = digest(canonical_json(journal))
+    write_journal(path, journal)
+
+
+def validate_batch_journal(settings: Settings, path: Path) -> dict[str, Any]:
+    journal = require_object(load_json(path), "batch journal")
+    require_exact_keys(journal, {"schema_version", "batch_id", "project", "operator_id", "at", "state", "operations", "integrity"}, "batch journal")
+    batch_dir(settings, journal["batch_id"])
+    payload = {key: value for key, value in journal.items() if key != "integrity"}
+    if (journal["schema_version"] != 2 or digest(canonical_json(payload)) != journal["integrity"]
+            or journal["project"] != settings.project or journal["operator_id"] != settings.operator_id
+            or journal["state"] not in {"prepared", "accepted", "rolled-back"}
+            or path.name != f"{journal['batch_id'].removeprefix('sha256:')}.json"):
+        raise CompilerError("batch journal identity/integrity mismatch")
+    batch_dir(settings, journal["batch_id"])
+    authorized_absolute_path(str(path), settings.state_root, "batch journal path",
+                             expected=settings.state_root / "batch-transactions" / path.name)
+    if journal["state"] in {"accepted", "rolled-back"}:
+        if journal["operations"] != []:
+            raise CompilerError("terminal batch journal must not retain payload backups")
+        return journal
+    _, manifests = load_batch(settings, journal["batch_id"])
+    operations = journal["operations"]
+    if not isinstance(operations, list) or len(operations) != len(manifests) * 2 + 2:
+        raise CompilerError("batch journal operations mismatch")
+    for operation in operations:
+        require_exact_keys(require_object(operation, "operation"), {"path", "mode", "before", "after_hash"}, "operation")
+        validate_backup(operation["before"], "operation backup")
+    def saved_bytes(operation: dict[str, Any]) -> bytes | None:
+        saved = operation["before"]
+        return base64.b64decode(saved["data"]) if saved["exists"] else None
+    index_bytes = saved_bytes(operations[-2])
+    index = json.loads(index_bytes) if index_bytes is not None else {"schema_version": 1, "project": settings.project, "pages": {}}
+    if index.get("schema_version") != 1 or index.get("project") != settings.project or not isinstance(index.get("pages"), dict):
+        raise CompilerError("invalid batch index backup")
+    for page_id, entry in index["pages"].items():
+        validate_index_entry(settings, page_id, entry)
+    expected = batch_operations(settings, manifests, index, saved_bytes(operations[-1]) or b"", parse_time(journal["at"]))
+    for operation, (target, content, mode) in zip(operations, expected):
+        authorized_absolute_path(operation["path"], settings.vault_root, "batch operation", expected=target)
+        if operation["mode"] != mode or operation["after_hash"] != digest(content):
+            raise CompilerError("batch operation does not match preview authority")
+    return journal
+
+
+def rollback_batch(settings: Settings, path: Path, journal: dict[str, Any]) -> None:
+    # Check every operation first. No recovery write is allowed to overwrite an external edit.
+    for operation in journal["operations"]:
+        current = read_optional(Path(operation["path"]))
+        before = operation["before"]
+        before_bytes = base64.b64decode(before["data"]) if before["exists"] else None
+        if current != before_bytes and (current is None or digest(current) != operation["after_hash"]):
+            raise CompilerError(f"recovery conflict; human edits preserved at {operation['path']}; transaction remains pending")
+    for operation in reversed(journal["operations"]):
+        restore(Path(operation["path"]), operation["before"], operation["mode"])
+    journal["state"], journal["operations"] = "rolled-back", []
+    write_batch_journal(path, journal)
+
+
+def recover_batches(settings: Settings) -> list[str]:
+    root = authorized_absolute_path(str(settings.state_root / "batch-transactions"), settings.state_root, "batch journal root")
+    recovered = []
+    for path in sorted(root.glob("*.json")):
+        journal = validate_batch_journal(settings, path)
+        if journal["state"] == "prepared":
+            rollback_batch(settings, path, journal)
+            recovered.append(f"batch:{journal['batch_id']}")
+    return recovered
+
+
+def apply_batch(settings: Settings, batch_id: str, at: datetime, fault_after: str | None = None) -> dict[str, Any]:
+    with vault_lock(settings):
+        recovered = recover_incomplete(settings)
+        batch, manifests = load_batch(settings, batch_id)
+        index = load_index(settings)
+        noops = []
+        for manifest in manifests:
+            page = manifest["pages"][0]
+            directory = preview_dir(settings, manifest["preview"]["id"])
+            for name, key in (("page.md", "rendered_hash"), ("diff.patch", "unified_diff_hash"), ("change-brief.md", "change_brief_hash")):
+                if digest((directory / name).read_bytes()) != manifest["diff"][key]:
+                    raise CompilerError("preview artifacts no longer match the manifest")
+            current = read_optional(resolve_target_under(settings.output_root, page["path"], "batch target"))
+            entry = index["pages"].get(page["page_id"])
+            is_noop = bool(entry and entry["status"] == "accepted" and entry["preview_id"] == manifest["preview"]["id"]
+                           and current is not None and digest(current) == manifest["diff"]["rendered_hash"])
+            noops.append(is_noop)
+            if is_noop:
+                load_accepted_manifest(settings, page["page_id"], entry)
+                continue
+            if at > parse_time(manifest["preview"]["expires_at"]):
+                raise CompilerError("preview expired; rebuild a new preview")
+            validate_current_sources(settings, manifest, at)
+            guard_target(settings, page, current)
+            if (digest(current) if current is not None else None) != manifest["diff"]["base_hash"]:
+                raise CompilerError("target changed after preview; refusing to overwrite human edits")
+        if all(noops):
+            return {"status": "noop", "preview_id": batch_id, "pages": len(manifests), "recovered": recovered}
+        if any(noops):
+            raise CompilerError("batch partly applied individually; create a fresh batch review")
+        if at > parse_time(batch["expires_at"]):
+            raise CompilerError("batch preview expired")
+        operations = batch_operations(settings, manifests, index, read_optional(accepted_log_path(settings)) or b"", at)
+        journal_path = settings.state_root / "batch-transactions" / f"{batch_id.removeprefix('sha256:')}.json"
+        journal = {"schema_version": 2, "batch_id": batch_id, "project": settings.project,
+                   "operator_id": settings.operator_id, "at": format_time(at), "state": "prepared",
+                   "operations": [{"path": str(path), "mode": mode, "before": backup(read_optional(path)),
+                                   "after_hash": digest(content)} for path, content, mode in operations]}
+        write_batch_journal(journal_path, journal)
+        maybe_crash("batch-prepared", fault_after)
+        try:
+            for i, ((path, content, mode), operation) in enumerate(zip(operations, journal["operations"])):
+                # Detect changes after preflight too, including Obsidian writes that ignore our lock.
+                if backup(read_optional(path)) != operation["before"]:
+                    raise CompilerError("target changed during batch apply")
+                atomic_write(path, content, mode)
+                maybe_crash(f"batch-write-{i + 1}", fault_after)
+            journal["state"], journal["operations"] = "accepted", []
+            write_batch_journal(journal_path, journal)
+            maybe_crash("batch-accepted", fault_after)
+        except Exception:
+            rollback_batch(settings, journal_path, validate_batch_journal(settings, journal_path))
+            raise
+        return {"status": "applied", "preview_id": batch_id, "pages": len(manifests), "recovered": recovered}
+
+
+def purge_batch_artifacts(settings: Settings, source_id: str, preview_ids: set[str], page_paths: set[str]) -> None:
+    root = authorized_absolute_path(str(settings.state_root / "batches"), settings.state_root, "batch root")
+    for path in sorted(root.glob("*/batch.json")):
+        raw = load_json(path)
+        batch_id = raw.get("batch_id")
+        batch, _ = load_batch(settings, batch_id)
+        if path.parent != batch_dir(settings, batch_id):
+            raise CompilerError("batch purge path mismatch")
+        if preview_ids.intersection(batch["preview_ids"]):
+            shutil.rmtree(path.parent)
+    # Legacy transactions retain rollback payloads after commit. Remove completed affected journals.
+    for path in sorted((settings.state_root / "transactions").glob("*.json")):
+        journal, paths = validate_journal(settings, path, load_json(path))
+        if journal["state"] not in {"accepted", "rolled-back"}:
+            raise CompilerError("cannot purge with pending transaction")
+        saved_manifest = journal["backups"]["accepted_manifest"]
+        old_dependencies = set()
+        if saved_manifest["exists"]:
+            try:
+                prior = json.loads(base64.b64decode(saved_manifest["data"]))
+                old_dependencies = {item["source_id"] for item in prior["source_revisions"]}
+            except (ValueError, KeyError, TypeError) as exc:
+                raise CompilerError("cannot establish source dependencies of legacy backup") from exc
+        if (journal["preview_id"] in preview_ids or source_id in old_dependencies
+                or paths["target"].relative_to(settings.output_root).as_posix() in page_paths):
+            path.unlink()
 
 
 PURGE_STATES = (
@@ -1311,7 +1733,7 @@ def complete_purge(
                     page["disposition"] = "suppressed"
                 elif (
                     digest(content) == page["rendered_hash"]
-                    and content.startswith(f"{OWNERSHIP_PREFIX}{page['page_id']} -->".encode())
+                    and owns_page(content, page["page_id"])
                 ):
                     target.unlink()
                     page["disposition"] = "suppressed"
@@ -1332,6 +1754,7 @@ def complete_purge(
                 journal["preview_ids"].append(preview_id)
                 journal["preview_ids"].sort()
                 write_journal(journal_path, journal)
+        purge_batch_artifacts(settings, journal["source_id"], set(journal["preview_ids"]), {page["path"] for page in journal["pages"]})
         for preview_id in journal["preview_ids"]:
             directory = preview_dir(settings, preview_id)
             if directory.exists():
@@ -1446,9 +1869,7 @@ def purge_source(
             target = resolve_target_under(settings.output_root, entry["path"], "indexed page path")
             manifest_path = accepted_manifest_path_from_entry(settings, page_id, entry)
             content = read_optional(target)
-            owned = content is not None and digest(content) == entry["rendered_hash"] and content.startswith(
-                f"{OWNERSHIP_PREFIX}{page_id} -->".encode()
-            )
+            owned = content is not None and digest(content) == entry["rendered_hash"] and owns_page(content, page_id)
             affected.append({
                 "page_id": page_id,
                 "path": entry["path"],
@@ -1515,7 +1936,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     init = subparsers.add_parser("init-config", help="print a strict disabled-by-default config template")
     init.add_argument("--vault-root", required=True)
-    for name in ("register", "preview", "apply", "status", "rebuild", "purge"):
+    for name in ("register", "preview", "apply", "status", "inspect", "rebuild", "purge"):
         command = subparsers.add_parser(name)
         command.add_argument("--config", type=Path, required=True)
         command.add_argument("--now", help="fixed RFC3339 time for deterministic tests")
@@ -1550,7 +1971,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init-config":
             result = config_template(args.vault_root)
         else:
-            settings = load_settings(args.config)
+            settings = load_settings(args.config, initialize=args.command != "inspect")
             at = current_time(args.now)
             if args.command == "register":
                 result = register_source(settings, args.source, args.source_id, args.acl, args.egress, args.retention_class, at, args.expires_at)
@@ -1558,6 +1979,8 @@ def main(argv: list[str] | None = None) -> int:
                 result = preview_source(settings, args.proposal, at)
             elif args.command == "apply":
                 result = apply_preview(settings, args.preview_id, at)
+            elif args.command == "inspect":
+                result = inspect_report(settings, at)
             elif args.command == "status":
                 result = status_report(settings, at)
             elif args.command == "rebuild":

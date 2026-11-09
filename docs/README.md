@@ -21,7 +21,7 @@ Version 1.7.0. Audits and improves how a website ranks in search engines and sho
 
 ### obsidian-second-brain
 
-Version 1.9.0. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
+Version 1.10.0. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
 
 [README](../obsidian-second-brain/README.md) · [GUIDE](../obsidian-second-brain/GUIDE.md) · [10 skills](../generated/SKILL-CATALOG.md#obsidian-second-brain)
 

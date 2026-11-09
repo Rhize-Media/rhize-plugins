@@ -13,7 +13,7 @@ research pipelines, connection discovery, and vault health management, backed by
   below) or as a plain exported env var
 - **Obsidian CLI** (v1.12.4+) registered and on PATH
 - **Defuddle** (`npm install -g defuddle`) for the web clipping skill
-- **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — optional, for semantic search only
+- **qmd** (`npm install -g @tobilu/qmd`) + **`qmd@qmd` plugin** enabled — optional, for semantic search only
 
 ### Installation
 
@@ -49,7 +49,7 @@ The core of this plugin. These skills and commands turn your vault into an activ
 | `/vault-connect [note\|topic\|recent]` | Find and build missing links between related notes (qmd-enhanced) |
 | `/vault-recall <question>` | Ask your vault a natural language question and get a synthesized answer |
 | `/vault-review [daily\|weekly\|monthly]` | Periodic review — summarize activity, surface themes, plan ahead |
-| `/vault-compile preview\|apply\|status\|rebuild` | Review and maintain evidence-bound compiled knowledge |
+| `/vault-compile preview\|apply\|inspect\|status\|rebuild` | Review and maintain evidence-bound compiled knowledge |
 
 ### Commands — Capture & Daily
 
@@ -80,6 +80,19 @@ remain under a private state root. qmd export is fail-closed in this first relea
 rejects `qmd_enabled: true` and marks every compiled page ineligible because an ACL-aware indexing
 adapter does not yet exist. Keep compiler output and private state outside every qmd collection.
 Context packs, Graphify, Neo4j, live synthesis, and scheduled mutation are also disabled.
+These options are rejected by the engine, not supported switches awaiting activation. Manual
+compilation supports a v2 proposal with 1–100 pages and multiple registered sources per page.
+A single content-addressed review bundle contains every page diff and cited excerpt; apply preflights
+all pages before one recoverable transaction. Each accepted page keeps only its own dependencies.
+The v1 single-page proposal remains supported. See the [batch workflow](skills/knowledge-compiler/references/batch-workflow.md)
+and [example proposal](skills/knowledge-compiler/references/batch-proposal.example.json).
+
+`inspect` observes existing state without initialization or recovery; it reports `busy`,
+`uninitialized`, or `recovery-required` rather than claiming an unhealthy transaction is clean.
+`status` can recover interrupted apply/purge journals, so it is not read-only. Recovery preserves
+external edits and stops pending a deliberate conflict resolution. Multi-file publication is
+journaled but is not globally atomic to Obsidian readers. Generated pages begin with native YAML
+Properties; a provenance callout, source links and contradiction callout support visual review.
 
 Privacy purge is a forward-recovering transaction: it deletes compiler-owned projections,
 previews, and source snapshots before committing purged index/registration status. Any interrupted
@@ -111,7 +124,7 @@ Lower-level skills that auto-trigger when you're working with specific Obsidian 
 
 | Hook | Matcher | Behavior |
 |------|---------|----------|
-| **PreToolUse** | `Write\|Edit` on vault `.md` files | Enforces second-brain practices: `[[wikilinks]]` (not markdown links), callout syntax (`> [!type]`), frontmatter preservation, `#tags`, `tags:` array in frontmatter, and parent MOC linking |
+| **PreToolUse** | `Write\|Edit` on vault `.md` files | Emits advisory reminders about second-brain practices: `[[wikilinks]]` (not markdown links), callout syntax (`> [!type]`), frontmatter preservation, `#tags`, `tags:` array in frontmatter, and parent MOC linking |
 | **PostToolUse** | `Read` on vault `.md` files | Suggests following `[[wikilinks]]`, searching tags, `/vault-connect` for related notes, and `/vault-align` for orphan detection and health checks |
 
 > **SessionStart banner removed (2026-08-09):** the unconditional command-menu banner moved
@@ -263,21 +276,25 @@ obsidian files folder=Projects format=json  # List files in folder
 
 ### qmd Semantic Search (optional: `qmd@qmd` plugin)
 
-qmd adds local vector embeddings and LLM re-ranking — no cloud services required. It is an **optional plugin** — enable the `qmd@qmd` plugin alongside this plugin for full semantic search support. The `qmd@qmd` plugin registers its own MCP server (`qmd mcp`). This plugin has no hard dependency on qmd and loads and works fully without it.
+qmd adds local vector embeddings and LLM re-ranking. The CLI works without the optional
+`qmd@qmd` host plugin; that plugin supplies an MCP integration. Verify any existing server uses
+the approved named index before querying it. This plugin has no hard dependency on qmd and
+works with scoped keyword search when qmd is unavailable.
 
-**Setup:**
-```bash
-npm install -g qmd
-qmd collection add vault /path/to/your/vault/ApprovedForQmd --include "*.md"
-qmd embed vault
-qmd status vault
-```
+**Setup and refresh:** use the canonical [approved indexing procedure](skills/qmd-search/references/approved-indexing.md),
+also used by `qmd-search` and `/vault-setup`. It verifies the installed CLI, records an approved
+note root and named index/collection, and scans files with `update` before `embed`.
 
-Point each collection at an explicitly approved note root. Do not index the whole vault, the
-compiled-knowledge output root, or `.rhize/compiled-knowledge`; qmd does not enforce the compiler's
-ACL, freshness, retention, or purge metadata. An ACL-aware compiled-knowledge adapter is deferred.
+Do not index the whole vault, compiler output, or `.rhize/compiled-knowledge`. Inspect existing
+collection roots and update hooks before reuse; narrowing a path does not establish old indexed
+content was erased. Keep cleanup separate and explicitly scoped. qmd cannot enforce compiler
+ACL, freshness, retention or purge metadata.
 
-Once installed and the `qmd@qmd` plugin is enabled, `/vault-search`, `/vault-connect`, and `/vault-recall` automatically use semantic search. All commands gracefully fall back to MCP/CLI keyword search when qmd is not available.
+Search, connect and recall use the approved named index and explicit collection. Confirm an
+existing qmd MCP server points at that same index; enabling a plugin does not prove scope.
+Fallback MCP/CLI searches retain the authorized note scope. Model downloads require network
+access; local models perform inference on-device. Measure retrieval quality rather than infer
+it from installation or passing static tests.
 
 ## Architecture
 

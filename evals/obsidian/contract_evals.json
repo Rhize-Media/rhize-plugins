@@ -89,7 +89,10 @@
       {"type": "contains", "value": "local-first search engine", "name": "Requires local-first behavior"},
       {"type": "contains", "value": "BM25", "name": "Covers full-text mode"},
       {"type": "contains", "value": "vector semantic search", "name": "Covers semantic mode"},
-      {"type": "contains", "value": "qmd embed vault", "name": "Documents embedding prerequisite"}
+      {"type": "regex", "value": "qmd --index [^\\n]+ embed", "name": "Documents scoped embedding prerequisite"},
+      {"type": "contains", "value": "approved-indexing.md", "name": "Uses canonical indexing boundary"},
+      {"type": "contains", "value": "Never index the whole vault", "name": "Rejects whole-vault indexing"},
+      {"type": "regex", "value": "qmd --index [^\\n]+ update", "name": "Scans files before embedding"}
     ]
   },
   {

@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Add reviewed multi-source, multi-page compilation with source-excerpt bundles, all-page preflight, recoverable batch apply, human-edit protection, dependency-aware purge and observation-only inspect. Preserve v1 proposals/manifests; render native Properties and source links. Reconcile approved-root qmd instructions and indexing boundaries.
+- _2026-11-09_ version bump — 1.9.0 → 1.10.0 (minor); marketplace 2.117.3 → 2.118.0.
 - _2026-10-10_ version bump — 1.8.0 → 1.9.0 (minor); marketplace 2.101.1 → 2.102.0.
 - _2026-10-10_ Router: defuddle declares the router phrase "web clipping"; knowledge-compiler regains the `security` topic and `python` stack (third-party inference words restored).
 - _2026-10-10_ version bump — 1.7.7 → 1.8.0 (minor); marketplace 2.100.4 → 2.101.0.

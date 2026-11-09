@@ -9,26 +9,20 @@ Search the user's Obsidian vault for "$ARGUMENTS". Use qmd for semantic search w
 
 ## Step 1: Detect qmd Availability
 
-Before choosing a search strategy, check if qmd is installed and the vault is indexed:
-
-```bash
-# Check if qmd is installed
-command -v qmd >/dev/null 2>&1 && QMD_AVAILABLE=true || QMD_AVAILABLE=false
-
-# If installed, check if a vault collection exists
-if [ "$QMD_AVAILABLE" = true ]; then
-  qmd status vault 2>/dev/null && QMD_INDEXED=true || QMD_INDEXED=false
-fi
-```
-
-If qmd is not available or not indexed, fall back to MCP/CLI search for all query types (see "Fallback Search" below).
+Load `qmd-search` and its [approved indexing procedure](../skills/qmd-search/references/approved-indexing.md).
+Read `QMD_INDEX` and `QMD_COLLECTION` from the approved setup record; verify installed CLI,
+actual collection path/mask, indexed members and embedding readiness before choosing qmd.
+Never guess a default `vault` collection, create an index while searching, or treat status's
+exit code as evidence of scope/freshness. Keep compiler output and private state unindexed.
+If qmd is unavailable or scope cannot be verified, use MCP/CLI/filesystem search bounded to the
+same authorized note scope. Never silently broaden fallback search to the whole vault.
 
 ## Step 2: Determine Search Strategy
 
 **General text / concept search** (qmd available):
-- Use `qmd search vault "<query>"` for keyword-precise searches (BM25). Best when the user knows the exact terms.
-- Use `qmd vsearch vault "<query>"` for conceptual/semantic searches. Best when the user describes an idea rather than exact words.
-- Use `qmd query vault "<query>"` for natural language questions. Best for "what do I know about X?" or "find notes related to Y". This uses LLM re-ranking and is the highest quality but slowest.
+- Use `qmd --index "${QMD_INDEX:?set approved index}" search "<query>" -c "${QMD_COLLECTION:?set approved collection}"` for keyword-precise searches (BM25). Best when the user knows the exact terms.
+- Use `qmd --index "${QMD_INDEX:?set approved index}" vsearch "<query>" -c "${QMD_COLLECTION:?set approved collection}"` for conceptual/semantic searches. Best when the user describes an idea rather than exact words.
+- Use `qmd --index "${QMD_INDEX:?set approved index}" query "<query>" -c "${QMD_COLLECTION:?set approved collection}"` for natural language questions. Best for "what do I know about X?" or "find notes related to Y". This uses LLM re-ranking and adds ranking work and may be slower.
 - **Choosing the right mode**: If the query contains specific terms, names, or property values → BM25 (`search`). If the query is a concept, idea, or question → vector (`vsearch`). If the query is a complex question where ranking matters → hybrid (`query`).
 
 **Tag search** (query starts with # or user says "tag"):
