@@ -197,13 +197,14 @@ def test_owner_classifier(command, argv, expected):
     assert updates.classify(command, argv) == expected
 
 
-def test_unknown_process_state_holds(worker, monkeypatch):
+def test_unknown_process_state_never_mutates(worker, monkeypatch):
     root, calls, *_ = worker
     def unavailable(_):
         raise OSError('ps_unavailable')
     monkeypatch.setattr(updates, 'owners', unavailable)
     updates.worker('codex')
-    assert status(root)['phase'] == 'held'
+    assert status(root)['phase'] == 'waiting_for_idle'
+    assert not status(root).get('mutationStarted')
     assert not calls
 
 
@@ -350,9 +351,9 @@ def test_timeout_kills_the_worker_owned_command_group():
         updates.run([sys.executable, '-c', 'import time; time.sleep(20)'], timeout=0.05)
 
 
-def test_malformed_native_envelope_still_denies():
+def test_malformed_native_envelope_still_denies(tmp_path):
     result = subprocess.run([sys.executable, str(SCRIPT), 'hook', 'codex', 'PreToolUse'],
-                            input='[]', text=True, capture_output=True)
+                            input='[]', text=True, capture_output=True, env=dict(os.environ, HOME=str(tmp_path)))
     assert result.returncode == 0
     assert json.loads(result.stdout)['hookSpecificOutput']['permissionDecision'] == 'deny'
 
@@ -586,17 +587,50 @@ def test_legacy_installed_guard_requires_closed_host(worker, monkeypatch):
     assert updates.idle('codex', [], {'idleProtocol': 1})
 
 
-def test_transient_process_inventory_failure_does_not_block_hooks(worker, monkeypatch):
-    root, *_ = worker
+def test_transient_classification_failure_still_claims_host_owner(worker, monkeypatch):
+    # Session A stops in owner 123; session B starts there while argv classification fails (EINVAL).
     monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
-    assert updates.hook('codex', 'UserPromptSubmit', {'session_id': 'one'}) is None
-    def churn(*args, **kwargs):
-        raise OSError(22, 'process_arguments_unavailable')
+    updates.hook('codex', 'UserPromptSubmit', {'session_id': 'a', 'turn_id': 't1'})
+    updates.hook('codex', 'Stop', {'session_id': 'a', 'turn_id': 't1'})
+    def churn(host, ancestors=False, classified=True):
+        if classified:
+            raise OSError(22, 'process_arguments_unavailable')
+        return {'123': 'start', '1': 'launchd'}  # unclassified lineage is a superset
     monkeypatch.setattr(updates, 'process_tokens', churn)
-    assert updates.hook('codex', 'PreToolUse', {'session_id': 'one'}) is None
-    assert updates.hook('codex', 'UserPromptSubmit', {'session_id': 'fresh'}) is None
-    sessions = [updates.read(p) for p in (root / 'codex/sessions').glob('*.json')]
-    assert sorted((s['owners'] for s in sessions), key=len) == [{}, {'123': 'start'}]
+    assert updates.hook('codex', 'UserPromptSubmit', {'session_id': 'b', 'turn_id': 't2'}) is None
+    assert updates.hook('codex', 'PreToolUse', {'session_id': 'b'}) is None
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
+    assert not updates.idle('codex', [123], {'idleProtocol': 1})
+
+
+def test_unreadable_lineage_marks_owners_unknown_and_holds_idle(worker, monkeypatch):
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
+    updates.hook('codex', 'UserPromptSubmit', {'session_id': 'a', 'turn_id': 't1'})
+    updates.hook('codex', 'Stop', {'session_id': 'a', 'turn_id': 't1'})
+    def broken(*args, **kwargs):
+        raise ValueError('process_identity_unavailable')
+    monkeypatch.setattr(updates, 'process_tokens', broken)
+    assert updates.hook('codex', 'UserPromptSubmit', {'session_id': 'b', 'turn_id': 't2'}) is None
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
+    assert not updates.idle('codex', [123], {'idleProtocol': 1})
+    updates.hook('codex', 'PreToolUse', {'session_id': 'b'})  # a readable refresh clears the marker
+    updates.hook('codex', 'Stop', {'session_id': 'b', 'turn_id': 't2'})
+    assert updates.idle('codex', [123], {'idleProtocol': 1})
+
+
+def test_transient_inventory_failure_waits_instead_of_holding(worker, monkeypatch):
+    root, calls, *_ = worker
+    def churn(_):
+        raise OSError(22, 'process_arguments_unavailable')
+    monkeypatch.setattr(updates, 'owners', churn)
+    updates.worker('codex')
+    assert status(root)['phase'] == 'waiting_for_idle'
+    assert 'process_arguments_unavailable' in status(root)['inventoryError']
+    assert not calls
+    monkeypatch.setattr(updates, 'owners', lambda host: [])
+    updates.worker('codex')
+    assert status(root)['phase'] == 'settling'
+    assert 'inventoryError' not in status(root)
 
 
 def test_unexpected_hook_error_names_its_category(tmp_path):

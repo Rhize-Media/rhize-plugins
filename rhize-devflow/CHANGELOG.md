@@ -8,6 +8,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-09_ version bump — 2.33.2 → 2.33.3 (patch); marketplace 2.119.2 → 2.119.3.
+- Close a Codex idle fail-open in the 2.33.2 hook fallback: a transient classification failure now records the unclassified process lineage (still claiming the host owner), and an unreadable lineage marks the conversation `ownersUnknown`, which keeps idle publication closed. Pre-mutation worker inventory failures retry as `waiting_for_idle` with `inventoryError` instead of latching `held`. `hook-errors.jsonl` writes use the safe-path/O_NOFOLLOW/0600 rules with a size bound; a test no longer writes into the real log.
 - _2026-11-09_ version bump — 2.33.1 → 2.33.2 (patch); marketplace 2.119.1 → 2.119.2.
 - Stop updater hooks from blocking prompts and tools when host process inventory fails transiently (sysctl argv EINVAL on MCP/host processes mid-spawn or exit); hooks keep the last known owners, which leaves idle() and the worker fail-closed. Unexpected hook errors now name their category in the stop reason and append to `hook-errors.jsonl`.
 - _2026-11-09_ version bump — 2.33.0 → 2.33.1 (patch); marketplace 2.119.0 → 2.119.1.

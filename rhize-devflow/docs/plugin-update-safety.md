@@ -37,6 +37,16 @@ are bootstrap-held until they exit; this prevents an unobserved old chat sharing
 being mistaken for idle. Legacy helpers, unknown owners, uncorrelated native events and older
 guards retain the closed-host fallback. Do not claim every host build supports idle publication.
 
+Process inventory is transient: macOS refuses argv reads (sysctl `EINVAL`) for host processes
+mid-spawn or mid-exit, which MCP servers do constantly. Such a failure never blocks a conversation.
+The hook falls back to the conversation's unclassified process lineage, a superset that still claims
+its host owner; if `ps` itself is unreadable it marks the conversation `ownersUnknown`, and an active
+unknown-owner conversation keeps Codex idle publication closed until a readable refresh or its
+correlated turn end. Before any mutation, the worker treats an inventory failure as "not provably
+idle": it stays `waiting_for_idle`, records `inventoryError` and retries next tick instead of latching
+`held`. Unexpected hook errors name their category in the denial and append to
+`<host>/hook-errors.jsonl` (0600, bounded).
+
 A short admission lock serializes hook admission against publication. The pre-tool hook waits
 at most two seconds for the publication barrier, then returns a visible temporary denial; it
 never waits indefinitely for its own conversation to stop. Verification in progress does not

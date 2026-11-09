@@ -286,9 +286,13 @@ def admission(host):
         yield
 
 
-def process_tokens(host, ancestors=False):
-    """PID plus kernel start time prevents a reused PID inheriting an idle lease."""
-    active = owners(host)
+def process_tokens(host, ancestors=False, classified=True):
+    """PID plus kernel start time prevents a reused PID inheriting an idle lease.
+
+    classified=False (ancestors only) skips per-process argv reads and returns the whole lineage; it is a
+    superset that still contains this conversation's host owner, so idle() keeps treating it as live.
+    """
+    active = owners(host) if classified else None
     rows = run(['/bin/ps', '-axo', 'pid=,ppid=,lstart=']).splitlines()
     parsed = {}
     for line in rows:
@@ -301,7 +305,7 @@ def process_tokens(host, ancestors=False):
         while pid in parsed and pid not in lineage:
             lineage.add(pid)
             pid = parsed[pid][0]
-        active = [pid for pid in active if pid in lineage]
+        active = lineage if active is None else [pid for pid in active if pid in lineage]
     return {str(pid): parsed[pid][1] for pid in active if pid in parsed}
 
 
@@ -328,7 +332,9 @@ def idle(host, active, config):
         raise ValueError('session_inventory_limit')
     for path in paths:
         session = read(path)
-        matching = {pid: token for pid, token in session.get('owners', {}).items() if tokens.get(pid) == token}
+        if session.get('ownersUnknown') and session.get('active') is not False:
+            return False
+        matching ={pid: token for pid, token in session.get('owners', {}).items() if tokens.get(pid) == token}
         if matching:
             if session.get('active') is not False or session.get('protocol') != 1:
                 return False
@@ -368,9 +374,18 @@ def worker(host):
                     raise ValueError('invalid_package_approval:' + name)
             config = read(root() / 'config.json')
             cli = config['cli'][host]
-            active = owners(host)
+            try:
+                active = owners(host)
+                quiet = idle(host, active, config)
+            except (OSError, ValueError, RuntimeError) as error:
+                # Nothing has been mutated yet: a transient process-inventory failure (sysctl EINVAL during
+                # host process churn) is "not provably idle", so retry next tick instead of latching held.
+                state.update(phase='waiting_for_idle', quietSince=None, inventoryError=str(error)[:160])
+                write(path, state)
+                return
+            state.pop('inventoryError', None)
             state['ownerCount'] = len(active)
-            if not idle(host, active, config):
+            if not quiet:
                 state.update(phase='waiting_for_idle', quietSince=None)
                 write(path, state)
                 return
@@ -397,7 +412,11 @@ def worker(host):
             if current != state['before']:
                 raise ValueError('installed_state_changed_since_approval')
             catalog_root = marketplace(host, cli)
-            if not idle(host, owners(host), config):
+            try:
+                quiet = idle(host, owners(host), config)
+            except (OSError, ValueError, RuntimeError) as error:
+                quiet, state['inventoryError'] = False, str(error)[:160]  # still pre-mutation: retry next tick
+            if not quiet:
                 state.update(phase='waiting_for_idle', quietSince=None)
                 write(path, state)
                 return
@@ -488,19 +507,27 @@ def hook(host, event, payload):
         busy = bool(state and (state['phase'] == 'updating' or
                     (state['phase'] == 'held' and state['mutationStarted']) or
                     (state.get('repairRequired', False) and state['phase'] != 'complete')))
-        def lineage(fallback):
-            # sysctl argv reads fail (EINVAL) for host processes mid-spawn/exit, e.g. MCP servers. Keeping the
-            # last known owners is safe: unknown owners keep idle() closed and worker owners() stays fail-closed.
-            try:
-                return process_tokens(host, ancestors=True)
-            except (OSError, ValueError, RuntimeError):
-                return fallback
-        if old is None:
+        fresh = old is None
+        if fresh:
             old = {'generation': state['generation'] if state else 0, 'restartRequired': busy and state.get('cachePolicy') != 'immutable-v1',
-                   'protocol': 1, 'active': True, 'owners': lineage({})}
+                   'protocol': 1, 'active': True, 'owners': {}}
+        def refresh_owners():
+            # sysctl argv reads fail (EINVAL) for unrelated host processes mid-spawn/exit (e.g. MCP servers);
+            # that must not block this conversation. Fall back to the unclassified lineage, which still claims
+            # this conversation's host owner. If even ps fails, mark owners unknown: idle() then stays closed.
+            for classified in (True, False):
+                try:
+                    old['owners'] = process_tokens(host, ancestors=True, classified=classified)
+                    old.pop('ownersUnknown', None)
+                    return
+                except (OSError, ValueError, RuntimeError):
+                    pass
+            old['ownersUnknown'] = True
+        if fresh or 'owners' not in old or event in {'SessionStart', 'UserPromptSubmit', 'PreToolUse'}:
+            refresh_owners()
         turn = payload.get('turn_id') or payload.get('turnId')
         if event in {'SessionStart', 'UserPromptSubmit', 'PreToolUse'}:
-            old.update(active=True, owners=lineage(old.get('owners', {})))
+            old['active'] = True
             if event in {'SessionStart', 'UserPromptSubmit'} or turn is not None:
                 old['turn'] = turn
             activity_path = root() / host / 'activity.json'
@@ -653,9 +680,13 @@ def main():
                        if str(error) == 'publication_busy_try_after_completion' else
                        f'Rhize update metadata unavailable ({reason}); stop this session and inspect the automatic updater status.')
             try:
-                with open(root() / args.host / 'hook-errors.jsonl', 'a') as log:
-                    log.write(json.dumps({'at': time.time(), 'event': args.event, 'error': reason}) + '\n')
-            except OSError:
+                log = safe(root() / args.host / 'hook-errors.jsonl')
+                fd = os.open(log, os.O_CREAT | os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW, 0o600)
+                with os.fdopen(fd, 'a') as stream:
+                    if os.fstat(fd).st_size > LIMIT:  # bounded diagnostic log: start over rather than grow
+                        stream.truncate(0)
+                    stream.write(json.dumps({'at': time.time(), 'event': args.event, 'error': reason}) + '\n')
+            except (OSError, ValueError):
                 pass
             print(json.dumps(hook_output(args.event, message)))
             return 0
