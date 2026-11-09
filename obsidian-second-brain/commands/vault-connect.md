@@ -6,16 +6,17 @@ argument-hint: [note name|topic|recent]
 
 Actively build connections in the vault's knowledge graph. While `/vault-organize` diagnoses disconnection, this command fixes it — finding semantically related notes that should be linked and offering to weave them together.
 
-**Uses qmd vector search when available** for dramatically better connection discovery. Instead of relying on keyword overlap alone, qmd's `vsearch` finds notes that are conceptually related even when they use different terminology.
+**Uses qmd vector search when available** for conceptual connection discovery. Instead of relying on keyword overlap alone, qmd's `vsearch` finds notes that are conceptually related even when they use different terminology.
 
 ## Step 0: Detect qmd Availability
 
-```bash
-command -v qmd >/dev/null 2>&1 && QMD_AVAILABLE=true || QMD_AVAILABLE=false
-if [ "$QMD_AVAILABLE" = true ]; then
-  qmd status vault 2>/dev/null && QMD_INDEXED=true || QMD_INDEXED=false
-fi
-```
+Load `qmd-search` and its [approved indexing procedure](../skills/qmd-search/references/approved-indexing.md).
+Read `QMD_INDEX` and `QMD_COLLECTION` from the approved setup record; verify installed CLI,
+actual collection path/mask, indexed members and embedding readiness before choosing qmd.
+Never guess a default `vault` collection, create an index while searching, or treat status's
+exit code as evidence of scope/freshness. Keep compiler output and private state unindexed.
+If qmd is unavailable or scope cannot be verified, use MCP/CLI/filesystem search bounded to the
+same authorized note scope. Never silently broaden fallback search to the whole vault.
 
 Parse "$ARGUMENTS" to determine the starting point:
 
@@ -26,8 +27,8 @@ Parse "$ARGUMENTS" to determine the starting point:
 3. **Search for related notes** — Cast a wide net using the best available tools:
 
    **With qmd (preferred):**
-   - `qmd vsearch vault "<summary of the note's core ideas>"` — finds semantically similar notes regardless of keyword overlap. This is the primary connection discovery mechanism.
-   - `qmd vsearch vault "<key concept 1>"` and `qmd vsearch vault "<key concept 2>"` — targeted semantic searches for specific themes within the note.
+   - `qmd --index "${QMD_INDEX:?set approved index}" vsearch "<summary of the note's core ideas>" -c "${QMD_COLLECTION:?set approved collection}"` — finds semantically similar notes regardless of keyword overlap. This is the primary connection discovery mechanism.
+   - `qmd --index "${QMD_INDEX:?set approved index}" vsearch "<key concept 1>" -c "${QMD_COLLECTION:?set approved collection}"` and `qmd --index "${QMD_INDEX:?set approved index}" vsearch "<key concept 2>" -c "${QMD_COLLECTION:?set approved collection}"` — targeted semantic searches for specific themes within the note.
    - Then supplement with MCP for structured data: `obsidian backlinks file="<note>"` to see what already links here, and `obsidian links file="<note>"` to see what it already links to.
 
    **Without qmd (fallback):**
@@ -58,7 +59,7 @@ Parse "$ARGUMENTS" to determine the starting point:
 ## If a topic is given:
 
 1. **Find all notes on the topic:**
-   - **With qmd**: Run `qmd vsearch vault "<topic>"` to find all semantically related notes — this catches notes that discuss the topic using different terminology.
+   - **With qmd**: Run `qmd --index "${QMD_INDEX:?set approved index}" vsearch "<topic>" -c "${QMD_COLLECTION:?set approved collection}"` to find all semantically related notes — this catches notes that discuss the topic using different terminology.
    - **Without qmd**: Combine `obsidian search` and tag queries to find the cluster.
 2. **Map existing connections** — For each note in the cluster, check which other cluster notes it already links to.
 3. **Identify missing links** — Find pairs of notes that discuss related aspects of the topic but don't link to each other.
@@ -67,7 +68,7 @@ Parse "$ARGUMENTS" to determine the starting point:
 
 ## Bridge Notes (for any mode)
 
-After finding connections, look for "bridge" opportunities — notes that could connect two otherwise isolated clusters. **qmd makes this dramatically easier**: run `qmd vsearch` with a concept that spans two domains (e.g., "persuasion techniques" to bridge "marketing" and "psychology" clusters). Without qmd, bridge discovery relies on finding notes with tags or keywords from both clusters.
+After finding connections, look for "bridge" opportunities — notes that could connect two otherwise isolated clusters. **With a verified approved qmd scope**: run `qmd vsearch` with a concept that spans two domains (e.g., "persuasion techniques" to bridge "marketing" and "psychology" clusters). Without qmd, bridge discovery relies on finding notes with tags or keywords from both clusters.
 
 Surface bridge opportunities when found — these are among the highest-value connections in a knowledge graph.
 

@@ -1,0 +1,54 @@
+{
+  "schema_version": 2,
+  "pages": [
+    {
+      "page_id": "project-overview",
+      "path": "Project overview.md",
+      "title": "Project overview",
+      "claims": [
+        {
+          "claim_id": "delivery",
+          "text": "The approved brief and meeting record agree that the launch is Friday.",
+          "citations": [
+            {
+              "source_id": "project-brief",
+              "start_line": 1,
+              "end_line": 1
+            },
+            {
+              "source_id": "meeting-2026-11-08",
+              "start_line": 1,
+              "end_line": 1
+            }
+          ]
+        }
+      ],
+      "links": [
+        "Decision record"
+      ],
+      "contradiction_candidates": []
+    },
+    {
+      "page_id": "decision-record",
+      "path": "Decision record.md",
+      "title": "Decision record",
+      "claims": [
+        {
+          "claim_id": "decision-owner",
+          "text": "The meeting assigns launch review to the project owner.",
+          "citations": [
+            {
+              "source_id": "meeting-2026-11-08",
+              "start_line": 2,
+              "end_line": 2
+            }
+          ]
+        }
+      ],
+      "links": [
+        "Project overview"
+      ],
+      "contradiction_candidates": []
+    }
+  ]
+}

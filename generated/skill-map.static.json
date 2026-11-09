@@ -4861,15 +4861,15 @@
       "treeHash": "9b5687b96809fbe6a241cd6c01e56bd3d0e7fcd355ffaa01b31a0bbdf7e53f88"
     },
     {
-      "contentHash": "9282181e6a3d4a88f2a24295564cc6f35ee987dd2dd5b5923973d0398c0b370f",
+      "contentHash": "7a3090a0222425a724a0c3666e471c7e18aeb24ada10ef655094d6fefa59beb8",
       "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
-      "fileCount": 2,
+      "fileCount": 4,
       "id": "skill:obsidian-second-brain/knowledge-compiler",
       "kind": "skill",
       "name": "knowledge-compiler",
       "path": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md",
-      "totalBytes": 4381,
-      "treeHash": "3d512dabae84b62d8f968fca4d3bd59530ae6a3d386c76eff16ad617f1914120"
+      "totalBytes": 12273,
+      "treeHash": "d67f7c0a85d1d9f9a4b9030d2088a4b7759637b56a06bac30862203ca084063e"
     },
     {
       "contentHash": "5c6c805032c18a8df42dff7686910a76ed3d09981efb525b1937b63cacadd8d7",
@@ -4908,16 +4908,16 @@
       "treeHash": "b01834c32b61cde7024e9e2458671548c4e239eb196f0a4f44ee49128828a7ad"
     },
     {
-      "contentHash": "99a55974baa09ef66d649a6bb2ee915539e8df7c1881fe67deafbcf4511500bc",
+      "contentHash": "a84d40d53e6b60d46be5a6ab4923dac6ad0d328125bf94cd04edc1a7ea6be3c8",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. Local-first semantic search for Obsidian vaults using qmd — combines BM25 full-text, vector semantic search, and LLM re-ranking. Use this skill when someone asks about setting up qmd, configuring vault indexing, choosing between search modes (BM25 vs vector vs hybrid), connecting qmd's MCP server to Claude, troubleshooting search quality, or understanding how qmd works. Also triggers on \"semantic search\", \"vector search\", \"qmd\", \"embed vault\", \"vault indexing\", \"search my notes by meaning\", \"find similar notes\", or \"natural language vault search\".",
-      "fileCount": 1,
+      "fileCount": 2,
       "id": "skill:obsidian-second-brain/qmd-search",
       "kind": "skill",
       "name": "qmd-search",
       "path": "obsidian-second-brain/skills/qmd-search/SKILL.md",
       "summary": "Sets up and troubleshoots local semantic search over your Obsidian vault using qmd.",
-      "totalBytes": 5337,
-      "treeHash": "11b9c981c734f29fd664012114caf64681ee106b32bff5a927d8087119e08462"
+      "totalBytes": 11007,
+      "treeHash": "e8bb3d2c9f7e35df3391df059a80406a0b925584d3d211f32a1d7cd89771cb1f"
     },
     {
       "contentHash": "6113179919813b0f8346d4034e5ce3c2efd922eea4dcf3aaba613632548b48cb",

@@ -120,7 +120,8 @@ class CompiledKnowledgeTests(unittest.TestCase):
             applied = vault.apply(str(preview["preview_id"]))
             self.assertEqual(applied["status"], "applied")
             page = vault.output / "compiled-page.md"
-            self.assertTrue(page.read_text().startswith("<!-- rhize-compiled-knowledge:page-id=page-1 -->"))
+            self.assertTrue(page.read_text().startswith("---\n"))
+            self.assertTrue(compiler.owns_page(page.read_bytes(), "page-1"))
             self.assertEqual(vault.apply(str(preview["preview_id"]))["status"], "noop")
             report = compiler.status_report(vault.settings, NOW)
             self.assertEqual(report["pages"][0]["status"], "clean")

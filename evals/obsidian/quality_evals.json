@@ -106,11 +106,14 @@
   {
     "id": "quality-qmd-search-mode-selection",
     "skill": "qmd-search",
-    "prompt": "Explain an entirely local qmd setup for an Obsidian vault and choose among BM25, vector, and hybrid search for exact phrase lookup versus concept discovery. Include the indexing prerequisite and commands; do not run them.",
+    "prompt": "Explain local qmd search over an explicitly approved subset of an Obsidian vault, keeping compiler output and private state unindexed. Choose among BM25, vector, and hybrid for exact phrases versus concepts. Include named-index/collection scope, package/model downloads, and the refresh sequence; do not run commands or alter configuration.",
     "assertions": [
       {"type": "contains", "value": "BM25", "name": "Explains lexical mode"},
       {"type": "regex", "value": "(?i)(vector|semantic)", "name": "Explains semantic mode"},
-      {"type": "contains", "value": "qmd embed", "name": "Includes embedding prerequisite"},
+      {"type": "regex", "value": "qmd --index [^\\n]+ embed", "name": "Includes scoped embedding prerequisite"},
+      {"type": "regex", "value": "qmd --index [^\\n]+ update", "name": "Includes source scan prerequisite"},
+      {"type": "regex", "value": "(?i)(approved|allowlist)", "name": "Preserves approved scope"},
+      {"type": "regex", "value": "(?i)(compiler|compiled).*(unindexed|exclu|outside|never)|(?i:never|exclu|outside).*(compiler|compiled)", "name": "Keeps compiler material out of the index"},
       {"type": "regex", "value": "(?i)(local|on-device)", "name": "Preserves local-first boundary"},
       {"type": "regex", "value": "(?i)(\\[skill:qmd-search\\])", "name": "Skill watermark present"}
     ]

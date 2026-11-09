@@ -54,7 +54,9 @@ If `$ARGUMENTS` contains a focus keyword after "check", run only that analysis a
 
 **"check compiled":**
 - Load the `knowledge-compiler` skill and run its deterministic `status` mode with the explicit
-  project config. Never infer a personal vault path or inspect private preview contents.
+  project config. `status` can recover interrupted apply/purge transactions, including writes and
+  deletions; skip it in observation-only scheduled tasks and report that limitation. Never infer
+  a personal vault path or inspect private preview contents.
 - Report accepted pages as clean, stale, conflicting, or purged. Include the reason codes, expired
   preview count, recovered transaction ids, and qmd eligibility, but not source text or absolute
   private paths.

@@ -175,6 +175,9 @@ def test_unpinned_image_never_invokes_docker(image, tmp_path):
 
 def test_remote_context_and_image_volume_are_refused(tmp_path, monkeypatch):
     adapter = test_evidence.sandbox_adapter()
+    # This provider-free contract already substitutes the client; isolate discovery too.
+    monkeypatch.setattr(adapter.shutil, 'which', lambda *_args, **_kwargs: '/fixture/docker')
+    monkeypatch.setattr(adapter.subprocess, 'Popen', lambda *_args, **_kwargs: pytest.fail('real Docker must not run'))
     monkeypatch.setenv('DOCKER_HOST', 'tcp://remote.example.invalid:2375')
     with pytest.raises(adapter.SandboxUnavailable, match='local Unix'):
         adapter.DockerSandbox(IMAGE, tmp_path / 'remote')
@@ -182,6 +185,15 @@ def test_remote_context_and_image_volume_are_refused(tmp_path, monkeypatch):
     monkeypatch.setattr(adapter.DockerSandbox, 'client', lambda *a, **kw: json.dumps({'Id': IMAGE, 'Config': {'Volumes': {'/data': {}}}}))
     with pytest.raises(adapter.SandboxUnavailable, match='identity'):
         adapter.DockerSandbox(IMAGE, tmp_path / 'volume')
+
+
+def test_missing_docker_cli_is_unavailable_without_invoking_client(tmp_path, monkeypatch):
+    adapter = test_evidence.sandbox_adapter()
+    monkeypatch.setattr(adapter.shutil, 'which', lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(adapter.DockerSandbox, 'client', lambda *_args, **_kwargs: pytest.fail('client must not run'))
+    with pytest.raises(adapter.SandboxUnavailable, match='Docker is unavailable'):
+        adapter.DockerSandbox(IMAGE, tmp_path / 'missing')
+    assert not (tmp_path / 'missing').exists()
 
 
 @pytest.mark.parametrize('inspection_error', [None, OSError('Git unavailable'), test_evidence.EvidenceError('Git failed')])

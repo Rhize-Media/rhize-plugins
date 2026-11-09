@@ -128,31 +128,42 @@ The Defuddle CLI must be installed globally: `npm install -g defuddle`. This is 
 - Ask "how do I connect qmd to Claude Desktop?" — it will provide the MCP config JSON.
 - Ask "my qmd searches aren't finding relevant notes" — it will help troubleshoot indexing and suggest the right search mode.
 
-**Key insight:** qmd runs entirely on-device with no cloud dependencies. Vector embeddings and LLM re-ranking use local models via node-llama-cpp.
+**Scope and activation:** follow the [approved indexing procedure](skills/qmd-search/references/approved-indexing.md).
+Approve a strict note subfolder and named index/collection; never index the whole vault or compiler
+output/private state. Inspect old collections before reuse and treat old-index cleanup separately.
+Refresh with update before embed. Search and fallback paths preserve the same authorized scope.
+Packages/models need initial downloads; inference then uses local models via node-llama-cpp.
+Retrieval improvement requires a representative benchmark, not just successful installation.
 
 ## Commands Reference
 
 ### knowledge-compiler and /vault-compile
 
-Use this workflow when several captured sources should become a maintained knowledge page rather
-than another one-off summary. Ask: “Use the knowledge compiler to preview a cited page from this
-registered source.” Claude Code and Codex both use the same deterministic engine.
+Use this workflow to turn related captured sources into maintained project, decision, and topic
+pages. Ask: “Use the knowledge compiler to preview project and decision pages from these registered
+meeting notes and briefs.” Claude Code and Codex both use the same deterministic engine. A v2 batch
+can contain 1–100 pages, with multiple citations and sources per page; v1 proposals still work.
+See the [batch workflow and example](skills/knowledge-compiler/references/batch-workflow.md).
 
-The workflow has four user-facing modes:
+The workflow has five user-facing modes:
 
 - `preview` creates private artifacts and shows the exact proposed diff. It does not touch the
   compiled page.
 - `apply` writes only a specifically approved, unexpired preview. It stops if the source or target
   changed, the ACL/retention contract drifted, or a human edited the page.
+- `inspect` reports existing page health without writing, initializing state, or recovering transactions.
+  A pending transaction is reported as `recovery-required`; a current writer reports `busy`.
 - `status` reports clean, stale, conflicting, and purged pages without exposing preview content. If
   an authorized apply was interrupted, status first restores its journaled pre-transaction bytes;
   if an authorized purge was interrupted, status resumes its forward-only deletion journal before
-  reporting. It never authors a new synthesis.
+  reporting. It never authors a new synthesis. This is recovery-capable, not read-only; do not
+  put it in observation-only scheduled tasks.
 - `rebuild` creates another preview; it never applies automatically.
 
 First, generate a starter config with `python3 scripts/compiled_knowledge.py init-config
 --vault-root /approved/vault` — it prints a template with everything disabled by default, so
-nothing runs until you deliberately turn it on. Fill in your project's real directories and access
+export and scheduling integrations remain disabled. Manual register/preview/apply commands still
+perform their documented work; there is no master enable switch. Fill in your project's real directories and access
 rules — who can read it, where it's allowed to live, how long it's kept — and leave `qmd_enabled`
 set to false: qmd can't yet respect this compiler's access and retention rules, so turning it on
 would let compiled content leak into a search index those rules don't cover. See the
@@ -167,9 +178,9 @@ fields. Every claim must cite exact inclusive source line numbers, and those lin
 Example lifecycle:
 
 1. `/vault-capture <source>` and opt into compiler registration.
-2. `/vault-compile preview ...` and inspect the change brief plus diff.
+2. `/vault-compile preview ...` with a v2 proposal; inspect `review.md`, all cited excerpts, and page diffs.
 3. Explicitly approve the displayed preview id.
-4. `/vault-compile apply ...`, then `/vault-align check compiled`.
+4. `/vault-compile apply ...` with that batch id, then `inspect` to verify page health.
 
 Scheduled compilation, automatic apply, context injection, Graphify, and Neo4j promotion are not
 available in this release. A legal/privacy purge is a separate explicit operation requiring the exact
@@ -266,7 +277,7 @@ Periodic review that summarizes recent vault activity, surfaces patterns, and fl
 
 **Usage:** `/vault-recall <natural language question>`
 
-A "talk to your notes" interface. Ask a question in plain language and get a synthesized answer drawn from your vault, with `[[wikilink]]` citations to source notes. Uses qmd hybrid search (BM25 + vector + LLM re-ranking) for the highest quality retrieval, then reads the top results and composes an answer that attributes claims to specific notes, highlights contradictions, and identifies knowledge gaps. Falls back to keyword search when qmd isn't installed, but results are significantly better with qmd's semantic capabilities.
+A "talk to your notes" interface. Ask a question in plain language and get a synthesized answer drawn from your vault, with `[[wikilink]]` citations to source notes. Uses qmd hybrid search (BM25 + vector + LLM re-ranking) for the highest quality retrieval, then reads the top results and composes an answer that attributes claims to specific notes, highlights contradictions, and identifies knowledge gaps. Falls back to scoped keyword search when qmd is unavailable. Verify retrieval quality on representative questions before preferring a mode.
 
 **Examples:**
 
@@ -396,9 +407,29 @@ Get the key from Obsidian: Settings → Community plugins → Local REST API →
 a new preview. Never edit the retained snapshot or force the old preview through.
 
 **Compiler says the target changed after preview:** A human or another session edited the compiled
-page. Preserve that edit, review the conflict, and create a new preview. The compiler intentionally
+page. Preserve that edit in a separate linked human note, review the conflict, and deliberately
+restore the last accepted projection before creating a new preview. A fresh preview cannot silently
+absorb edits made before it. The compiler intentionally
 has no force-overwrite mode.
 
 **Compiler reports a recovered transaction:** The previous apply was interrupted. Recovery restored
 the exact pre-transaction page/index/log state. Inspect `status`, then re-run the same approved apply
 or generate a new preview if its expiry or source binding changed.
+
+### Daily adoption of batch compilation
+
+Start with one approved project scope and several already-captured notes. Register each with its
+actual ACL, egress and retention labels; then propose a project overview, decision record and topic
+page. Review the single bundle before applying it. Use `inspect` for health observations and direct
+source reads for recall; qmd is not required for the manual compiler.
+
+After new meetings or changed source notes, register the new revision and create a fresh evidence
+proposal. A rebuild with no proposal works only while all original source revisions and policies
+still match; it cannot reuse old line numbers on changed sources. Human commentary belongs in
+separate linked notes. Properties/Bases can list compiled pages, but their `status: compiled` property
+is a type label, not a live freshness guarantee; consult `inspect` before relying on them.
+
+Existing inbox/harvest routines can suggest a reviewable batch, and a health routine can invoke
+`inspect` after its owner explicitly updates the routine. This release does not change any schedules
+or enable unattended writes. Resolve a pending transaction through `status` only within the original
+authorization; if recovery reports a conflict, preserve human bytes before choosing a repair.

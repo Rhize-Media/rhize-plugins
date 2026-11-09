@@ -23,7 +23,7 @@ metadata:
 
 # qmd Semantic Search
 
-qmd is a local-first search engine that combines BM25 full-text search, vector semantic search, and LLM re-ranking for high-quality results — all running on-device with no cloud dependencies.
+qmd is a local-first search engine that combines BM25 full-text search, vector semantic search, and LLM re-ranking for high-quality results — with local inference once packages and models have been downloaded.
 
 ## When to Use This Skill
 
@@ -37,26 +37,22 @@ Use this skill whenever someone asks about:
 
 ## Prerequisites
 
-- **Node.js** v18+ (qmd is an npm package)
-- **qmd** installed globally: `npm install -g qmd`
-- A vault indexed as a qmd collection
+- **Node.js** 22+ or supported Bun
+- **qmd** from `@tobilu/qmd`; verify installed version/help
+- An approved note root, named index and collection recorded in the setup log
 
 ## Core Concepts
 
 ### Collections
 
-A collection is a qmd index over a directory of files. For an Obsidian vault, you create one collection that indexes all `.md` files:
+Read [approved-indexing.md](references/approved-indexing.md) before setup, refresh or retrieval.
+It is the canonical procedure for approved roots, named-index isolation, existing-index migration,
+compiler exclusions, current CLI syntax and verification. Never index the whole vault. Never put
+compiler output or private state in a collection. Example paths do not grant consent.
 
-```bash
-# Add the vault as a collection named "vault"
-qmd collection add vault /path/to/your/vault --include "*.md"
-
-# Generate embeddings for semantic search
-qmd embed vault
-
-# Verify the collection is indexed
-qmd status vault
-```
+Load `QMD_INDEX` and `QMD_COLLECTION` from the approved setup record, verify actual collection
+paths/masks and indexed members, and preserve that scope in fallback searches. Status success
+alone does not prove the collection is safe, fresh or embedded.
 
 ### Search Modes
 
@@ -67,15 +63,15 @@ qmd offers three search modes, each with different strengths:
 - Best for: exact phrases, specific terms, code snippets, property values
 - Fast and precise when you know the exact words used
 ```bash
-qmd search vault "meeting notes client onboarding"
+qmd --index "${QMD_INDEX:?set approved index}" search "meeting notes client onboarding" -c "${QMD_COLLECTION:?set approved collection}"
 ```
 
 **2. Vector Search (Semantic)** — `qmd vsearch`
 - Finds conceptually similar content even without keyword overlap
 - Best for: "notes about X", finding related ideas, discovering connections
-- Requires embeddings (`qmd embed vault` must be run first)
+- Requires embeddings (`qmd --index "$QMD_INDEX" embed` must be run first)
 ```bash
-qmd vsearch vault "strategies for improving customer retention"
+qmd --index "${QMD_INDEX:?set approved index}" vsearch "strategies for improving customer retention" -c "${QMD_COLLECTION:?set approved collection}"
 ```
 
 **3. Hybrid Query (BM25 + Vector + LLM Re-ranking)** — `qmd query`
@@ -83,7 +79,7 @@ qmd vsearch vault "strategies for improving customer retention"
 - Best for: natural language questions, complex queries, "what do I know about X"
 - Highest quality but slowest (LLM inference on-device)
 ```bash
-qmd query vault "What decisions did we make about the API architecture?"
+qmd --index "${QMD_INDEX:?set approved index}" query "What decisions did we make about the API architecture?" -c "${QMD_COLLECTION:?set approved collection}"
 ```
 
 ### MCP Server
@@ -91,26 +87,13 @@ qmd query vault "What decisions did we make about the API architecture?"
 qmd ships with a built-in MCP server that exposes search tools to Claude:
 
 ```bash
-qmd mcp
+qmd --index "${QMD_INDEX:?set approved index}" mcp
 ```
 
-This starts an MCP server with these tools:
-- **query** — hybrid search (BM25 + vector + LLM re-ranking)
-- **get** — retrieve a specific document by path
-- **multi_get** — retrieve multiple documents by path
-- **status** — check collection index status
-
-To connect to Claude Desktop or Cowork, add to your MCP config:
-```json
-{
-  "mcpServers": {
-    "qmd": {
-      "command": "qmd",
-      "args": ["mcp"]
-    }
-  }
-}
-```
+Inspect live `tools/list` and schemas rather than assuming tool names. Current upstream exposes
+query/get/multi_get/status and metadata discovery; query uses a `collections` array. Match the
+CLI's approved index/collection. The existing `qmd@qmd` server may use a different default index;
+verify its configuration. Do not automatically create or rewrite host MCP configuration.
 
 ## Choosing the Right Search Mode
 
@@ -124,25 +107,17 @@ To connect to Claude Desktop or Cowork, add to your MCP config:
 
 ## Keeping the Index Fresh
 
-After adding or editing notes, re-index to keep search current:
-```bash
-# Re-embed only changed files (incremental)
-qmd embed vault
-
-# Check index health
-qmd status vault
-```
-
-The `/vault-setup` command can configure qmd indexing during initial vault setup, and `/vault-align` checks index freshness during health audits.
+Follow the canonical reference: `qmd --index "$QMD_INDEX" update`, then
+`qmd --index "$QMD_INDEX" embed`, then inspect `qmd --index "$QMD_INDEX" status`.
+Review all collections and update hooks first. Embedding alone does not scan changed sources.
+Do not silently schedule indexing or delete old caches during migration.
 
 ## Fallback Behavior
 
-If qmd is not installed or the vault collection doesn't exist, all commands gracefully fall back to MCP keyword search (`obsidian_search_notes`) and CLI search (`obsidian search`). Commands should always check for qmd availability before attempting to use it:
-
-```bash
-command -v qmd >/dev/null 2>&1 && echo "qmd available" || echo "qmd not available"
-qmd status vault 2>/dev/null && echo "vault indexed" || echo "vault not indexed"
-```
+If qmd, its approved collection or embeddings are unavailable, disclose the limitation. Use BM25
+when appropriate, or MCP/CLI keyword search bounded to the same authorized note scope. Never
+broaden to a whole-vault search because qmd failed. Measure representative questions before
+claiming better retrieval.
 
 **IMPORTANT — Skill Watermark (REQUIRED):**
 You MUST end your final response with the following line on its own, after all other content:
