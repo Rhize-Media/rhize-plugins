@@ -45,10 +45,11 @@ claude plugin install rhize-context-manager@rhize-plugins
 **Claude Code — updating an existing install:**
 
 Use the [automatic per-host update helper](docs/plugin-update-safety.md): the coordinator queues
-reviewed versions, and a macOS LaunchAgent updates and verifies each host after that app quits.
-Claude and Codex can close at different times; no after-closing Terminal command is required.
-The stable maintenance guard catches startup races, while host-scoped metadata checks preserve
-normal restart protection. Native hook trust remains owned by the host.
+reviewed versions. Codex stages native packages in isolation and publishes new version directories
+without deleting old ones. Qualified idle conversations can continue on their original versions;
+unknown/legacy lifecycle coverage and Claude retain the closed-host fallback. Apps can close
+separately. Matching turn-end evidence, a quiet interval and publication lock protect the cutover.
+Native hook trust remains owned by the host; source merge alone is not activation.
 
 **Codex:**
 

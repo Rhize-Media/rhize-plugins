@@ -1090,3 +1090,20 @@ The exact-head candidate3389850 passed full hosted CI after generated-doc repair
 Independent native Fable5.1 delta review completed (76.909s, attested). Fixed pre-refresh legacy/malformed approval validation, explicit ignored/untracked status detection and replacement-object exclusion; queue requires directory tree objects. Added real Git tests for ignored/untracked files despite status.showUntrackedFiles=no, replacement refs and blob/source mismatches. Original pending-release checks remain required.
 
 Final cold review tightened the frozen tree hash to a JSON string, rejecting a 40-digit numeric lookalike before any native command. Combined updater/guard regressions87passed. No other behavior changed.
+
+## Safe plugin publication — 2026-11-09 UTC
+
+Implemented isolated native Codex staging from exact Git objects and additive version publication.
+Old paths/inodes remain intact. Correlated turn ends, fresh quiet periods, process-start identities
+and an admission lock gate idle publication; bootstrap/unknown owners and missing turn IDs hold
+until host closure. Claude retains native closed-host registration because a helper-only lock is
+not a native registry transaction. Do not replace a whole shared registry after a read-only CAS.
+An isolated native CLI fixture selected 1.1.0 while retaining 1.0.0; this is not live activation.
+No installed cache, approval, native CLI version or schedule was changed by source qualification.
+Independent review caught revision/quiet-period races; regressions bind the same resolved commit
+and preserve a new activity sequence through staging. No automatic cache garbage collection.
+
+Verification: 104 focused updater/guard/cache tests pass, independently repeated. Broader Dev Flow
+suite: 919 passed and one sandbox-denied process-inspection failure; the affected test passed
+with native host access. Independent source review PASS_WITH_WARNINGS: native idle-event
+coverage and live activation are not claimed. Exact Git staged fixture/native discovery passes.
