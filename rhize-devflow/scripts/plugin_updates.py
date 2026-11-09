@@ -488,12 +488,19 @@ def hook(host, event, payload):
         busy = bool(state and (state['phase'] == 'updating' or
                     (state['phase'] == 'held' and state['mutationStarted']) or
                     (state.get('repairRequired', False) and state['phase'] != 'complete')))
+        def lineage(fallback):
+            # sysctl argv reads fail (EINVAL) for host processes mid-spawn/exit, e.g. MCP servers. Keeping the
+            # last known owners is safe: unknown owners keep idle() closed and worker owners() stays fail-closed.
+            try:
+                return process_tokens(host, ancestors=True)
+            except (OSError, ValueError, RuntimeError):
+                return fallback
         if old is None:
             old = {'generation': state['generation'] if state else 0, 'restartRequired': busy and state.get('cachePolicy') != 'immutable-v1',
-                   'protocol': 1, 'active': True, 'owners': process_tokens(host, ancestors=True)}
+                   'protocol': 1, 'active': True, 'owners': lineage({})}
         turn = payload.get('turn_id') or payload.get('turnId')
         if event in {'SessionStart', 'UserPromptSubmit', 'PreToolUse'}:
-            old.update(active=True, owners=process_tokens(host, ancestors=True))
+            old.update(active=True, owners=lineage(old.get('owners', {})))
             if event in {'SessionStart', 'UserPromptSubmit'} or turn is not None:
                 old['turn'] = turn
             activity_path = root() / host / 'activity.json'
@@ -640,9 +647,16 @@ def main():
         return 0 if args.command == 'worker' else 1
     except Exception as error:
         if args.command == 'hook':
+            # Raise sites use short category strings and run() strips native output, so the reason is safe to surface.
+            reason = f'{type(error).__name__}: {error}'[:200]
             message = ('Rhize plugin publication is busy; wait for its completion receipt before another tool. Existing versions are retained.'
                        if str(error) == 'publication_busy_try_after_completion' else
-                       'Rhize update metadata unavailable; stop this session and inspect the automatic updater status.')
+                       f'Rhize update metadata unavailable ({reason}); stop this session and inspect the automatic updater status.')
+            try:
+                with open(root() / args.host / 'hook-errors.jsonl', 'a') as log:
+                    log.write(json.dumps({'at': time.time(), 'event': args.event, 'error': reason}) + '\n')
+            except OSError:
+                pass
             print(json.dumps(hook_output(args.event, message)))
             return 0
         print(str(error), file=sys.stderr)

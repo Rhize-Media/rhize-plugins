@@ -586,6 +586,30 @@ def test_legacy_installed_guard_requires_closed_host(worker, monkeypatch):
     assert updates.idle('codex', [], {'idleProtocol': 1})
 
 
+def test_transient_process_inventory_failure_does_not_block_hooks(worker, monkeypatch):
+    root, *_ = worker
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
+    assert updates.hook('codex', 'UserPromptSubmit', {'session_id': 'one'}) is None
+    def churn(*args, **kwargs):
+        raise OSError(22, 'process_arguments_unavailable')
+    monkeypatch.setattr(updates, 'process_tokens', churn)
+    assert updates.hook('codex', 'PreToolUse', {'session_id': 'one'}) is None
+    assert updates.hook('codex', 'UserPromptSubmit', {'session_id': 'fresh'}) is None
+    sessions = [updates.read(p) for p in (root / 'codex/sessions').glob('*.json')]
+    assert sorted((s['owners'] for s in sessions), key=len) == [{}, {'123': 'start'}]
+
+
+def test_unexpected_hook_error_names_its_category(tmp_path):
+    (tmp_path / '.local/share/rhize/plugin-updates/codex').mkdir(parents=True)
+    (tmp_path / '.local/share/rhize/plugin-updates/codex/status.json').write_text('[]')
+    result = subprocess.run([sys.executable, str(SCRIPT), 'hook', 'codex', 'UserPromptSubmit'],
+        input=json.dumps({'hook_event_name': 'UserPromptSubmit', 'session_id': 'one'}),
+        env=dict(os.environ, HOME=str(tmp_path)), text=True, capture_output=True, timeout=5)
+    assert 'ValueError: invalid_queue' in json.loads(result.stdout)['stopReason']
+    log = (tmp_path / '.local/share/rhize/plugin-updates/codex/hook-errors.jsonl').read_text()
+    assert 'invalid_queue' in log
+
+
 def test_actual_hook_lock_contention_is_temporary(tmp_path, monkeypatch):
     monkeypatch.setattr(updates.Path, 'home', lambda: tmp_path)
     with updates.admission('codex'):

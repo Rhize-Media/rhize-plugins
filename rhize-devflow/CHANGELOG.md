@@ -8,6 +8,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-09_ version bump — 2.33.1 → 2.33.2 (patch); marketplace 2.119.1 → 2.119.2.
+- Stop updater hooks from blocking prompts and tools when host process inventory fails transiently (sysctl argv EINVAL on MCP/host processes mid-spawn or exit); hooks keep the last known owners, which leaves idle() and the worker fail-closed. Unexpected hook errors now name their category in the stop reason and append to `hook-errors.jsonl`.
 - _2026-11-09_ version bump — 2.33.0 → 2.33.1 (patch); marketplace 2.119.0 → 2.119.1.
 - Preserve installed Codex versions for open conversations with isolated native staging and additive publication; gate qualified idle cutover on correlated turn ends, fresh quiet periods and process identities. Keep Claude and unqualified lifecycle coverage on the closed-host fallback; never infer idle from elapsed time.- _2026-11-09_ version bump — 2.32.1 → 2.33.0 (minor); marketplace 2.118.0 → 2.119.0.
 - Route supplied reference animations to independently installed Reanimate; preserve motion-only defaults, reference-asset rights, restricted-source recordings, existing tools and separate measured-motion/browser acceptance.
