@@ -22,6 +22,7 @@ def worker(tmp_path, monkeypatch):
     monkeypatch.setattr(updates, 'root', lambda: tmp_path)
     monkeypatch.setattr(updates, 'notice', lambda *args: None)
     monkeypatch.setattr(updates, 'owners', lambda host: [])
+    monkeypatch.setattr(updates, 'idle_guard_ready', lambda host, config: True)
     updates.write(tmp_path / 'config.json', {'cli': {'codex': '/bin/codex', 'claude': '/bin/claude'}, 'python': sys.executable})
     before = {'rhize-devflow': {'version': '1.0.0', 'enabled': True, 'path': '/fake/old'}}
     after = {'rhize-devflow': {'version': '1.1.0', 'enabled': True, 'path': '/fake/new'}}
@@ -31,10 +32,18 @@ def worker(tmp_path, monkeypatch):
     updates.write(tmp_path / 'codex/status.json', state)
     updates.write(tmp_path / 'catalog/.claude-plugin/marketplace.json', {'plugins': [ENTRY]})
     calls = []
+    class Cache:
+        def prepare(self, *args):
+            calls.append(['prepare'])
+            return {'rhize-devflow': {'path': '/staged', 'digest': 'test'}}
+        def publish(self, *args):
+            calls.append(['publish'])
+    monkeypatch.setattr(updates, 'cache_module', Cache)
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {})
     def run(args, timeout=120):
         calls.append(args)
         if 'show' in args:
-            return json.dumps({'plugins': [ENTRY]})
+            return (tmp_path / 'catalog/.claude-plugin/marketplace.json').read_text()
         if 'status' in args:
             return ''
         if 'cat-file' in args:
@@ -46,7 +55,7 @@ def worker(tmp_path, monkeypatch):
         return '{}'
     monkeypatch.setattr(updates, 'run', run)
     monkeypatch.setattr(updates, 'marketplace', lambda *args: tmp_path / 'catalog')
-    monkeypatch.setattr(updates, 'inventory', lambda *args: after if any('add' in a or 'update' in a for a in calls) else before)
+    monkeypatch.setattr(updates, 'inventory', lambda *args: after if any('publish' in a or ('update' in a and 'marketplace' not in a) for a in calls) else before)
     return tmp_path, calls, state, before, after
 
 
@@ -70,7 +79,7 @@ def test_active_host_blocks_only_itself(worker, monkeypatch):
     root, calls, *_ = worker
     monkeypatch.setattr(updates, 'owners', lambda host: [45] if host == 'codex' else [])
     updates.worker('codex')
-    assert status(root)['phase'] == 'waiting_for_host'
+    assert status(root)['phase'] == 'waiting_for_idle'
     assert status(root)['ownerCount'] == 1
     assert not calls
     state = status(root)
@@ -85,7 +94,7 @@ def test_process_starts_before_mutation(worker, monkeypatch):
     checks = iter([[], [10]])
     monkeypatch.setattr(updates, 'owners', lambda _: next(checks))
     updates.worker('codex')
-    assert status(root)['phase'] == 'waiting_for_host'
+    assert status(root)['phase'] == 'waiting_for_idle'
     assert not calls
 
 
@@ -94,9 +103,9 @@ def test_process_starts_after_marketplace_refresh(worker, monkeypatch):
     checks = iter([[], [], [10]])
     monkeypatch.setattr(updates, 'owners', lambda _: next(checks))
     updates.worker('codex')
-    assert status(root)['phase'] == 'held'
+    assert status(root)['phase'] == 'waiting_for_idle'
     assert status(root)['mutationStarted'] is False
-    assert not any('add' in a for a in calls)
+    assert not any('publish' in a or ('update' in a and 'marketplace' not in a) for a in calls)
 
 
 def test_quiet_period_is_required(worker):
@@ -137,7 +146,7 @@ def test_verification_failure_never_claims_success(worker, monkeypatch, kind):
             return ' M rhize-devflow/changed.py'
         if kind == 'doctor' and 'doctor' in args:
             return '{"healthy":false}'
-        if kind == 'timeout' and 'add' in args:
+        if kind == 'timeout' and 'marketplace' in args:
             raise subprocess.TimeoutExpired(args, timeout)
         return result
     monkeypatch.setattr(updates, 'run', run)
@@ -168,7 +177,7 @@ def test_dependency_can_complete_then_other_host_reopens(worker, monkeypatch):
     before = state['before']
     after = {'rhize-devflow': {'version': '1.1.0', 'enabled': True, 'path': '/fake/new'}}
     calls.clear()
-    monkeypatch.setattr(updates, 'inventory', lambda *args: after if any('update' in a and 'marketplace' not in a for a in calls) else before)
+    monkeypatch.setattr(updates, 'inventory', lambda *args: after if any('publish' in a or ('update' in a and 'marketplace' not in a) for a in calls) else before)
     updates.worker('claude')
     assert status(root, 'claude')['phase'] == 'complete'
 
@@ -278,6 +287,7 @@ def test_installer_preserves_unrelated_hooks_and_missing_helper_denies(tmp_path,
     monkeypatch.setattr(updates.Path, 'home', lambda: tmp_path)
     monkeypatch.setattr(updates.shutil, 'which', lambda name: '/usr/bin/' + name)
     monkeypatch.setattr(updates, 'run', lambda *args, **kwargs: '')
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {})
     monkeypatch.setattr(updates.subprocess, 'run', lambda *args, **kwargs: subprocess.CompletedProcess(args, 1, '', ''))
     unrelated = {'hooks': [{'type': 'command', 'command': 'existing-hook'}]}
     updates.write(tmp_path / '.claude/settings.json', {'custom': True, 'hooks': {'PreToolUse': [unrelated]}})
@@ -356,6 +366,7 @@ def test_missing_interpreter_denies_even_when_helper_exists(tmp_path, monkeypatc
     monkeypatch.setattr(updates.Path, 'home', lambda: tmp_path)
     monkeypatch.setattr(updates.shutil, 'which', lambda name: str(tmp_path / 'removed-python') if name == 'python3' else '/usr/bin/' + name)
     monkeypatch.setattr(updates, 'run', lambda *args, **kwargs: '')
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {})
     monkeypatch.setattr(updates.subprocess, 'run', lambda *args, **kwargs: subprocess.CompletedProcess(args, 1, '', ''))
     updates.install()
     command = updates.read(tmp_path / '.codex/hooks.json')['hooks']['PreToolUse'][0]['hooks'][0]['command']
@@ -453,3 +464,102 @@ def test_catalog_guard_detects_untracked_and_ignored_files(worker, monkeypatch, 
     assert status(root)['error'] == 'catalog_worktree_changed'
     assert not any('add' in a for a in calls)
     assert all('--no-replace-objects' in a for a in calls if a[0] == '/usr/bin/git')
+
+
+def test_only_correlated_stop_releases_turn_and_resume_resets_quiet(worker, monkeypatch):
+    root, _, state, *_ = worker
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
+    payload = {'session_id': 'one', 'turn_id': 'turn2'}
+    updates.hook('codex', 'UserPromptSubmit', payload)
+    updates.hook('codex', 'PreToolUse', {'session_id': 'one'})
+    updates.hook('codex', 'Stop', {'session_id': 'one', 'turn_id': 'turn1'})
+    config = {'idleProtocol': 1}
+    assert not updates.idle('codex', [123], config)
+    updates.hook('codex', 'Stop', {'session_id': 'one'})
+    assert not updates.idle('codex', [123], config)
+    updates.hook('codex', 'Stop', payload)
+    assert updates.idle('codex', [123], config)
+    assert not updates.idle('claude', [123], config)
+    assert not updates.idle('codex', [123, 456], config)
+    assert not updates.idle('codex', [123], dict(config, bootstrapOwners={'codex': {'123': 'start'}}))
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'new-start'})
+    assert not updates.idle('codex', [123], config)
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
+    updates.hook('codex', 'PreToolUse', payload)
+    assert not updates.idle('codex', [123], config)
+    assert updates.read(root / 'codex/activity.json')['sequence'] == 3
+
+
+def test_multiple_conversations_under_one_owner_all_must_stop(worker, monkeypatch):
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
+    for session in ('a', 'b'):
+        updates.hook('codex', 'UserPromptSubmit', {'session_id': session, 'turn_id': session})
+    updates.hook('codex', 'Stop', {'session_id': 'a', 'turn_id': 'a'})
+    assert not updates.idle('codex', [123], {'idleProtocol': 1})
+    updates.hook('codex', 'Stop', {'session_id': 'b', 'turn_id': 'b'})
+    assert updates.idle('codex', [123], {'idleProtocol': 1})
+
+
+def test_safe_publication_temporary_wait_does_not_latch_restart(worker):
+    root, _, state, *_ = worker
+    state.update(phase='updating', generation=42, cachePolicy='immutable-v1')
+    updates.write(root / 'codex/status.json', state)
+    payload = {'session_id': 'during-publication', 'source': 'startup'}
+    assert 'verified' in updates.hook('codex', 'SessionStart', payload)
+    state['phase'] = 'complete'
+    updates.write(root / 'codex/status.json', state)
+    assert updates.hook('codex', 'PreToolUse', payload) is None
+
+
+def test_live_idle_worker_publishes_without_destructive_native_install(worker, monkeypatch):
+    root, calls, *_ = worker
+    monkeypatch.setattr(updates, 'owners', lambda host: [123])
+    monkeypatch.setattr(updates, 'process_tokens', lambda *args, **kwargs: {'123': 'start'})
+    config = updates.read(root / 'config.json')
+    config['idleProtocol'] = 1
+    updates.write(root / 'config.json', config)
+    payload = {'session_id': 'a', 'turn_id': 'a'}
+    updates.hook('codex', 'UserPromptSubmit', payload)
+    updates.hook('codex', 'Stop', payload)
+    state = status(root); state['quietSince'] = 1; state['activityMark'] = updates.read(root / 'codex/activity.json')['sequence']
+    updates.write(root / 'codex/status.json', state)
+    updates.worker('codex')
+    assert status(root)['phase'] == 'complete'
+    assert ['publish'] in calls
+    assert not any(a[:3] == ['/bin/codex', 'plugin', 'add'] for a in calls)
+
+
+def test_turn_during_staging_requires_a_new_quiet_period(worker, monkeypatch):
+    root, calls, *_ = worker
+    original = updates.cache_module()
+    class Cache:
+        def prepare(self, *args):
+            updates.hook('codex', 'UserPromptSubmit', {'session_id': 'new', 'turn_id': 'one'})
+            updates.hook('codex', 'Stop', {'session_id': 'new', 'turn_id': 'one'})
+            return original.prepare(*args)
+        def publish(self, *args):
+            return original.publish(*args)
+    monkeypatch.setattr(updates, 'cache_module', Cache)
+    updates.worker('codex')
+    assert status(root)['phase'] == 'settling'
+    assert status(root)['quietSince'] is None
+    assert ['publish'] not in calls
+    assert status(root)['staged']
+
+
+def test_legacy_installed_guard_requires_closed_host(worker, monkeypatch):
+    monkeypatch.setattr(updates, 'idle_guard_ready', lambda host, config: False)
+    assert not updates.idle('codex', [123], {'idleProtocol': 1})
+    assert updates.idle('codex', [], {'idleProtocol': 1})
+
+
+def test_actual_hook_lock_contention_is_temporary(tmp_path, monkeypatch):
+    monkeypatch.setattr(updates.Path, 'home', lambda: tmp_path)
+    with updates.admission('codex'):
+        result = subprocess.run([sys.executable, str(SCRIPT), 'hook', 'codex', 'PreToolUse'],
+            input=json.dumps({'hook_event_name': 'PreToolUse', 'session_id': 'one'}),
+            env=dict(os.environ, HOME=str(tmp_path)), text=True, capture_output=True, timeout=5)
+    output = json.loads(result.stdout)['hookSpecificOutput']
+    assert output['permissionDecision'] == 'deny'
+    assert 'publication is busy' in output['permissionDecisionReason']
+    assert 'metadata unavailable' not in output['permissionDecisionReason']

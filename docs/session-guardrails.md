@@ -62,10 +62,10 @@ the move except where noted.*
   "Unknown skill" and **scheduled tasks fail silently**. (Diagnosed 2026-08-05;
   `ai-stack-version-drift` introduced twice-weekly marketplace/plugin updates.) After saving
   checkpoints, the coordinator queues approved exact versions and source through Dev Flow's
-  stable updater. Each host's LaunchAgent waits for that app/native sessions to close, updates
-  through its native CLI and verifies inventory/doctor. The user can quit apps separately;
-  no Terminal handoff is needed. The initial legacy migration is Codex-first. Stable global
-  hooks hold sessions crossing maintenance; interrupted/partial updates require reconciliation.
+  stable updater. Codex publishes new immutable cache versions at qualified idle boundaries,
+  retaining old paths for open conversations. Unknown/legacy lifecycle coverage and Claude
+  retain closed-host maintenance; the user can quit apps separately. No Terminal handoff is
+  needed. Interrupted/partial updates require original-receipt reconciliation.
   See `rhize-devflow/docs/plugin-update-safety.md` for setup, native trust and startup-race limits;
   do not hot-update to activate the safeguard or disable guards to clear a hold.
 

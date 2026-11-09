@@ -54,11 +54,12 @@ browser automation, subagents).
 ## Getting Started
 
 For installed Rhize updates, the coordinator installs the [automatic per-host helper](docs/plugin-update-safety.md)
-and queues approved versions. Quit each app independently; its LaunchAgent updates after its
-native owners exit, verifies native inventory and doctor, and records completion or a hold.
-No user Terminal handoff is required. Stable global maintenance hooks catch startup races;
-the plugin guard watches only its own host's cache. Normal host hook trust still applies.
-Dev Flow's missing-file fallback denies tools and ends Stop handling without a retry loop.
+and queues approved versions. Codex can publish at a qualified idle boundary while retaining every
+older cache version for open conversations. Missing turn IDs, unknown owners and legacy guards
+wait for host closure; Claude also retains its native closed-host path. A resumed turn restarts
+the quiet interval. No timeout declares an active chat idle, and no user Terminal handoff is
+required. Native hook trust and fresh-session loading remain separate from source publication.
+Dev Flow's missing-file fallback still denies tools and ends Stop handling without a retry loop.
 
 If Dev Flow isn't installed yet, or you suspect a stale copy, see the [README's Install
 section](./README.md#install) for the exact commands — the short version:

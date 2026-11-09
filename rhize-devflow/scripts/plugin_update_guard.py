@@ -91,7 +91,7 @@ def fingerprint(home):
             raise ValueError('package_metadata_unavailable')
         values.append((str(path.relative_to(home)), info.st_ino, info.st_mtime_ns,
                        hashlib.sha256(path.read_bytes()).hexdigest()))
-    return hashlib.sha256(json.dumps(values).encode()).hexdigest()
+    return {row[0]: list(row[1:]) for row in values}
 
 
 def drift(payload):
@@ -121,20 +121,38 @@ def drift(payload):
                 if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_BYTES:
                     raise ValueError('invalid_session_state')
                 old = json.loads(stream.read(MAX_BYTES + 1))
-            if (not isinstance(old, dict) or old.get('schema') != 'rhize-plugin-session-v1'
-                    or not re.fullmatch('[0-9a-f]{64}', old.get('fingerprint', ''))
-                    or type(old.get('restartRequired')) is not bool):
+            if not isinstance(old, dict) or type(old.get('restartRequired')) is not bool:
+                raise ValueError('invalid_session_state')
+            baseline = old.get('fingerprint')
+            if old.get('schema') == 'rhize-plugin-session-v1':
+                valid = isinstance(baseline, str) and re.fullmatch('[0-9a-f]{64}', baseline)
+            else:
+                valid = (old.get('schema') == 'rhize-plugin-session-v2' and isinstance(baseline, dict)
+                         and all(isinstance(key, str) and isinstance(value, list) and len(value) == 3
+                                 and all(type(n) is int for n in value[:2])
+                                 and isinstance(value[2], str) and re.fullmatch('[0-9a-f]{64}', value[2])
+                                 for key, value in baseline.items())
+                         and old.get('baselineDigest') == hashlib.sha256(
+                             json.dumps(baseline, sort_keys=True).encode()).hexdigest())
+            if not valid:
                 raise ValueError('invalid_session_state')
         if (payload.get('hook_event_name') == 'SessionStart'
                 and payload.get('source') in {'startup', 'resume'} and old is not None):
             # A native reload may resume the same chat with the same Dev Flow version.
             os.rename(path, root / (key + '.prior-' + str(time.time_ns()) + '.json'))
             old = None
-        held = old is not None and (old['restartRequired'] or old['fingerprint'] != current)
+        # Added versions cannot invalidate a loaded path. Removed/replaced baseline files still hold.
+        baseline = old['fingerprint'] if old else current
+        changed = (any(current.get(key) != value for key, value in baseline.items())
+                   if isinstance(baseline, dict) else baseline != hashlib.sha256(
+                       json.dumps([(key, *value) for key, value in current.items()]).encode()).hexdigest())
+        held = old is not None and (old['restartRequired'] or changed)
         first = held and not old['restartRequired']
         if old is None or first:
-            value = {'schema': 'rhize-plugin-session-v1', 'fingerprint': old['fingerprint'] if old else current,
+            value = {'schema': 'rhize-plugin-session-v1' if isinstance(baseline, str) else 'rhize-plugin-session-v2',
+                     'fingerprint': old['fingerprint'] if old else current,
                      'restartRequired': held}
+            value['baselineDigest'] = hashlib.sha256(json.dumps(value['fingerprint'], sort_keys=True).encode()).hexdigest()
             temp_fd, temporary = tempfile.mkstemp(prefix='.session-', dir=root)
             try:
                 with os.fdopen(temp_fd, 'w') as stream:

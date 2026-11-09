@@ -73,6 +73,7 @@ def test_each_running_session_gets_one_drift_notice_and_stays_held(tmp_path):
     for session in ('session-a', 'session-b'):
         assert run_guard(tmp_path, session=session).stdout == ''
     package(tmp_path, '1.0.1')
+    (tmp_path / '.codex/plugins/cache/rhize-plugins/rhize-devflow/1.0.0/.claude-plugin/plugin.json').unlink()
     for session in ('session-a', 'session-b'):
         first = run_guard(tmp_path, 'PostToolUse', session=session)
         assert first.returncode == 0 and 'restart' in first.stdout.lower()
@@ -90,6 +91,7 @@ def test_native_restart_can_resume_same_chat_without_erasing_old_hold(tmp_path):
     package(tmp_path, '1.0.0')
     assert run_guard(tmp_path).stdout == ''
     package(tmp_path, '1.0.1')
+    (tmp_path / '.codex/plugins/cache/rhize-plugins/rhize-devflow/1.0.0/.claude-plugin/plugin.json').unlink()
     denied(run_guard(tmp_path))
     assert run_guard(tmp_path, 'SessionStart').stdout == ''
     assert run_guard(tmp_path).stdout == ''
@@ -101,6 +103,7 @@ def test_pre_tool_drift_stops_without_waiting_for_an_impossible_reconcile(tmp_pa
     package(tmp_path, '1.0.0')
     assert run_guard(tmp_path).stdout == ''
     package(tmp_path, '1.0.1')
+    (tmp_path / '.codex/plugins/cache/rhize-plugins/rhize-devflow/1.0.0/.claude-plugin/plugin.json').unlink()
     denied(run_guard(tmp_path))
     stopped = run_guard(tmp_path, 'Stop')
     assert stopped.returncode == 0
@@ -122,6 +125,7 @@ def test_compaction_does_not_clear_restart_hold(tmp_path):
     package(tmp_path, '1.0.0')
     assert run_guard(tmp_path).stdout == ''
     package(tmp_path, '1.0.1')
+    (tmp_path / '.codex/plugins/cache/rhize-plugins/rhize-devflow/1.0.0/.claude-plugin/plugin.json').unlink()
     denied(run_guard(tmp_path))
     payload = {'session_id': 'session-a', 'hook_event_name': 'SessionStart', 'source': 'compact'}
     result = subprocess.run([sys.executable, str(SCRIPT), 'SessionStart'], input=json.dumps(payload),
@@ -259,4 +263,46 @@ def test_installed_guard_ignores_other_hosts_cache(tmp_path, host, other):
     own = scripts.parent / '.claude-plugin/plugin.json'
     own.parent.mkdir()
     own.write_text('{}')
+    assert invoke().stdout == ''
+    metadata.write_text('other host change')
+    assert invoke().stdout == ''
+    # A fresh baseline observes own metadata; changing it still holds.
+    own.write_text('{"changed":true}')
+    # The existing baseline deliberately excludes safe additions.
+    (scripts / 'credential_guard.py').unlink()
     denied(invoke())
+
+
+def test_new_version_preserves_open_conversation_baseline(tmp_path):
+    original = package(tmp_path, '1.0.0')
+    assert run_guard(tmp_path).stdout == ''
+    package(tmp_path, '1.1.0')
+    assert run_guard(tmp_path).stdout == ''
+    assert run_guard(tmp_path, 'PostToolUse').stdout == ''
+    original.write_text('{}')
+    denied(run_guard(tmp_path))
+
+
+def test_corrupted_empty_baseline_is_not_a_safe_addition(tmp_path):
+    package(tmp_path, '1.0.0')
+    assert run_guard(tmp_path).stdout == ''
+    path = next((tmp_path / 'data/rhize/plugin-update-safety').glob('*.json'))
+    state = json.loads(path.read_text()); state['fingerprint'] = {}
+    path.write_text(json.dumps(state))
+    denied(run_guard(tmp_path))
+
+
+def test_legacy_baseline_drift_can_recover_on_real_session_start(tmp_path):
+    import hashlib
+    manifest = package(tmp_path, '1.0.0')
+    assert run_guard(tmp_path).stdout == ''
+    path = next((tmp_path / 'data/rhize/plugin-update-safety').glob('*.json'))
+    state = json.loads(path.read_text())
+    legacy = hashlib.sha256(json.dumps([(key, *value) for key, value in state['fingerprint'].items()]).encode()).hexdigest()
+    path.write_text(json.dumps({'schema': 'rhize-plugin-session-v1', 'fingerprint': legacy, 'restartRequired': False}))
+    assert run_guard(tmp_path).stdout == ''
+    manifest.write_text('{}')
+    denied(run_guard(tmp_path))
+    denied(run_guard(tmp_path))
+    assert run_guard(tmp_path, 'SessionStart').stdout == ''
+    assert run_guard(tmp_path).stdout == ''
