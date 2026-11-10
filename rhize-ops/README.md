@@ -170,6 +170,11 @@ native model-usage attestation. See [identity fields](docs/agent-bridge.md#model
 `scripts/install_bridge.py <version>` installs a release's pinned bridge copy in both hosts,
 changing only the script path, and `--rollback` returns to the previous release.
 
+Deployments can pin each worker's model (`--claude-model`, `--codex-model`); a different explicit
+model is rejected, never substituted. Muse Code can register the bridge with `--origin muse`
+to send requests to Claude or Codex; Muse is never a worker. See
+[Muse Code as a request origin](docs/agent-bridge.md#muse-code-as-a-request-origin-2026-11-10).
+
 ## Commands
 
 ### `/parallel-optimize`

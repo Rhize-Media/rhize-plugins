@@ -75,6 +75,10 @@ identity status and a reason. Successful completion alone does not verify the
 requested model. Claude's native model-usage evidence remains available; see
 [model identity](docs/agent-bridge.md#model-identity) for the result fields and limits.
 
+Muse Code can send the same requests to Claude or Codex once the bridge is added to its
+settings with `--origin muse` (see [Muse Code setup](docs/agent-bridge.md#muse-code-as-a-request-origin-2026-11-10)).
+The Muse desktop app cannot host the bridge.
+
 Use this for second opinions and small, well-described edits. Keep broad repository
 exploration and multi-system migrations with the coordinator. The bridge does not grant
 permission to deploy, publish, upgrade software or send messages.

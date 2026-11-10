@@ -11,6 +11,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-10_ version bump — 0.34.0 → 0.35.0 (minor); marketplace 2.119.3 → 2.120.0.
+- Let Muse Code send bridge requests: `--origin muse` may target Claude or Codex (never Muse itself); the tool schema lists both targets and per-target model pins.
+- Add deployment model pins (`--claude-model`, `--codex-model`): omitted models use the pin, a different explicit model is rejected with no substitution, and pending/failed jobs keep `requested_model` with unattested identity.
 - _2026-11-03_ version bump — 0.33.4 → 0.34.0 (minor); marketplace 2.115.5 → 2.116.0.
 - Add `scripts/install_bridge.py` to install, re-activate or roll back a pinned bridge release in Claude and Codex. It changes only each host's script path, probes the new copy first and restores both hosts on any other change.
 - _2026-11-02_ version bump — 0.33.3 → 0.33.4 (patch); marketplace 2.115.4 → 2.115.5.

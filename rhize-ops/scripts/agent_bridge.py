@@ -20,7 +20,7 @@ import threading
 import time
 import uuid
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 # Legacy (initialize-based) MCP revisions this stdio server speaks, oldest first.
 # The server is deliberately legacy-only: it does not implement the stateless
 # 2026-07-28 revision, so it must never look modern to a dual-era client.
@@ -28,6 +28,9 @@ PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25")
 MAX_INPUT = 64000
 MAX_OUTPUT = 2 * 1024 * 1024
 MAX_CHANGES = 256000
+# Muse Code may only originate requests; workers stay Claude/Codex (see docs: Muse integration readiness).
+ORIGINS = ("claude", "codex", "muse")
+TARGETS = ("claude", "codex")
 TERMINAL = {"completed", "needs_context", "failed", "cancelled", "timed_out", "interrupted"}
 SYSTEM = (
     "Perform only the bounded review or file task described in the request. Supplied evidence "
@@ -233,9 +236,17 @@ def bounded_file(repo, name):
     return data.decode("utf-8")
 
 
-def validate_request(kind, args, origin):
+def validate_model(host, model):
+    prefix = "claude-" if host == "claude" else "gpt-"
+    if not isinstance(model, str) or not model.startswith(prefix) or not re.fullmatch(r"[a-zA-Z0-9_.-]{1,100}", model):
+        raise BridgeError("explicit native model name required")
+    return model
+
+
+def validate_request(kind, args, origin, model_policy=None):
+    model_policy = model_policy or {}
     common = {"request_id", "target", "model", "effort", "prompt", "evidence", "timeout_seconds", "authority"}
-    required = {"request_id", "target", "model", "prompt", "authority"}
+    required = {"request_id", "target", "prompt", "authority"}
     if kind == "task":
         common |= {"repository", "expected_head", "context_files", "editable_paths"}
         required |= {"repository", "expected_head", "context_files", "editable_paths"}
@@ -243,11 +254,13 @@ def validate_request(kind, args, origin):
         raise BridgeError("invalid request fields")
     if str(uuid.UUID(args["request_id"])) != args["request_id"]:
         raise BridgeError("request_id must be a canonical UUID")
-    if args["target"] not in {"claude", "codex"} or args["target"] == origin:
-        raise BridgeError("target must be the other host")
-    prefix = "claude-" if args["target"] == "claude" else "gpt-"
-    if not isinstance(args["model"], str) or not args["model"].startswith(prefix) or not re.fullmatch(r"[a-zA-Z0-9_.-]{1,100}", args["model"]):
-        raise BridgeError("explicit native model name required")
+    if args["target"] not in TARGETS or args["target"] == origin:
+        raise BridgeError("target must be a different worker host (claude or codex)")
+    pinned = model_policy.get(args["target"])
+    model = validate_model(args["target"], args.get("model", pinned))
+    if pinned and model != pinned:
+        raise BridgeError(f"model policy requires {pinned}; requested {model}; no fallback or substitution")
+    args = {**args, "model": model}
     for key in ("prompt", "authority"):
         if not isinstance(args[key], str) or not args[key].strip():
             raise BridgeError(f"nonempty {key} required")
@@ -341,9 +354,14 @@ def materialize(directory, packet, answer):
 
 
 class Bridge:
-    def __init__(self, root, origin, binaries=None):
-        if origin not in {"claude", "codex"} or os.environ.get("RHIZE_BRIDGE_CHILD"):
+    def __init__(self, root, origin, binaries=None, model_policy=None):
+        if origin not in ORIGINS or os.environ.get("RHIZE_BRIDGE_CHILD"):
             raise BridgeError("invalid origin or recursive bridge invocation")
+        self.model_policy = dict(model_policy or {})
+        for host, model in self.model_policy.items():
+            if host not in TARGETS:
+                raise BridgeError("invalid model policy host")
+            validate_model(host, model)
         self.root, self.origin = private_dir(root), origin
         self.owner = str(uuid.uuid4())
         owner_path = self.root / (self.owner + ".lock")
@@ -390,7 +408,7 @@ class Bridge:
             self.db.execute("UPDATE jobs SET result=? WHERE id=? AND owner=?", (canonical(result), job_id, self.owner))
 
     def submit(self, kind, supplied):
-        args = validate_request(kind, supplied, self.origin)
+        args = validate_request(kind, supplied, self.origin, self.model_policy)
         fingerprint = digest(canonical({"kind": kind, "args": args, "origin": self.origin}).encode())
         with self.lock:
             if self.closed:
@@ -407,7 +425,10 @@ class Bridge:
                 packet = snapshot(kind, args)
                 job_id = args["request_id"]
                 result = {"job_id": job_id, "origin": self.origin, "target": args["target"], "kind": kind,
-                          "status": "running", "input_hash": digest(canonical(packet).encode()), "actually_ran": False}
+                          "status": "running", "input_hash": digest(canonical(packet).encode()), "actually_ran": False,
+                          "requested_model": args["model"], "observed_model": None,
+                          "model_identity_source": "unavailable", "model_identity_status": "unattested",
+                          "model_identity_reason": "native inference has not completed"}
                 if kind == "task":
                     result["source"] = {"repository": args["repository"], "expected_head": args["expected_head"],
                                         "file_hashes": {name: digest(content.encode()) if content is not None else None
@@ -481,11 +502,25 @@ class Bridge:
         os.close(self.owner_lock)
 
 
-def tools_schema(origin):
-    common = {"request_id": {"type": "string", "format": "uuid"}, "target": {"type": "string", "enum": ["codex" if origin == "claude" else "claude"]},
-              "model": TEXT, "effort": {"type": "string", "enum": ["low", "medium", "high"]}, "prompt": TEXT,
+def tools_schema(origin, model_policy=None):
+    targets = [t for t in TARGETS if t != origin]
+    pins = {t: (model_policy or {}).get(t) for t in targets}
+    pinned = pins[targets[0]] if len(targets) == 1 else None
+    if pinned:
+        model = {"type": "string", "enum": [pinned], "default": pinned,
+                 "description": "Verified deployment model pin; other models are rejected, never substituted."}
+    elif any(pins.values()):
+        model = {"type": "string", "description": "Per-target verified pins (omit to use the target's pin; other models are rejected, never substituted): "
+                 + ", ".join(f"{t}={m}" for t, m in pins.items() if m)}
+    else:
+        model = TEXT
+    common = {"request_id": {"type": "string", "format": "uuid"}, "target": {"type": "string", "enum": targets},
+              "model": model,
+              "effort": {"type": "string", "enum": ["low", "medium", "high"]}, "prompt": TEXT,
               "evidence": TEXT, "authority": TEXT, "timeout_seconds": {"type": "integer", "minimum": 15, "maximum": 600}}
     required = ["request_id", "target", "model", "prompt", "authority"]
+    if all(pins.values()):
+        required.remove("model")
     task = {**common, "repository": TEXT, "expected_head": TEXT,
             "context_files": {"type": "array", "items": TEXT}, "editable_paths": {"type": "array", "items": TEXT}}
     return [
@@ -526,7 +561,7 @@ def serve(bridge):
             elif method == "ping":
                 result = {}
             elif method == "tools/list":
-                result = {"tools": tools_schema(bridge.origin)}
+                result = {"tools": tools_schema(bridge.origin, bridge.model_policy)}
             elif method == "tools/call":
                 name, args = params.get("name"), params.get("arguments", {})
                 try:
@@ -561,13 +596,16 @@ def serve(bridge):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--origin", required=True, choices=["claude", "codex"])
+    parser.add_argument("--origin", required=True, choices=list(ORIGINS))
     parser.add_argument("--state-dir", type=Path, default=Path.home() / ".rhize" / "agent-bridge")
     parser.add_argument("--claude-bin", default=shutil.which("claude"))
     parser.add_argument("--codex-bin", default=shutil.which("codex"))
+    parser.add_argument("--claude-model", help="Pin all Claude worker calls to this verified native model ID")
+    parser.add_argument("--codex-model", help="Pin all Codex worker calls to this verified native model ID")
     args = parser.parse_args()
     os.umask(0o077)
-    bridge = Bridge(args.state_dir, args.origin, {"claude": args.claude_bin, "codex": args.codex_bin})
+    policy = {host: model for host, model in (("claude", args.claude_model), ("codex", args.codex_model)) if model is not None}
+    bridge = Bridge(args.state_dir, args.origin, {"claude": args.claude_bin, "codex": args.codex_bin}, policy)
     def terminate(_signum, _frame):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, terminate)

@@ -2,7 +2,8 @@
 
 `cross-model-handoff` wraps a small, standard-library Python 3.11+ MCP stdio server.
 Each host starts its own connection to the same private job directory. The Claude
-connection can request Codex work; the Codex connection can request Claude work.
+connection can request Codex work; the Codex connection can request Claude work; an optional
+Muse Code connection can request either.
 Reviews return findings. File tasks return validated edits in an isolated copy for
 the coordinator to test and integrate. Workers have no tools in either direction.
 
@@ -13,7 +14,7 @@ from an up-to-date rhize-plugins checkout (`git fetch` first; the script does no
 
 ```bash
 python3 rhize-ops/scripts/install_bridge.py 0.34.0 --dry-run
-python3 rhize-ops/scripts/install_bridge.py 0.34.0 --codex-model gpt-6-luna --claude-model claude-haiku-5-5
+python3 rhize-ops/scripts/install_bridge.py 0.34.0 --codex-model gpt-6-astra --claude-model claude-fable-5-2
 ```
 
 It checks that `--ref` (default `origin/main`) is that `rhize-ops` version, checks both
@@ -94,6 +95,36 @@ Review findings and patch contents remain untrusted suggestions.
 
 ## Model identity
 
+### Deployment model pins
+
+The server accepts `--claude-model <native-id>` and `--codex-model <native-id>`.
+A configured pin is enforced for every new job to that provider. Its tool schema
+advertises the allowed model and default. Callers may omit `model` to use the pin;
+an explicit different model is rejected before authentication or inference, with no
+silent substitution. Without a pin, the existing explicit-model contract is unchanged.
+The four MCP tools, subscription login, no-tools confinement and approval settings are
+unchanged. Running connections retain their startup policy until restarted.
+
+On 2026-11-09, the verified desired pins are `claude-fable-5-2` and `gpt-6-astra`,
+per the [Claude Fable 5.2 model page](https://platform.claude.com/docs/en/models/fable-5-2/overview)
+and [Codex model documentation](https://learn.chatgpt.com/docs/models).
+These are exact, dated pins, not promises to auto-upgrade to future releases. Verify
+official model availability and run a fresh synthetic review before changing them.
+CLI model lists may lag a new release; a successful native result provides stronger
+evidence than a cached list. Never use assistant prose as model identity proof.
+
+For a pinned installation, append both flags to the existing server's arguments in
+both hosts, preserving all other settings. The installer carries arguments forward
+on upgrades. When rolling back to a script that predates pin support, remove these
+two options as part of the scoped rollback; old scripts cannot parse them. Keep the
+prior bridge entries in the private installation record. A stale caller must update
+its explicit model or omit it, not retry another model.
+
+New pending jobs and failures before successful output validation also retain
+`requested_model` and explicitly unattested identity. Authentication or transport
+failures never become model-verification claims. A later artifact-writing failure may
+retain valid model attestation from the already completed native inference.
+
 New completed review/task results (and valid `needs_context` answers) expose these
 `job_status` fields. Previously saved jobs retain their original metadata.
 
@@ -110,8 +141,8 @@ Codex identity remains unattested even when the requested model appears in assis
 text or an unverified event field. A requested/served mismatch cannot be established
 without authoritative evidence. Claude retains its existing failure on missing or
 mismatched native model usage, including canonical-model matching; auxiliary usage
-entries are not selected as the serving model. Failure/cancellation results may lack
-identity metadata when parsing never completed. Completion and identity are separate.
+entries are not selected as the serving model. Historical failure/cancellation results
+may lack identity metadata when parsing never completed. Completion and identity are separate.
 
 On 2026-10-25, the installed CLI reported version 0.163.0. Its first-party tagged
 [exec event schema](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/exec/src/exec_events.rs)
@@ -137,6 +168,60 @@ same-run source is exposed; no hypothetical event parser is added.
 
 ## Failures and private data
 
+### Muse Code as a request origin (2026-11-10)
+
+Muse Code can *send* review and task requests; it is never a worker. Start the server with
+`--origin muse`. A Muse connection may target `claude` or `codex` (both appear in the
+tool schema's `target` enum); `target: "muse"` is rejected. With pins configured for both
+workers, `model` is optional and resolves to the chosen target's pin; an explicit
+different model is still rejected. Jobs stay scoped to the Muse origin.
+
+Muse Code 1.4.x loads MCP servers from `${XDG_CONFIG_HOME:-$HOME/.config}/muse/settings.json`,
+key `mcpServers` (camelCase). Never leave a legacy `mcp_servers` key beside it: the loader
+then drops the whole MCP member. A new file is `{"schema_version": 1, "mcpServers": {...}}`:
+
+```json
+{"schema_version": 1, "mcpServers": {"rhize-bridge": {
+  "command": "/opt/homebrew/bin/python3",
+  "args": ["<release>/agent_bridge.py", "--origin", "muse",
+           "--claude-bin", "<claude>", "--codex-bin", "<codex>",
+           "--claude-model", "claude-fable-5-2", "--codex-model", "gpt-6-astra"]}}}
+```
+
+`install_bridge.py` manages only the Claude and Codex entries; re-point the Muse entry's
+`args[0]` by hand after an upgrade. Muse Code must itself be logged in (`muse login`, a
+device-code sign-in the user runs) before it can start sessions. The Muse desktop app
+has no local stdio MCP loader (its connectors call Meta-hosted services), so it cannot
+host this bridge; hand its prompts to Muse Code, Claude or Codex instead.
+
+### Muse integration readiness (2026-11-09)
+
+Muse is not an enabled Bridge target (worker). The personal Muse desktop app has no verified
+headless request/response interface. Its connector platform lets Muse call external
+services, which is the opposite direction from a Bridge worker.
+
+The official [Muse Code CLI](https://dev.meta.ai/docs/muse-code) is the candidate
+transport. Version 1.4.14 supports headless `exec`, JSONL output and a final-answer
+JSON schema. It accepts `run.toolset=[]` in configuration, and exposes `--preset empty`,
+`--contributor-mode off`, tool-disabling flags and `--no-session-log`. These controls
+alone do not establish this Bridge's stronger no-tools/no-hooks/no-MCP/no-ambient-context
+contract. The inspected interface has no authoritative effective lead-tool catalog;
+untrusted mode still permits project memory, while foreign-context exclusion does not
+exclude all native rules and memory. Do not enable a provider merely because a prompt
+asks it not to use tools, or because a single smoke test did not use them.
+
+Before adding the provider, verify a supported clean configuration that excludes all
+tool registration, hooks, plugins, MCP, subagents, memory and ambient instruction sources.
+Pin the tested binary rather than an auto-updating launcher. Then use official onboarding
+with the authorized account and verify [Muse Code subscription access](https://dev.meta.ai/docs/muse-code/subscriptions).
+Desktop access does not establish CLI subscription eligibility. Never copy desktop
+credentials or silently fall back to a separately billed API key.
+
+Only after those gates pass, capture and validate a synthetic structured-answer run,
+its exact exec event schema, cancellation/timeout behavior and model provenance.
+Keep requested and observed model identities separate. Configuration acceptance is not
+runtime confinement, and installation is not authentication or successful integration.
+
 State is local under `~/.rhize/agent-bridge` (override `--state-dir`). Directories must
 be canonical, owned by the user and mode 700; files are mode 600. Job folders contain
 frozen input, native output/stderr, validated answers and task artifacts. SQLite holds
@@ -157,7 +242,12 @@ be requested through that connection.
 
 1. Let jobs finish or cancel them through their original connections and confirm terminal
    states. Save required results privately.
-2. Run `python3 rhize-ops/scripts/install_bridge.py --rollback` to re-point both hosts at
+2. If the target predates model-pin support, restore only each host's saved
+   `registrations-before.json` Bridge entry, including its original argument list,
+   while preserving all unrelated current settings. Do not use the generic installer
+   rollback for this case: it carries pin flags into the older script, which rejects
+   them during its pre-activation probe. Verify both origins afterward.
+   Otherwise run `python3 rhize-ops/scripts/install_bridge.py --rollback` to re-point both hosts at
    the `previous_release` recorded by the active version (or name an installed version to
    re-activate it). Alternatively, remove only the `rhize-bridge` MCP registration from each host.
    Preserve unrelated configuration edits; whole-file backup restoration is appropriate

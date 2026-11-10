@@ -54,6 +54,56 @@ def wait(bridge, job):
     pytest.fail("job did not finish")
 
 
+@pytest.mark.parametrize("origin,target,pinned,stale", [
+    ("codex", "claude", "claude-fable-5-2", "claude-fable-5-1"),
+    ("claude", "codex", "gpt-6-astra", "gpt-6.1-sol"),
+])
+def test_deployment_model_pin_defaults_and_rejects_substitution(origin, target, pinned, stale):
+    supplied = {**request(), "target": target, "model": pinned}
+    policy = {target: pinned}
+    assert b.validate_request("review", supplied, origin, policy)["model"] == pinned
+    omitted = {k: v for k, v in supplied.items() if k != "model"}
+    assert b.validate_request("review", omitted, origin, policy)["model"] == pinned
+    assert "model" not in omitted
+    with pytest.raises(b.BridgeError, match="model policy requires"):
+        b.validate_request("review", {**supplied, "model": stale}, origin, policy)
+    with pytest.raises(b.BridgeError, match="explicit native model"):
+        b.validate_request("review", omitted, origin)
+    for tool in b.tools_schema(origin, policy)[:2]:
+        schema = tool["inputSchema"]
+        assert schema["properties"]["model"]["enum"] == [pinned]
+        assert schema["properties"]["model"]["default"] == pinned
+        assert "model" not in schema["required"]
+    assert "model" in b.tools_schema(origin)[0]["inputSchema"]["required"]
+
+
+@pytest.mark.parametrize("policy", [{"muse": "muse-wonder-1.0"}, {"claude": "fable"}, {"codex": "gpt-6-astra;bad"}])
+def test_invalid_model_policy_rejected_before_creating_state(tmp_path, policy):
+    root = tmp_path.resolve() / "state"
+    with pytest.raises(b.BridgeError):
+        b.Bridge(root, "claude", model_policy=policy)
+    assert not root.exists()
+
+
+def test_pinned_job_is_idempotent_and_failure_retains_requested_model(monkeypatch, tmp_path):
+    monkeypatch.setattr(b, "authenticated", lambda *args: False)
+    bridge = b.Bridge(tmp_path.resolve() / "state", "claude", {"codex": "codex"}, {"codex": "gpt-6-astra"})
+    try:
+        supplied = {k: v for k, v in request().items() if k != "model"}
+        result = wait(bridge, bridge.submit("review", supplied))
+        assert result["status"] == "failed"
+        assert result["requested_model"] == "gpt-6-astra"
+        assert result["observed_model"] is None
+        assert result["model_identity_status"] == "unattested"
+        assert not result["actually_ran"]
+        assert bridge.submit("review", {**supplied, "model": "gpt-6-astra"}) == result
+        with pytest.raises(b.BridgeError, match="model policy requires"):
+            bridge.submit("review", request())
+        assert bridge.db.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 1
+    finally:
+        bridge.close()
+
+
 @pytest.mark.parametrize("name", [".", "../a", "/a", "a//b", "a/./b", ".env", ".github/workflows/x.yml",
                                   "foo/.config", "payment.py", "secrets/key", "a\\b"])
 def test_protected_paths(name):
@@ -271,6 +321,31 @@ def test_stdio_protocol(tmp_path):
     assert rows[2]["result"]["isError"] is True
 
 
+@pytest.mark.parametrize("origin,target,pinned,stale", [
+    ("codex", "claude", "claude-fable-5-2", "claude-fable-5-1"),
+    ("claude", "codex", "gpt-6-astra", "gpt-6.1-sol"),
+])
+def test_stdio_advertises_pin_and_rejects_stale_model(tmp_path, origin, target, pinned, stale):
+    messages = [
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+        {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
+            "name": "request_review", "arguments": {**request(), "target": target, "model": stale}}},
+        {"jsonrpc": "2.0", "id": 4, "method": "ping"},
+    ]
+    run = subprocess.run([sys.executable, str(SCRIPT), "--origin", origin, "--state-dir", str(tmp_path.resolve() / "state"),
+                          "--claude-model", "claude-fable-5-2", "--codex-model", "gpt-6-astra"],
+                         input="\n".join(map(json.dumps, messages)) + "\n", text=True, capture_output=True, timeout=10)
+    assert run.returncode == 0, run.stderr
+    rows = [json.loads(line) for line in run.stdout.splitlines()]
+    schema = rows[1]["result"]["tools"][0]["inputSchema"]
+    assert schema["properties"]["model"]["enum"] == [pinned]
+    assert "model" not in schema["required"]
+    assert rows[2]["result"]["isError"] is True
+    assert "model policy requires" in rows[2]["result"]["content"][0]["text"]
+    assert rows[3]["result"] == {}
+
+
 def test_kills_descendant_process_group(tmp_path):
     pidfile = tmp_path / 'pids'
     code = "import os,time; child=os.fork(); open(%r,'a').write(str(os.getpid())+'\\n'); time.sleep(30)" % str(pidfile)
@@ -374,3 +449,33 @@ def test_submission_operational_failure_keeps_connection_alive(monkeypatch, tmp_
     rows = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     assert rows[1]["result"]["isError"] is True
     assert rows[2]["result"] == {}
+
+
+def test_muse_origin_targets_either_worker_but_is_never_a_target(tmp_path):
+    policy = {"claude": "claude-fable-5-2", "codex": "gpt-6-astra"}
+    for target, pinned in policy.items():
+        omitted = {**{k: v for k, v in request().items() if k != "model"}, "target": target}
+        assert b.validate_request("review", omitted, "muse", policy)["model"] == pinned
+    for bad in ("muse", "gemini"):
+        with pytest.raises(b.BridgeError, match="different worker host"):
+            b.validate_request("review", {**request(), "target": bad}, "muse", policy)
+    with pytest.raises(b.BridgeError, match="invalid model policy host"):
+        b.Bridge(tmp_path.resolve() / "state", "claude", model_policy={"muse": "claude-fable-5-2"})
+    schema = b.tools_schema("muse", policy)[0]["inputSchema"]
+    assert schema["properties"]["target"]["enum"] == ["claude", "codex"]
+    assert "enum" not in schema["properties"]["model"] and "codex=gpt-6-astra" in schema["properties"]["model"]["description"]
+    assert "model" not in schema["required"]
+    assert "model" in b.tools_schema("muse", {"codex": "gpt-6-astra"})[0]["inputSchema"]["required"]
+
+
+def test_stdio_muse_origin_lists_both_targets(tmp_path):
+    messages = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+                {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
+                    "name": "request_review", "arguments": {**request(), "target": "muse"}}}]
+    run = subprocess.run([sys.executable, str(SCRIPT), "--origin", "muse", "--state-dir", str(tmp_path.resolve() / "state")],
+                         input="\n".join(map(json.dumps, messages)) + "\n", text=True, capture_output=True, timeout=10)
+    assert run.returncode == 0, run.stderr
+    rows = [json.loads(line) for line in run.stdout.splitlines()]
+    assert rows[1]["result"]["tools"][0]["inputSchema"]["properties"]["target"]["enum"] == ["claude", "codex"]
+    assert rows[2]["result"]["isError"] is True
