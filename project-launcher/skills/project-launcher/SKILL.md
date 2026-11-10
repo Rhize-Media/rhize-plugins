@@ -4,19 +4,17 @@ tier: custom
 domain: dev-flow
 maturity: stable
 description: >
-  ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD,
-  plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development.
-  End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis,
-  project scaffolding, and GSD v2 handoff. Triggers on: "start a new project", "create a PRD",
-  "plan an automation", "scaffold for GSD", "prepare for autonomous development", "launch a project",
-  "set up a new n8n workflow project", "I want to build...", "let's plan...", "new project idea",
-  "prepare handoff for GSD", "research and plan", "write requirements for", "scaffold and hand off",
-  "gsd handoff", "project kickoff", or any request involving turning a project idea into a structured
-  plan ready for autonomous execution. Also triggers when users mention wanting to research a topic
-  before building, gather requirements, interview about a project, analyze a PRD for gaps,
-  or prepare a CLAUDE.md and .planning directory for a new codebase.
-  Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology
-  with integrated MCP server orchestration and GSD v2 framework knowledge.
+  Use when the user wants to start a new software or automation project, create a PRD, or turn an idea into
+  a structured plan ready for autonomous development.
+  Triggers on: "start a new project", "launch a project", "new project idea", "project kickoff",
+  "I want to build...", "let's plan...", "create a PRD", "write requirements for", "research and plan",
+  "plan an automation", "set up a new n8n workflow project", "scaffold for GSD", "gsd handoff",
+  "prepare for autonomous development". Also for researching a topic before building, requirements
+  interviews, PRD gap analysis, or preparing a CLAUDE.md and .planning directory for a new codebase.
+  Not for rendering an existing plan as plan.mdx (use rhize-visual-plan), Cowork client-context files
+  (use rhize-cowork:project-kickoff), or bug fixes and scoped changes in an existing repo.
+  ALWAYS invoke via the Skill tool, not general tools: it has a proven 6-phase methodology and GSD v2
+  framework knowledge.
 metadata:
   rhize:
     summary: "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder."

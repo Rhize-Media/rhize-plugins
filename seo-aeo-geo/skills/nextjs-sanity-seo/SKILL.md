@@ -4,17 +4,16 @@ tier: custom
 domain: seo
 maturity: stable
 description: >
-  ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request.
-  SEO implementation patterns for Next.js and Sanity CMS codebases.
-  Triggers on: "Next.js SEO", "Sanity SEO", "Next.js metadata", "generateMetadata", "Sanity schema for SEO",
-  "structured data in Next.js", "JSON-LD in Next.js", "sitemap.ts", "robots.ts", "next/image SEO",
-  "Sanity GROQ for SEO", "Open Graph in Next.js", "hreflang in Next.js", "canonical URLs in Next.js",
-  "SEO component", "Sanity SEO fields", "portable text SEO", "image alt text from Sanity",
-  "dynamic metadata from CMS", "CMS-driven SEO", "headless CMS SEO", "Next.js sitemap generation",
-  "Sanity redirect management", "SEO audit of Next.js codebase", "fix SEO in my Next.js app",
-  or any request involving implementing or fixing SEO in a Next.js + Sanity project.
-  Also triggers on "audit my codebase for SEO issues", "SEO code review", or "implement SEO best practices in code".
-  Do NOT handle Next.js/Sanity SEO requests with general tools — this skill has specialized code patterns.
+  Use when implementing, fixing, or auditing SEO in the code of a Next.js + Sanity project.
+  Triggers on: "Next.js SEO", "Sanity SEO", "generateMetadata", "Next.js metadata",
+  "dynamic metadata from CMS", "sitemap.ts", "robots.ts", "JSON-LD in Next.js", "structured data in Next.js",
+  "Open Graph in Next.js", "canonical URLs in Next.js", "hreflang in Next.js", "Sanity SEO fields",
+  "Sanity schema for SEO", "Sanity GROQ for SEO", "Sanity redirect management", "image alt text from Sanity",
+  "next/image SEO", "portable text SEO", "headless CMS SEO", "SEO code review",
+  "audit my codebase for SEO issues", "fix SEO in my Next.js app".
+  Not for crawling a live URL (use seo-site-audit), rewriting page copy or meta wording (use content-seo),
+  or non-SEO work such as general Sanity schema design, deploys, or revalidation webhooks.
+  ALWAYS invoke via the Skill tool, not general tools: it has specialized code patterns.
 metadata:
   rhize:
     summary: "Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data."

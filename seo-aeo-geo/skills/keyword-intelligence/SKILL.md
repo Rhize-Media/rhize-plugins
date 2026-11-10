@@ -4,17 +4,17 @@ tier: custom
 domain: seo
 maturity: stable
 description: >
-  ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request.
-  Advanced keyword research, clustering, gap analysis, and opportunity scoring powered by DataForSEO Keywords Data
-  and Labs APIs. Triggers on: "find keywords", "keyword research", "keyword analysis",
-  "keyword gap analysis", "keyword clustering", "find search terms", "what keywords should I target",
-  "competitor keyword analysis", "keyword difficulty check", "search volume data", "long-tail keywords",
-  "question keywords", "People Also Ask keywords", "keyword opportunities", "content gap analysis",
-  "what are people searching for", "keyword cannibalization check", "keyword mapping", or any request
-  involving discovering, analyzing, or prioritizing keywords for SEO or content strategy.
-  Also triggers on "decision-stage keywords", "commercial intent keywords", "informational keywords",
-  "compare keywords", "keyword trends", or "seasonal keywords".
-  Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.
+  Use when the user wants to discover, analyze, cluster, or prioritize keywords for SEO or content strategy.
+  Triggers on: "keyword research", "keyword analysis", "find keywords", "what keywords should I target",
+  "what are people searching for", "search volume", "keyword difficulty", "long-tail keywords",
+  "question keywords", "People Also Ask keywords", "keyword gap analysis", "competitor keyword analysis",
+  "content gap analysis", "keyword clustering", "keyword mapping", "keyword cannibalization",
+  "keyword trends", "seasonal keywords", and intent splits (informational, commercial intent,
+  decision-stage keywords).
+  Not for checking current rankings or SERP features (use serp-intelligence), rewriting a page to target a
+  keyword (use content-seo), or Google Ads campaign work such as negative keywords and bids.
+  ALWAYS invoke via the Skill tool, not general tools: it has specialized DataForSEO Keywords Data and
+  Labs API workflows.
 metadata:
   rhize:
     summary: "Researches, clusters, and scores keywords to find what to target for SEO or content strategy."

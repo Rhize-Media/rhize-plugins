@@ -4,17 +4,17 @@ tier: custom
 domain: dev-flow
 maturity: beta
 description: >
-  ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a
-  rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API
-  contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered
-  by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading
-  to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: "visual plan", "make this plan reviewable", "turn this plan into mdx",
-  "plan.mdx", "wireframe this", "rich plan document", "review surface for this plan", "canvas plan",
-  "planning doc with diagrams", "plan as an approval gate", or whenever a multi-file, ambiguous, risky,
-  data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external
-  plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous
-  pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the
-  artifact into the Obsidian vault as the second-brain source of truth.
+  Use when an implementation plan should become a rich, reviewable `plan.mdx` visual plan, or whenever a
+  multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs human sign-off before code.
+  Triggers on: "visual plan", "plan.mdx", "make this plan reviewable", "turn this plan into mdx",
+  "rich plan document", "planning doc with diagrams", "review surface for this plan",
+  "plan as an approval gate", "wireframe this", "canvas plan", or giving a plan or PRD architecture
+  diagrams, file maps, wireframes, data models, API contracts, or annotated diffs.
+  Rhize-owned format (local `rhize-plan` viewer, readable in Obsidian): no external plan service, hosted
+  Plan UI, or `@agent-native` dependency.
+  Not for writing the PRD or scaffolding a new project (use project-launcher), a single standalone diagram,
+  or editing Obsidian .canvas files (use obsidian-second-brain:json-canvas).
+  ALWAYS invoke via the Skill tool for these requests.
 metadata:
   rhize:
     summary: "Turns an implementation plan into a reviewable visual document with diagrams and file maps."

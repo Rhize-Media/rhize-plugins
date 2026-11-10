@@ -4,17 +4,16 @@ tier: custom
 domain: aeo-geo
 maturity: stable
 description: >
-  ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request.
-  Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI
-  Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces.
-  Triggers on: "AI Overview optimization", "AEO", "GEO", "generative engine optimization",
-  "answer engine optimization", "AI search visibility", "AI citation optimization", "LLM visibility",
-  "how to get cited by AI", "optimize for ChatGPT", "optimize for Perplexity", "optimize for AI Overviews",
-  "AI search references", "AI crawler management", "GPTBot", "ClaudeBot", "PerplexityBot",
-  "Google-Extended", "AI-generated answers", "zero-click search", "AI answer surfaces",
-  "brand visibility in AI", "LLM brand monitoring", "AI mentions tracking", or any request about
-  making content discoverable and citable by AI systems and generative search engines.
-  Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.
+  Use when the user asks about AI visibility, AEO (answer engine optimization), or GEO (generative engine
+  optimization): whether ChatGPT, Perplexity, Claude, Gemini, or Google AI Overviews mention or cite a brand,
+  or how to make content discoverable and citable by AI systems.
+  Triggers on: "AI search visibility", "how to get cited by AI", "AI Overview optimization",
+  "optimize for ChatGPT", "optimize for Perplexity", "AI citation optimization", "LLM visibility",
+  "LLM brand monitoring", "AI mentions tracking", "zero-click search", and AI crawler management
+  (GPTBot, ClaudeBot, PerplexityBot, Google-Extended).
+  Not for tracking Google positions or SERP features (use serp-intelligence), on-page copy, meta tags, or
+  schema for classic search (use content-seo), or building AI apps and chatbots.
+  ALWAYS invoke via the Skill tool, not general tools: it has specialized DataForSEO API workflows.
 metadata:
   rhize:
     summary: "Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content."
