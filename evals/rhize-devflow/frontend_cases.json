@@ -109,6 +109,21 @@
     ]
   },
   {
+    "id": "unslop",
+    "family": "unslop",
+    "request": "Our existing SaaS settings screen looks AI-generated: purple gradients, glowing cards, emoji labels, uppercase tracked headings and uneven spacing. Keep our brand colors, React/Tailwind stack and real copy. Select the installed workflow for fixing this one screen and describe its passes. Do not install anything, render a story video or connect an image service in this review.",
+    "required_skills": [
+      "unslop"
+    ],
+    "forbidden_skills": [],
+    "criteria": [
+      "passes run in the skill's order and stop after one screen",
+      "brand, stack and real copy preserved",
+      "no paid image service connected without approval; empty visual slot and prompt reported",
+      "no installs or story render performed"
+    ]
+  },
+  {
     "id": "transitions",
     "family": "transitions",
     "request": "Polish an existing CSS disclosure-panel transition: it snaps closed, easing feels abrupt, and it ignores reduced motion. Keep the current design system and avoid adding GSAP. Use installed transition guidance, provide a concrete correction and explain how to verify it.",

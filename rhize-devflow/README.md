@@ -477,7 +477,7 @@ Current component claims need source evidence, and disclosure motion must preser
 `rhize-devflow:frontend-development` selects the relevant installed skill families for design,
 UI implementation, motion and visual review. Taste supplies direction, Designlang extracts a
 supplied reference, React Bits supplies current component source, Transitions handles ordinary
-CSS motion, GSAP handles justified choreography, Impeccable supplies craft review, and Playwright
+CSS motion, GSAP handles justified choreography, Impeccable supplies craft review, Unslop fixes one AI-looking screen in nine passes and stops, and Playwright
 CLI is one browser adapter. Upstream skills remain independently installed; read their actual
 host-discovered files/names, respect disabled state, and do not infer native invocation from disk presence.
 

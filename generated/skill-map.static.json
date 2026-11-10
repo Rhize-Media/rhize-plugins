@@ -5312,7 +5312,7 @@
       "treeHash": "8055049e0ff13aee070f360e9972d851e9c6e0c8473cce943f921a526cddd78a"
     },
     {
-      "contentHash": "202eb0cfe0adb0c01be4be56dfa9cb3ca921f99ea65431c70b360567dfc11e8d",
+      "contentHash": "f4873f26e5ec43de7ef9a9ba8280b9efb7a03d68f868dc4e889764d9e776527a",
       "description": "Coordinate frontend design, UI implementation, motion and visual review using the relevant installed design skills and observed browser evidence. Use for pages, dashboards, components, visual design, UI polish or frontend motion; exclude backend-only and mechanical nonvisual work.",
       "fileCount": 1,
       "id": "skill:rhize-devflow/frontend-development",
@@ -5325,8 +5325,8 @@
         "ui polish"
       ],
       "summary": "Selects frontend design and motion skills, preserves project authority, and connects implementation to browser acceptance.",
-      "totalBytes": 9215,
-      "treeHash": "7b00c1266810fa94dd7d80cd15ede7b83affc10e733ba0bf7278c5b888dab3d5"
+      "totalBytes": 9921,
+      "treeHash": "8bbf09f29786e055ad864b4b1244ddcf21a586fa4639a6e6ed7080fd28512de0"
     },
     {
       "contentHash": "8cfa1d5fd7ac0cfe77b81fecbee1b6389ccf62d8966ff8e9ea66876998a7fefe",

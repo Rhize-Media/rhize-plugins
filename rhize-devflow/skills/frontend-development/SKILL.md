@@ -52,13 +52,18 @@ from skill discovery. Use the skill's documented help/probe when execution is ne
 | Small CSS state transitions or existing motion refinement | `transitions-dev`; add `transitions-polish` when refining timing/easing | Prefer simple state motion; do not introduce GSAP for an ordinary transition. |
 | Existing/requested GSAP, complex timelines or scroll choreography | `gsap-core` plus the relevant subset | `gsap-timeline`, `gsap-scrolltrigger`, `gsap-react`, `gsap-frameworks`, `gsap-plugins`, `gsap-utils`, `gsap-performance`; check cleanup and reduced-motion behavior. |
 | UX/craft/accessibility review or polish | `impeccable` and its relevant command reference | Load actual project context; use audit/critique/polish as appropriate. A detector pass is not visual or accessibility acceptance. |
+| One existing screen that looks AI-generated, fixed and then done | `unslop` | Run its nine passes in order (spacing, color, icons, copy, type, layout, details, visuals, motion), then stop. Never connect a paid image service without approval; leave the visual slot empty and report the prompt. Its story video needs project-local Playwright and ffmpeg only when requested. |
 | Rendered page/interaction verification | `playwright-cli` for an isolated CLI browser, or a sufficient available native browser connector | Use `/rhize-devflow:browser-qa` for acceptance sequencing and the chosen tool's own skill/schema for mechanics. |
 
 Current component behavior and dependencies require current source/help evidence. If a live registry
 fetch or probe cannot run, keep those details unverified; catalog expectations are not findings.
 
 If an existing ECC design/a11y/motion skill or repository workflow better fits, use it and explain
-the choice. Select one primary direction owner; avoid conflicting aesthetic defaults. SEO, CMS
+the choice. Select one primary direction owner; avoid conflicting aesthetic defaults. The anti-slop
+skills divide up: Impeccable stays in the project as ongoing vocabulary and detectors, Taste owns
+creative direction, and Unslop fixes one screen and stops. An explicit Impeccable command keeps
+Impeccable even though Unslop also triggers on "polish". Flag conflicting guidance; never drop one
+of them to resolve it. SEO, CMS
 and mutation/cache correctness remain with their existing specialist workflows when affected.
 
 React Bits registry setup belongs in the actual app's `components.json` only when needed;
