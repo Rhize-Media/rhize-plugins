@@ -188,8 +188,10 @@ then drops the whole MCP member. A new file is `{"schema_version": 1, "mcpServer
            "--claude-model", "claude-fable-5-2", "--codex-model", "gpt-6-astra"]}}}
 ```
 
-`install_bridge.py` manages only the Claude and Codex entries; re-point the Muse entry's
-`args[0]` by hand after an upgrade. Muse Code must itself be logged in (`muse login`, a
+`install_bridge.py` also re-points this entry when it exists: it probes it with the new script,
+backs up `settings.json`, swaps only `args[0]` and restores it with the other hosts on failure.
+Muse may start on a different release than Claude/Codex. A target that predates `--origin muse`
+(for example a rollback below 0.35.0) leaves the Muse entry unchanged with a warning. Muse Code must itself be logged in (`muse login`, a
 device-code sign-in the user runs) before it can start sessions. Muse Code starts MCP servers only in a
 trusted workspace: in an untrusted one the bridge tools are silently absent. Trust the
 project when Muse Code prompts, or pass `--trust-workspace` for a single run; `muse mcp list`

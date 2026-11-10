@@ -152,3 +152,44 @@ def test_refuses_wrong_version_and_disagreeing_hosts(env):
     toml.write_text(toml.read_text().replace(env["old"], "/elsewhere/agent_bridge.py"))
     r = run(env, "2.0.0", "--dry-run")
     assert r.returncode == 1 and "hosts disagree" in r.stderr
+
+
+def add_muse(env, script=None):
+    path = env["home"] / ".config/muse/settings.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"schema_version": 1, "theme": "keep", "mcpServers": {
+        "rhize-bridge": {"command": sys.executable, "args": [script or env["old"], "--origin", "muse", "--codex-bin", "/m"]},
+        "other": {"command": "q"}}}, indent=2) + "\n")
+    env["env"]["XDG_CONFIG_HOME"] = str(env["home"] / ".config")
+    return path
+
+
+def test_install_and_rollback_move_the_muse_entry_too(env):
+    path = add_muse(env)
+    muse0 = json.loads(path.read_text())
+    r = run(env, "2.0.0")
+    assert r.returncode == 0, r.stderr
+    muse = json.loads(path.read_text())
+    expected = json.loads(json.dumps(muse0))
+    expected["mcpServers"]["rhize-bridge"]["args"][0] = env["new"]
+    assert muse == expected
+    manifest = json.loads((Path(env["new"]).parent / "installation.json").read_text())
+    assert manifest["registrations"]["muse"]["args"][0] == env["new"]
+    assert manifest["validation"]["stdio_probe"]["muse"] == {"handshake": "initialize 2025-06-18; 4 tools"}
+    assert run(env, "--rollback").returncode == 0
+    assert json.loads(path.read_text()) == muse0
+
+
+def test_muse_on_a_different_release_is_moved_and_failure_restores_it(env):
+    path = add_muse(env, script="/older/agent_bridge.py")
+    before = (*state(env), path.read_text())
+    r = run(env, "2.0.0", FAKE_FAIL="2.0.0")
+    assert r.returncode == 1 and (*state(env), path.read_text()) == before
+    assert "muse: /older/agent_bridge.py ->" in run(env, "2.0.0", "--dry-run").stdout
+
+
+def test_supports_muse_detects_pre_muse_scripts(tmp_path):
+    old = tmp_path / "old.py"
+    old.write_text("import argparse; p = argparse.ArgumentParser(); p.add_argument('--origin', choices=['claude', 'codex']); p.parse_args()\n")
+    assert not ib.supports_muse({"command": sys.executable}, old)
+    assert ib.supports_muse({"command": sys.executable}, BRIDGE)

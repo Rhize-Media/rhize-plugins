@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install, re-activate or roll back a pinned rhize-bridge release in Claude and Codex.
+"""Install, re-activate or roll back a pinned rhize-bridge release in Claude, Codex and (if registered) Muse Code.
 
 A release is an immutable copy at ~/.rhize/agent-bridge-releases/<version>/agent_bridge.py.
 Activating one changes only the script path (args[0]) of each host's rhize-bridge entry; any
@@ -42,6 +42,10 @@ def claude_json():
 
 def codex_toml():
     return Path.home() / ".codex" / "config.toml"
+
+
+def muse_json():
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "muse" / "settings.json"
 
 
 def sha256(data):
@@ -88,7 +92,28 @@ def registrations():
     if claude["args"][0] != codex["args"][0]:
         raise InstallError(f"hosts disagree: Claude runs {claude['args'][0]}, Codex runs "
                            f"{codex['args'][0]}; repair one entry by hand first")
-    return {"claude": claude, "codex": codex}
+    regs = {"claude": claude, "codex": codex}
+    # Muse Code is optional and registered later, so it may run a different release than Claude/Codex.
+    muse = json.loads(muse_json().read_text()).get("mcpServers", {}).get(NAME) if muse_json().exists() else None
+    if muse:
+        regs["muse"] = muse
+    return regs
+
+
+def supports_muse(entry, script):
+    """True when the target script accepts --origin muse (rhize-ops 0.35.0+)."""
+    out = subprocess.run([entry["command"], str(script), "--help"], capture_output=True, text=True, timeout=30)
+    return out.returncode == 0 and "muse" in out.stdout
+
+
+def swap_muse_text(text, new):
+    """Point Muse's rhize-bridge args[0] at new; any other parsed change is an error."""
+    doc = json.loads(text)
+    doc["mcpServers"][NAME]["args"][0] = new
+    result = json.dumps(doc, indent=2) + "\n"
+    if json.loads(result) != doc:
+        raise InstallError("Muse settings.json would change outside rhize-bridge args[0]")
+    return result
 
 
 def swap_codex_text(text, old, new):
@@ -251,10 +276,12 @@ def activate(version, opts):
         tags = f" ({', '.join(source['tags'])})" if source["tags"] else ""
         print(f"{version}: {opts.ref} = {source['commit'][:12]}{tags}, sha256 {source['sha256'][:12]} "
               "(the script does not fetch; fetch first if this ref is stale)")
-    if str(script) == old:
+    hosts = [h for h, e in regs.items() if e["args"][0] != str(script)]
+    if not hosts:
         print(f"{NAME} already runs {script}; nothing to change")
         return 0
-    print(f"claude, codex: {old} -> {script}")
+    for h in hosts:
+        print(f"{h}: {regs[h]['args'][0]} -> {script}")
     live = {"codex": opts.codex_model, "claude": opts.claude_model}
     print("live review: " + ", ".join(f"to {t} {m or 'not run'}" for t, m in live.items()))
     if opts.dry_run:
@@ -267,29 +294,41 @@ def activate(version, opts):
     if source and not script.exists():
         with os.fdopen(os.open(script, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as f:
             f.write(source["data"])
+    if "muse" in hosts and not supports_muse(regs["muse"], script):
+        hosts.remove("muse")
+        print(f"warning: {version} does not accept --origin muse; leaving the Muse Code entry on "
+              f"{regs['muse']['args'][0]}", file=sys.stderr)
     new = {h: copy.deepcopy(e) for h, e in regs.items()}
-    for entry in new.values():
-        entry["args"][0] = str(script)
+    for h in hosts:
+        new[h]["args"][0] = str(script)
     evidence = private_mkdir(target / "evidence")
-    validation = {o: probe(new[o], o, evidence, live["codex" if o == "claude" else "claude"])
-                  for o in ("claude", "codex")}
+    validation = {o: probe(new[o], o, evidence, live.get("codex" if o == "claude" else "claude") if o != "muse" else None)
+                  for o in hosts}
 
     backup = private_mkdir(target / f"config-before-{datetime.datetime.now(datetime.UTC):%Y%m%dT%H%M%S.%fZ}")
-    for path in (claude_json(), codex_toml()):
+    for path in (claude_json(), codex_toml(), *([muse_json()] if "muse" in regs else [])):
         shutil.copy2(path, backup / path.name)
         os.chmod(backup / path.name, 0o600)
     codex_text = codex_toml().read_text()
+    muse_text = muse_json().read_text() if "muse" in hosts else None
     claude_before = json.loads(claude_json().read_text())
-    codex_toml().write_text(swap_codex_text(codex_text, old, str(script)))
+    if "codex" in hosts:
+        codex_toml().write_text(swap_codex_text(codex_text, old, str(script)))
     try:
-        set_claude_entry(bins["claude"], new["claude"])
-        check_claude_entries(claude_before, json.loads(claude_json().read_text()), new["claude"])
+        if muse_text is not None:
+            muse_json().write_text(swap_muse_text(muse_text, str(script)))
+        if "claude" in hosts:
+            set_claude_entry(bins["claude"], new["claude"])
+            check_claude_entries(claude_before, json.loads(claude_json().read_text()), new["claude"])
     except InstallError:
         codex_toml().write_text(codex_text)
-        try:
-            set_claude_entry(bins["claude"], regs["claude"])
-        except InstallError as restore:
-            print(f"could not restore the Claude entry; restore it from {backup}: {restore}", file=sys.stderr)
+        if muse_text is not None:
+            muse_json().write_text(muse_text)
+        if "claude" in hosts:
+            try:
+                set_claude_entry(bins["claude"], regs["claude"])
+            except InstallError as restore:
+                print(f"could not restore the Claude entry; restore it from {backup}: {restore}", file=sys.stderr)
         raise
 
     if source:
@@ -304,7 +343,7 @@ def activate(version, opts):
         os.chmod(manifest, 0o600)
     for origin, result in validation.items():
         print(f"{origin}: {result}")
-    print(f"backups: {backup}\nRestart Claude Code and Codex sessions to load {version}; running sessions "
+    print(f"backups: {backup}\nRestart Claude Code, Codex (and Muse Code) sessions to load {version}; running sessions "
           f"keep {old} until then. Nothing was deleted.")
     return 0
 

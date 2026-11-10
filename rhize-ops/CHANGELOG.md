@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-10_ version bump — 0.35.0 → 0.35.1 (patch); marketplace 2.120.0 → 2.120.1.
+- `install_bridge.py` also re-points a registered Muse Code `rhize-bridge` entry (`~/.config/muse/settings.json`): probed, backed up, args[0]-only swap, restored with the other hosts on failure; left unchanged with a warning when the target predates `--origin muse`.
 - _2026-11-10_ version bump — 0.34.0 → 0.35.0 (minor); marketplace 2.119.3 → 2.120.0.
 - Let Muse Code send bridge requests: `--origin muse` may target Claude or Codex (never Muse itself); the tool schema lists both targets and per-target model pins.
 - Add deployment model pins (`--claude-model`, `--codex-model`): omitted models use the pin, a different explicit model is rejected with no substitution, and pending/failed jobs keep `requested_model` with unattested identity.
