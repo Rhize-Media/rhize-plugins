@@ -190,7 +190,11 @@ then drops the whole MCP member. A new file is `{"schema_version": 1, "mcpServer
 
 `install_bridge.py` manages only the Claude and Codex entries; re-point the Muse entry's
 `args[0]` by hand after an upgrade. Muse Code must itself be logged in (`muse login`, a
-device-code sign-in the user runs) before it can start sessions. The Muse desktop app
+device-code sign-in the user runs) before it can start sessions. Muse Code starts MCP servers only in a
+trusted workspace: in an untrusted one the bridge tools are silently absent. Trust the
+project when Muse Code prompts, or pass `--trust-workspace` for a single run; `muse mcp list`
+shows whether the entry is loaded. Verified 2026-11-10 with Muse Code 1.4.15: a trusted
+`muse exec` called `job_status` and read back a Muse-origin Codex job. The Muse desktop app
 has no local stdio MCP loader (its connectors call Meta-hosted services), so it cannot
 host this bridge; hand its prompts to Muse Code, Claude or Codex instead.
 
