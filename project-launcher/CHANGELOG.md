@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-10_ version bump — 1.15.2 → 1.15.3 (patch); marketplace 2.121.1 → 2.121.2.
 - Carry frontend design authority, affected UI states and browser acceptance from PRD through implementation handoff; skip the branch for nonvisual work.
 - _2026-11-01_ version bump — 1.15.1 → 1.15.2 (patch); marketplace 2.115.0 → 2.115.1.
 
