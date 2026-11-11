@@ -81,7 +81,9 @@ requested model deadline (15–600 seconds). No automatic retry or model fallbac
 
 Native commands use argv arrays, sanitized environment allowlists and process groups.
 Claude runs with no tools, hooks, MCP servers, skills or session persistence; Codex
-ignores user config/rules and disables shell, patch, MCP and other execution features.
+ignores user config.toml and execpolicy rules and disables shell, patch, MCP and other
+execution features, but still receives user skills and the global `AGENTS.md` (see
+[the 2026-11-11 probe](#codex-worker-ambient-context-probe-2026-11-11-skills-and-global-agentsmd-reach-workers)).
 Both use native subscription authentication. Provider API keys, provider base URLs and
 unrelated environment secrets are not inherited. USER/LOGNAME remain available for
 macOS Keychain discovery. This is CLI capability confinement, not an OS security
@@ -92,6 +94,40 @@ Nonzero exits, missing completions, unexpected executable events, invalid JSON, 
 identity mismatch and out-of-scope edits fail the job. Task tests always belong to the
 coordinator. Exact file hashes bind the source state including uncommitted edits.
 Review findings and patch contents remain untrusted suggestions.
+
+### Codex worker ambient-context probe (2026-11-11): skills and global AGENTS.md reach workers
+
+Method: the bridge's exact `worker_command` argv and `worker_env()` for codex-cli 0.163.0,
+pointed with two extra `-c` settings at a local mock Responses endpoint that recorded the
+request and returned 400. Outbound network was denied except localhost (`sandbox-exec`).
+No model call and no quota were used, and `~/.codex/config.toml` and `auth.json` were unchanged
+by hash. The mock uses the API-key wire path, not the subscription path. Skills and
+`AGENTS.md` are loaded locally either way, and the live Sep 27–28 jobs corroborate the skills leg.
+
+Request composition (≈110 KB): no tools, which is correct. It still carried:
+- a ~23 KB `<skills_instructions>` block listing 59 skills from `~/.codex/skills`,
+  `~/.agents/skills` and `~/.codex/skills/.system`;
+- the ~36 KB global `~/.codex/AGENTS.md` (generated from `~/.claude/CLAUDE.md`); it
+  contains 5 lines naming Keychain items, credential loaders or the tailnet host
+  (names, not secret values) and goes to OpenAI with every Codex worker job;
+- `<multi_agent_role>`/`<multi_agent_mode>` developer messages despite `features.multi_agent=false`
+  (no spawn tool is registered);
+- the ~21 KB base developer prompt and collaboration-mode text.
+
+What each switch did:
+- `features.skip_host_skill_discovery=true` (an "under development" flag) is a no-op for these
+  roots: the control without it was byte-for-byte the same 59-skill block. `features.plugins=false`,
+  `include_skills_usage_instructions=false` and `include_collaboration_mode_instructions=false`
+  leave the list in place, and `skills.bundled.enabled=false` drops only 4 bundled skills.
+- `-c skills.include_instructions=false` removes the whole skills block (0 entries).
+- The global `AGENTS.md` is untouched by `--ignore-user-config`, `project_doc_max_bytes=0`
+  and `agents_md.max_total=0` (unknown `-c` keys are silently accepted). Only a disposable
+  `CODEX_HOME` removed it. `auth.json` lives there, so a subscription-auth worker would need
+  credential handling, which needs Jim's approval. With both, the request fell to ≈49 KB.
+
+Budget overflow fails jobs: on Sep 27–28 three Codex jobs emitted "Skill descriptions were
+shortened…" as an `error` item. The unexpected-item guard in `parse_native` rejected all
+three (`failed`), which matches the reroute handling described under Model identity.
 
 ## Model identity
 
