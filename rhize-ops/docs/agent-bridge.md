@@ -259,7 +259,7 @@ Muse Code 1.4.15 (`muse-bin-1.4.15-R8339.1`) fails with the strongest flag set f
 The capture is in [`muse-1.4.15-confinement-2026-11-11.json`](../../tests/rhize-ops/fixtures/muse-1.4.15-confinement-2026-11-11.json).
 
 - Proven at the composed-request layer, untrusted workspace: no active tools (trace: 4
-  registered, 0 active), no reminder subagents, delegation inactive, no hook handlers, the
+  registered, 0 active; no runtime record names the 4 registered tools), no reminder subagents, delegation inactive, no hook handlers, the
   user MCP server not started, foreign rules and skills excluded.
 - Ambient context survives every user-level switch. It includes a ~21 KB bundled skills
   catalog that tells the model to call `read_skill`, ~4.5 KB of bundled `muse-core`

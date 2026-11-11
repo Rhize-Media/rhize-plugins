@@ -15,7 +15,7 @@ Version 1.0.11. The setup hub — finds the Rhize plugins you have installed, ru
 
 ### seo-aeo-geo
 
-Version 1.7.0. Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.
+Version 1.7.1. Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.
 
 [README](../seo-aeo-geo/README.md) · [GUIDE](../seo-aeo-geo/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#seo-aeo-geo)
 
@@ -27,7 +27,7 @@ Version 1.10.0. Teaches Claude to read, write, organize, and search notes in you
 
 ### project-launcher
 
-Version 1.15.2. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
+Version 1.15.3. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
 
 [README](../project-launcher/README.md) · [GUIDE](../project-launcher/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#project-launcher)
 
@@ -45,7 +45,7 @@ Version 0.50.4. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.35.1. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
+Version 0.35.2. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [5 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
