@@ -177,6 +177,46 @@ def test_environment_and_commands(monkeypatch, tmp_path):
     assert "features.shell_tool=false" in command
 
 
+def test_codex_worker_home_has_only_the_auth_symlink(monkeypatch, tmp_path):
+    source = tmp_path / "user-codex"
+    source.mkdir()
+    (source / "auth.json").write_text("{}")
+    (source / "AGENTS.md").write_text("global instructions")
+    (source / "skills").mkdir()
+    monkeypatch.setenv("CODEX_HOME", str(source))
+    root = tmp_path.resolve() / "state"
+    home = b.codex_worker_home(root)
+    assert home == root / "codex-home" and b.codex_worker_home(root) == home
+    assert sorted(p.name for p in home.iterdir()) == ["auth.json"]
+    assert (home / "auth.json").is_symlink() and (home / "auth.json").resolve() == (source / "auth.json").resolve()
+    assert b.worker_env(home)["CODEX_HOME"] == str(home)
+    command = b.worker_command("codex", "codex", "gpt-6-astra", "low", tmp_path)
+    assert "skills.include_instructions=false" in command and 'cli_auth_credentials_store="file"' in command
+    (home / "AGENTS.md").write_text("planted")
+    with pytest.raises(b.BridgeError, match="global instructions"):
+        b.codex_worker_home(root)
+    (home / "AGENTS.md").unlink()
+    (home / "auth.json").unlink()
+    (home / "auth.json").write_text("{}")  # a copied credential is refused, never reused
+    with pytest.raises(b.BridgeError, match="expected symlink"):
+        b.codex_worker_home(root)
+
+
+def test_codex_job_runs_auth_check_and_worker_in_worker_home(monkeypatch, tmp_path):
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "user-codex"))
+    envs = []
+    monkeypatch.setattr(b, "authenticated", lambda *a: envs.append(a[4]) or True)
+    output = "\n".join(map(json.dumps, [
+        {"type": "item.completed", "item": {"type": "agent_message", "text": json.dumps(answer())}},
+        {"type": "turn.completed"}]))
+    monkeypatch.setattr(b, "run_process", lambda *a: envs.append(a[5]) or (0, output, ""))
+    bridge = b.Bridge(tmp_path.resolve() / "state", "claude", {"codex": "codex"})
+    try:
+        assert wait(bridge, bridge.submit("review", request()))["status"] == "completed"
+    finally:
+        bridge.close()
+    assert [e["CODEX_HOME"] for e in envs] == [str(tmp_path.resolve() / "state" / "codex-home")] * 2
+
 def test_native_failure_identity_and_tools():
     with pytest.raises(b.BridgeError, match="mismatched"):
         b.parse_native("claude", json.dumps(dict(subtype="success", modelUsage={"different": {}}, structured_output=answer())), "claude-sonnet-5")
@@ -360,7 +400,7 @@ def test_kills_descendant_process_group(tmp_path):
 
 def test_backpressure_duplicate_pending_and_close(monkeypatch, tmp_path):
     calls = []
-    def auth(host, binary, directory, cancel):
+    def auth(host, binary, directory, cancel, env=None):
         calls.append(host)
         cancel.wait(5)
         raise b.BridgeError("cancelled")

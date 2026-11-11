@@ -79,6 +79,8 @@ Muse Code can send the same requests to Claude or Codex once the bridge is added
 settings with `--origin muse` (see [Muse Code setup](docs/agent-bridge.md#muse-code-as-a-request-origin-2026-11-10)).
 The Muse desktop app cannot host the bridge. Muse cannot be a worker: an offline probe found
 Muse Code 1.4.15 keeps bundled and user context under every flag ([details](docs/agent-bridge.md#muse-worker-confinement-probe-2026-11-11-not-confined)).
+Codex workers get no skills and no global `AGENTS.md`: the bridge points `CODEX_HOME` at
+`<state>/codex-home`, which holds only a symlink to your existing `auth.json` ([details](docs/agent-bridge.md#codex-worker-ambient-context-probe-2026-11-11-skills-and-global-agentsmd-reach-workers)).
 
 Use this for second opinions and small, well-described edits. Keep broad repository
 exploration and multi-system migrations with the coordinator. The bridge does not grant

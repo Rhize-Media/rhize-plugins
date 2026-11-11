@@ -176,6 +176,8 @@ to send requests to Claude or Codex; Muse is never a worker. See
 [Muse Code as a request origin](docs/agent-bridge.md#muse-code-as-a-request-origin-2026-11-10).
 Muse Code 1.4.15 cannot be confined as a no-tools worker; see the
 [confinement probe](docs/agent-bridge.md#muse-worker-confinement-probe-2026-11-11-not-confined).
+Codex workers run in a bridge-owned `CODEX_HOME` that holds only an `auth.json` symlink, so they load
+no user skills or global `AGENTS.md` ([details](docs/agent-bridge.md#codex-worker-ambient-context-probe-2026-11-11-skills-and-global-agentsmd-reach-workers)).
 
 ## Commands
 

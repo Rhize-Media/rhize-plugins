@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-11_ version bump — 0.35.2 → 0.35.3 (patch); marketplace 2.121.3 → 2.121.4.
+- Confine Codex bridge workers from ambient context: `-c skills.include_instructions=false`, pinned file auth store, and a bridge-owned `CODEX_HOME` (`<state>/codex-home`) holding only a symlink to the existing `auth.json`, so no user skills or global `AGENTS.md` reach workers. No credential is copied and no login is needed.
 - Document the 2026-11-11 Codex worker ambient-context probe: the bridge's Codex argv still sends 59 user/system skills (`features.skip_host_skill_discovery` is a no-op; `-c skills.include_instructions=false` removes them) and the global `~/.codex/AGENTS.md`, which no `-c` setting removes. Correct the runtime-contract sentence. Bridge code unchanged.
 - _2026-11-11_ version bump — 0.35.1 → 0.35.2 (patch); marketplace 2.121.2 → 2.121.3.
 - Document the 2026-11-11 Muse worker confinement result (not confined: bundled skills/developer prompts, user rules and skills survive every flag; a trusted workspace starts user MCP tools) with an offline echo-provider probe and capture under `tests/rhize-ops/`, and the Codex 0.163.0 served-model re-check (still unattested). Bridge code and Muse origin-only status unchanged.

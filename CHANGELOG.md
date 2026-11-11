@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-11-11_ version bump — **rhize-ops** 0.35.2 → 0.35.3 (patch); marketplace 2.121.3 → 2.121.4.
 - _2026-11-11_ version bump — **rhize-ops** 0.35.1 → 0.35.2 (patch); marketplace 2.121.2 → 2.121.3.
 - _2026-11-10_ version bump — **project-launcher** 1.15.2 → 1.15.3 (patch); marketplace 2.121.1 → 2.121.2.
 - _2026-11-10_ version bump — **seo-aeo-geo** 1.7.0 → 1.7.1 (patch); marketplace 2.121.0 → 2.121.1.

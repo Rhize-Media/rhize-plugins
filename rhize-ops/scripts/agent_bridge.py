@@ -83,13 +83,31 @@ def write_private(path, text):
         f.write(text)
 
 
-def worker_env():
+def worker_env(codex_home=None):
     # USER/LOGNAME are required for native macOS subscription Keychain discovery.
     allowed = ("HOME", "USER", "LOGNAME", "PATH", "TMPDIR", "LANG", "LC_ALL", "SHELL",
                "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "CODEX_HOME")
     env = {k: os.environ[k] for k in allowed if k in os.environ}
     env.update({"RHIZE_BRIDGE_CHILD": "1", "DISABLE_AUTOUPDATER": "1", "NO_COLOR": "1"})
+    if codex_home:
+        env["CODEX_HOME"] = str(codex_home)
     return env
+
+
+def codex_worker_home(root):
+    """Dedicated CODEX_HOME holding only a symlink to the caller's auth.json, so Codex workers load no
+    global AGENTS.md, skills or config. Codex's file auth store rewrites auth.json in place (no rename),
+    so token refreshes reach the one existing credential: nothing is copied and no new login is needed."""
+    source = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex").absolute() / "auth.json"
+    home = private_dir(Path(root) / "codex-home")
+    if any(os.path.lexists(home / name) for name in ("AGENTS.md", "AGENTS.override.md")):
+        raise BridgeError("worker CODEX_HOME contains global instructions")
+    link = home / "auth.json"
+    if not os.path.lexists(link):
+        link.symlink_to(source)
+    if not link.is_symlink() or Path(os.readlink(link)) != source:
+        raise BridgeError("worker CODEX_HOME auth.json is not the expected symlink")
+    return home
 
 
 def stop_group(process):
@@ -144,9 +162,9 @@ def run_process(command, prompt, directory, timeout, cancel, env=None):
                 stream.close()
 
 
-def authenticated(host, binary, directory, cancel):
+def authenticated(host, binary, directory, cancel, env=None):
     args = [binary, "auth", "status", "--json"] if host == "claude" else [binary, "login", "status"]
-    code, out, err = run_process(args, b"", directory, 15, cancel)
+    code, out, err = run_process(args, b"", directory, 15, cancel, env)
     if host == "claude":
         value = json.loads(out)
         return code == 0 and value.get("loggedIn") is True and value.get("authMethod") == "claude.ai" and value.get("apiProvider") == "firstParty"
@@ -167,6 +185,7 @@ def worker_command(host, binary, model, effort, directory):
                "--output-schema", str(directory / "schema.json")]
     for setting in ['approval_policy="never"', 'web_search="disabled"', 'mcp_servers={}',
                     'project_doc_max_bytes=0', 'features.skip_host_skill_discovery=true',
+                    'skills.include_instructions=false', 'cli_auth_credentials_store="file"',
                     'suppress_unstable_features_warning=true',
                     f'model_reasoning_effort="{effort}"', *[f"features.{name}=false" for name in disabled]]:
         command += ["-c", setting]
@@ -449,12 +468,13 @@ class Bridge:
             write_private(directory / "input.json", canonical(packet))
             write_private(directory / "schema.json", canonical(ANSWER_SCHEMA))
             binary = self.binaries.get(args["target"])
-            if not binary or not authenticated(args["target"], binary, directory, cancel):
+            env = worker_env(codex_worker_home(self.root)) if args["target"] == "codex" else None
+            if not binary or not authenticated(args["target"], binary, directory, cancel, env):
                 raise BridgeError("subscription_auth_unavailable")
             command = worker_command(args["target"], binary, args["model"], args["effort"], directory)
             prompt = (SYSTEM + "\n" + canonical(packet)).encode()
             result["actually_ran"] = True
-            code, out, err = run_process(command, prompt, directory, args["timeout_seconds"], cancel)
+            code, out, err = run_process(command, prompt, directory, args["timeout_seconds"], cancel, env)
             write_private(directory / "native-output.json", out)
             write_private(directory / "native-stderr.txt", err)
             result["exit_code"] = code

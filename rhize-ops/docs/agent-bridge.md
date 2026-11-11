@@ -81,8 +81,9 @@ requested model deadline (15–600 seconds). No automatic retry or model fallbac
 
 Native commands use argv arrays, sanitized environment allowlists and process groups.
 Claude runs with no tools, hooks, MCP servers, skills or session persistence; Codex
-ignores user config.toml and execpolicy rules and disables shell, patch, MCP and other
-execution features, but still receives user skills and the global `AGENTS.md` (see
+ignores user config.toml and execpolicy rules, disables shell, patch, MCP and other
+execution features, and (since 0.35.3) loads no skills and no global `AGENTS.md`: it runs with
+`CODEX_HOME=<state>/codex-home`, which holds only a symlink to the user's `auth.json` (see
 [the 2026-11-11 probe](#codex-worker-ambient-context-probe-2026-11-11-skills-and-global-agentsmd-reach-workers)).
 Both use native subscription authentication. Provider API keys, provider base URLs and
 unrelated environment secrets are not inherited. USER/LOGNAME remain available for
@@ -128,6 +129,22 @@ What each switch did:
 Budget overflow fails jobs: on Sep 27–28 three Codex jobs emitted "Skill descriptions were
 shortened…" as an `error` item. The unexpected-item guard in `parse_native` rejected all
 three (`failed`), which matches the reroute handling described under Model identity.
+
+Fix (0.35.3): the Codex argv adds `-c skills.include_instructions=false` and pins
+`-c cli_auth_credentials_store="file"`. The auth check and the worker run with
+`CODEX_HOME=<state>/codex-home`, a private directory created by `codex_worker_home()` that holds
+only `auth.json` as a symlink to `$CODEX_HOME/auth.json` (default `~/.codex`). Codex's file store
+rewrites `auth.json` in place with truncate and no rename
+([storage.rs](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/login/src/auth/storage.rs)),
+so token refreshes reach the one existing credential. Nothing is copied and no new login or credential
+is involved. Global instructions load only from `CODEX_HOME/AGENTS(.override).md`
+([instructions/mod.rs](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/codex-home/src/instructions/mod.rs)),
+and the bridge refuses a worker home that contains either file or whose `auth.json` is not the
+expected symlink. Codex keeps its own SQLite state and logs in that directory. The same mock probe then
+showed a ≈49 KB request with 0 skills and no `AGENTS.md`. `codex login status` through the worker
+home reported the ChatGPT login with network denied, and `~/.codex/auth.json` was unchanged. The
+`multi_agent` role text and base prompt remain; they register no tools. Not verified: a live
+subscription job, or a token refresh through the symlink.
 
 ## Model identity
 
