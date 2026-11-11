@@ -174,6 +174,8 @@ Deployments can pin each worker's model (`--claude-model`, `--codex-model`); a d
 model is rejected, never substituted. Muse Code can register the bridge with `--origin muse`
 to send requests to Claude or Codex; Muse is never a worker. See
 [Muse Code as a request origin](docs/agent-bridge.md#muse-code-as-a-request-origin-2026-11-10).
+Muse Code 1.4.15 cannot be confined as a no-tools worker; see the
+[confinement probe](docs/agent-bridge.md#muse-worker-confinement-probe-2026-11-11-not-confined).
 
 ## Commands
 

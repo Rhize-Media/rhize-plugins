@@ -166,6 +166,18 @@ use synthetic events matching the first-party schema. Positive Codex attestation
 an attested Codex mismatch remain unverified/unsupported until an authoritative
 same-run source is exposed; no hypothetical event parser is added.
 
+Re-checked on 2026-11-11 with the installed Codex 0.163.0, without new jobs. Across 252
+saved native outputs from the bridge's own `worker_command`, these were the only field
+paths: `thread.started.thread_id`, `item.completed.item.{id,type,text,message}`,
+`turn.completed.usage.{input_tokens,cached_input_tokens,cache_write_input_tokens,output_tokens,reasoning_output_tokens}`
+and error/`turn.failed` messages. None is a model field. The 228 completed Codex jobs requested
+`gpt-6-astra` and recorded `observed_model: null`. The offline
+`codex app-server generate-json-schema` export has `ModelReroutedNotification`
+(`fromModel`/`toModel`, reason enum only `highRiskCyberActivity`) and
+`ModelVerificationNotification` (only `trustedAccessForCyber`). These are app-server
+notifications, absent from `exec --json`. `Thread.model` and `ThreadSettings.model` are the
+configured selection, not served-model evidence. Codex identity therefore stays `unattested`.
+
 ## Failures and private data
 
 ### Muse Code as a request origin (2026-11-10)
@@ -227,6 +239,49 @@ Only after those gates pass, capture and validate a synthetic structured-answer 
 its exact exec event schema, cancellation/timeout behavior and model provenance.
 Keep requested and observed model identities separate. Configuration acceptance is not
 runtime confinement, and installation is not authentication or successful integration.
+
+### Muse worker confinement probe (2026-11-11): not confined
+
+`tests/rhize-ops/muse_confinement_probe.py <pinned muse-bin-*>` answers the confinement
+question offline. It runs `muse exec --provider echo` (local, no account, no model call)
+under `sandbox-exec` with outbound IP denied, in a disposable `HOME`/`XDG_*` seeded with
+canaries: user, project and foreign (`~/.claude`, `~/.codex`) rules and skills, plus a
+working stdio MCP server that leaves a marker when started. It reads the runtime's own
+`model_request_configured` session-log event (active tools, delegation, reminder roster,
+composed context messages) and the local trace counts (rules, skills, hooks, bundled
+plugin capabilities, tool surface). A trusted control on the default preset must load
+every canary (33 active tools, including `mcp__canary__canary_tool`), or the probe exits
+3 as broken. It refuses the auto-updating `~/.local/bin/muse` launcher script.
+
+Muse Code 1.4.15 (`muse-bin-1.4.15-R8339.1`) fails with the strongest flag set found:
+`--preset empty`, `--disable-reminders`, web/shell/write/user-input disabled,
+`--no-foreign-personal-context`, `--approval-mode never` and `-c run.toolset=[]`.
+The capture is in [`muse-1.4.15-confinement-2026-11-11.json`](../../tests/rhize-ops/fixtures/muse-1.4.15-confinement-2026-11-11.json).
+
+- Proven at the composed-request layer, untrusted workspace: no active tools (trace: 4
+  registered, 0 active), no reminder subagents, delegation inactive, no hook handlers, the
+  user MCP server not started, foreign rules and skills excluded.
+- Ambient context survives every user-level switch. It includes a ~21 KB bundled skills
+  catalog that tells the model to call `read_skill`, ~4.5 KB of bundled `muse-core`
+  developer prompts, the user's own `$XDG_CONFIG_HOME/muse/AGENTS.md`, user skills, and
+  workspace and session paths. Developer prompts are not a runtime-capability kind:
+  `plugins reject` accepts only hook, reminder, mcp_server, agent_definition and
+  invocation_preapproval. `-c plugins.muse-core.enabled=false` is accepted but changes
+  nothing. `run.meta_context_note_enabled`, `run.session_identity_enabled` and
+  `run.excluded_tool_names` are refused as unknown keys. The `extensions.*` gates exist
+  only in the machine-wide enterprise policy plane (system file or macOS managed
+  preferences), which a per-job worker cannot set.
+- In a trusted workspace, which is user state the bridge does not control, the same flags
+  start the user's MCP server and expose its tool as active, and project rules load.
+  `run.toolset=[]` does not remove MCP tools. `-c` refuses to clear the whole
+  `mcpServers` map; it accepts only named entries.
+- Not covered by the echo provider: provider-hosted tools, base instructions (`run.system_prompt`
+  fails with "provider does not support base instructions"), `--output-schema` (meta only),
+  served-model provenance (`run.usage.models[].model` is null under echo) and auth isolation.
+  `auth.json` lives in the same config root as the user rules and skills, so a disposable
+  config root would require separately approved credential handling.
+
+Muse stays origin-only. Re-run the probe on any new pinned binary before reconsidering.
 
 State is local under `~/.rhize/agent-bridge` (override `--state-dir`). Directories must
 be canonical, owned by the user and mode 700; files are mode 600. Job folders contain

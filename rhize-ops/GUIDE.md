@@ -77,7 +77,8 @@ requested model. Claude's native model-usage evidence remains available; see
 
 Muse Code can send the same requests to Claude or Codex once the bridge is added to its
 settings with `--origin muse` (see [Muse Code setup](docs/agent-bridge.md#muse-code-as-a-request-origin-2026-11-10)).
-The Muse desktop app cannot host the bridge.
+The Muse desktop app cannot host the bridge. Muse cannot be a worker: an offline probe found
+Muse Code 1.4.15 keeps bundled and user context under every flag ([details](docs/agent-bridge.md#muse-worker-confinement-probe-2026-11-11-not-confined)).
 
 Use this for second opinions and small, well-described edits. Keep broad repository
 exploration and multi-system migrations with the coordinator. The bridge does not grant

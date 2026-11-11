@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-11_ version bump — 0.35.1 → 0.35.2 (patch); marketplace 2.121.2 → 2.121.3.
+- Document the 2026-11-11 Muse worker confinement result (not confined: bundled skills/developer prompts, user rules and skills survive every flag; a trusted workspace starts user MCP tools) with an offline echo-provider probe and capture under `tests/rhize-ops/`, and the Codex 0.163.0 served-model re-check (still unattested). Bridge code and Muse origin-only status unchanged.
 - _2026-11-10_ version bump — 0.35.0 → 0.35.1 (patch); marketplace 2.120.0 → 2.120.1.
 - `install_bridge.py` also re-points a registered Muse Code `rhize-bridge` entry (`~/.config/muse/settings.json`): probed, backed up, args[0]-only swap, restored with the other hosts on failure; left unchanged with a warning when the target predates `--origin muse`.
 - _2026-11-10_ version bump — 0.34.0 → 0.35.0 (minor); marketplace 2.119.3 → 2.120.0.

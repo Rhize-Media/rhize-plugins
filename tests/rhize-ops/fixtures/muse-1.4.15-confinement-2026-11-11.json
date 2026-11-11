@@ -1,0 +1,310 @@
+{
+ "captured": "2026-11-11",
+ "provider": "echo (local, no model call)",
+ "note": "Output of tests/rhize-ops/muse_confinement_probe.py; ids, byte lengths, counts and tool names only.",
+ "binary": "muse-bin-1.4.15-R8339.1",
+ "verdict": "not_confined",
+ "reasons": [
+  "untrusted: ambient context ['meta_context_note', 'rules_file', 'session_identity', 'skills_catalog', 'workspace_identity']",
+  "untrusted: rules user_sources",
+  "untrusted: bundled skills",
+  "untrusted: bundled developer_prompts",
+  "trusted: active tools ['mcp__canary__canary_tool']",
+  "trusted: user MCP server started",
+  "trusted: ambient context ['meta_context_note', 'rules_file', 'session_identity', 'skills_catalog', 'workspace_identity']",
+  "trusted: rules user_sources",
+  "trusted: rules project_sources",
+  "trusted: bundled skills",
+  "trusted: bundled developer_prompts"
+ ],
+ "control": {
+  "args": [],
+  "trusted": true,
+  "exit": 0,
+  "lead": {
+   "active_tools": [
+    "workflow",
+    "read_file",
+    "search",
+    "write_file",
+    "edit_file",
+    "read_memory",
+    "add_memory",
+    "edit_memory",
+    "work_stop",
+    "work_list",
+    "web_fetch",
+    "web_search",
+    "bash",
+    "bash_input",
+    "monitor",
+    "cron_create",
+    "cron_delete",
+    "cron_list",
+    "get_goal",
+    "create_goal",
+    "update_goal",
+    "report_progress",
+    "subagent_spawn",
+    "subagent_status",
+    "subagent_send_message",
+    "subagent_wait",
+    "subagent_read_result",
+    "subagent_cancel",
+    "read_skill",
+    "work_status",
+    "mcp__canary__canary_tool",
+    "snooze_reminder",
+    "write_todos"
+   ],
+   "delegation": "inactive",
+   "reminders": [
+    "skill-reminder",
+    "goal-reminder",
+    "verify-reminder"
+   ],
+   "context": {
+    "workspace_identity": 217,
+    "security_mode": 471,
+    "rules_file": 373,
+    "workflow_choice": 3485,
+    "workflow_cookbook": 1038,
+    "agent_definition_catalog": 109,
+    "subagent_delegation": 1645,
+    "skills_catalog": 21813,
+    "meta_context_note": 4573,
+    "session_identity": 752,
+    "sandbox_policy": 862,
+    "memory_snapshot": 1084
+   }
+  },
+  "subagent_runs": 2,
+  "trace": {
+   "plugin_capability_snapshot.compose": {
+    "bundled_plugins": 10,
+    "installed_plugins": 0,
+    "marketplace_plugins": 0,
+    "plugin_ids": 14,
+    "skills": 27,
+    "hooks": 0,
+    "mcp_servers": 0,
+    "commands": 1,
+    "reminders": 6,
+    "developer_prompts": 10,
+    "diagnostics": 0,
+    "rejected": 0,
+    "conflicts": 0,
+    "omitted": 0,
+    "foreign_artifacts": 0
+   },
+   "rules.context_load": {
+    "sources": 2,
+    "user_sources": 1,
+    "project_sources": 1,
+    "foreign_sources": 0,
+    "skipped_oversize": 0,
+    "skipped_untrusted": 0,
+    "authorization_blocks": 2,
+    "rendered_bytes": 373
+   },
+   "skills.catalog_load": {
+    "skills": 3,
+    "user_skills": 3,
+    "project_skills": 0,
+    "diagnostics": 0,
+    "invalid": 0,
+    "untrusted": 0,
+    "shadowed": 0,
+    "marker_invalid": 0
+   },
+   "hook.admission": {
+    "handlers": 0,
+    "runnable": 0,
+    "inactive": 0,
+    "diagnostics": 0,
+    "advisories": 0
+   },
+   "lead_tool_surface": [
+    36,
+    31
+   ]
+  },
+  "mcp_started": true
+ },
+ "hardened": [
+  {
+   "args": [
+    "--preset",
+    "empty",
+    "--disable-reminders",
+    "--disable-web-tools",
+    "--disable-request-user-input",
+    "--no-foreign-personal-context",
+    "--disable-shell",
+    "--disable-write",
+    "--approval-mode",
+    "never",
+    "--contributor-mode",
+    "off",
+    "-c",
+    "run.toolset=[]"
+   ],
+   "trusted": false,
+   "exit": 0,
+   "lead": {
+    "active_tools": [],
+    "delegation": "inactive",
+    "reminders": [],
+    "context": {
+     "workspace_identity": 217,
+     "capability_policy": 222,
+     "security_mode": 474,
+     "rules_file": 291,
+     "skills_catalog": 21146,
+     "meta_context_note": 4573,
+     "session_identity": 752
+    }
+   },
+   "subagent_runs": 0,
+   "trace": {
+    "plugin_capability_snapshot.compose": {
+     "bundled_plugins": 10,
+     "installed_plugins": 0,
+     "marketplace_plugins": 0,
+     "plugin_ids": 14,
+     "skills": 27,
+     "hooks": 0,
+     "mcp_servers": 0,
+     "commands": 1,
+     "reminders": 0,
+     "developer_prompts": 10,
+     "diagnostics": 0,
+     "rejected": 0,
+     "conflicts": 0,
+     "omitted": 0,
+     "foreign_artifacts": 0
+    },
+    "rules.context_load": {
+     "sources": 1,
+     "user_sources": 1,
+     "project_sources": 0,
+     "foreign_sources": 0,
+     "skipped_oversize": 0,
+     "skipped_untrusted": 1,
+     "authorization_blocks": 1,
+     "rendered_bytes": 291
+    },
+    "skills.catalog_load": {
+     "skills": 1,
+     "user_skills": 1,
+     "project_skills": 0,
+     "diagnostics": 0,
+     "invalid": 0,
+     "untrusted": 0,
+     "shadowed": 0,
+     "marker_invalid": 0
+    },
+    "hook.admission": {
+     "handlers": 0,
+     "runnable": 0,
+     "inactive": 0,
+     "diagnostics": 0,
+     "advisories": 0
+    },
+    "lead_tool_surface": [
+     4,
+     0
+    ]
+   },
+   "mcp_started": false
+  },
+  {
+   "args": [
+    "--preset",
+    "empty",
+    "--disable-reminders",
+    "--disable-web-tools",
+    "--disable-request-user-input",
+    "--no-foreign-personal-context",
+    "--disable-shell",
+    "--disable-write",
+    "--approval-mode",
+    "never",
+    "--contributor-mode",
+    "off",
+    "-c",
+    "run.toolset=[]"
+   ],
+   "trusted": true,
+   "exit": 0,
+   "lead": {
+    "active_tools": [
+     "mcp__canary__canary_tool"
+    ],
+    "delegation": "inactive",
+    "reminders": [],
+    "context": {
+     "workspace_identity": 217,
+     "capability_policy": 222,
+     "security_mode": 478,
+     "rules_file": 373,
+     "skills_catalog": 21146,
+     "meta_context_note": 4573,
+     "session_identity": 752
+    }
+   },
+   "subagent_runs": 0,
+   "trace": {
+    "plugin_capability_snapshot.compose": {
+     "bundled_plugins": 10,
+     "installed_plugins": 0,
+     "marketplace_plugins": 0,
+     "plugin_ids": 14,
+     "skills": 27,
+     "hooks": 0,
+     "mcp_servers": 0,
+     "commands": 1,
+     "reminders": 0,
+     "developer_prompts": 10,
+     "diagnostics": 0,
+     "rejected": 0,
+     "conflicts": 0,
+     "omitted": 0,
+     "foreign_artifacts": 0
+    },
+    "rules.context_load": {
+     "sources": 2,
+     "user_sources": 1,
+     "project_sources": 1,
+     "foreign_sources": 0,
+     "skipped_oversize": 0,
+     "skipped_untrusted": 0,
+     "authorization_blocks": 2,
+     "rendered_bytes": 373
+    },
+    "skills.catalog_load": {
+     "skills": 1,
+     "user_skills": 1,
+     "project_skills": 0,
+     "diagnostics": 0,
+     "invalid": 0,
+     "untrusted": 0,
+     "shadowed": 0,
+     "marker_invalid": 0
+    },
+    "hook.admission": {
+     "handlers": 0,
+     "runnable": 0,
+     "inactive": 0,
+     "diagnostics": 0,
+     "advisories": 0
+    },
+    "lead_tool_surface": [
+     5,
+     1
+    ]
+   },
+   "mcp_started": true
+  }
+ ]
+}
