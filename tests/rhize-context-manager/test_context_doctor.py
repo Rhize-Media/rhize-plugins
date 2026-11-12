@@ -172,6 +172,30 @@ class DoctorContractTests(unittest.TestCase):
         self.assertEqual({p['id'] for p in config['probes'] if p['required']},
                          {'headroom','rtk','claude_mem','codegraph','credential_expiry'})
 
+    def test_default_optional_reviews_cover_november_run_and_still_expire(self):
+        config=json.loads((SCRIPTS/'context-doctor.config.json').read_text())
+        with patch.object(doctor,'utc_now',return_value='2026-11-19T13:00:00Z'):
+            self.assertEqual(doctor.validate_config(config),config)
+        with patch.object(doctor,'utc_now',return_value='2027-02-15T00:00:00Z'):
+            with self.assertRaises(ValueError):
+                doctor.validate_config(config)
+
+    def test_login_near_expiry_is_a_notice_and_ended_login_is_a_problem(self):
+        import time
+        from context_doctor_probes import credential_expiry
+        now=time.time()*1000
+        def run(oauth):
+            oauth=dict(oauth,accessToken='secret-token')
+            row=credential_expiry(self.root,lambda argv:(0,json.dumps({'claudeAiOauth':oauth}).encode()))
+            self.assertNotIn('secret-token',json.dumps(row))
+            return row[:2]
+        day=86400000
+        for field,soon,ended,measured in (('refreshTokenExpiresAt','refresh_expiry_soon','refresh_credential_expired','refresh_expiry_measured'),
+                                          ('expiresAt','expiry_soon','credential_expired','expiry_measured')):
+            self.assertEqual(run({field:now+7*day}),('OK',soon))
+            self.assertEqual(run({field:now+20*day}),('OK',measured))
+            self.assertEqual(run({field:now-60000}),('PROBLEM',ended))
+
     def test_capture_recovers_after_quota_failure_without_erasing_history(self):
         import sqlite3
         from context_doctor_probes import capture

@@ -21,8 +21,9 @@ safety-gated skill library.
 
 ## Design: orchestrate, don't vendor
 
-Weekly doctor optional coverage was [reviewed October 15](docs/context-doctor-review-2026-10-15.md),
-with the next review due November 15. All five required checks and their limits remain unchanged.
+Weekly doctor optional coverage was [reviewed November 12](docs/context-doctor-review-2026-11-12.md),
+with the next review due February 15, 2027. All five required checks remain required. A sign-in
+that ends within eight days is now a visible notice; only an ended sign-in fails the check.
 The doctor identifies active capture authentication failures and quota pauses with fixed,
 private-data-free reason codes. Failed monitor start or completion delivery remains an
 operability failure, including when configuration validation prevents a report.

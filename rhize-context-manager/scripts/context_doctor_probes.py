@@ -59,12 +59,17 @@ def credential_expiry(home, execute=command):
             facts[key] = datetime.fromtimestamp(value, timezone.utc).isoformat()
             facts[key + '_hours_remaining'] = round((value - now) / 3600, 3)
     # An access-token expiry is not the lifetime of a refreshable login.
+    # The provider fixes the sign-in lifetime, so nearing its end is a notice; only an ended one is a fault.
     if oauth.get('refreshTokenExpiresAt') is not None:
-        expiring = epoch(oauth['refreshTokenExpiresAt']) <= now + 8 * 86400
-        return ('PROBLEM', 'refresh_credential_expiring', facts) if expiring else ('OK', 'refresh_expiry_measured', facts)
+        remaining = epoch(oauth['refreshTokenExpiresAt']) - now
+        if remaining <= 0:
+            return 'PROBLEM', 'refresh_credential_expired', facts
+        return 'OK', 'refresh_expiry_soon' if remaining <= 8 * 86400 else 'refresh_expiry_measured', facts
     if not oauth.get('refreshToken') and oauth.get('expiresAt') is not None:
-        expiring = epoch(oauth['expiresAt']) <= now + 8 * 86400
-        return ('PROBLEM', 'credential_expiring', facts) if expiring else ('OK', 'expiry_measured', facts)
+        remaining = epoch(oauth['expiresAt']) - now
+        if remaining <= 0:
+            return 'PROBLEM', 'credential_expired', facts
+        return 'OK', 'expiry_soon' if remaining <= 8 * 86400 else 'expiry_measured', facts
     return 'NOT_RUN', 'refresh_expiry_unknown', facts
 
 

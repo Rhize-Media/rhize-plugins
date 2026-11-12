@@ -19,6 +19,10 @@ Availability does not establish compression benefit or recall quality. Capture u
 read-only SQLite counts/event times against session activity. Quiet windows are `NOT_RUN`;
 stale telemetry is not described as a continuously failing writer. Access-token expiry
 is not the lifetime of a refreshable login; unknown refresh expiry remains unknown.
+The provider fixes the sign-in lifetime from the moment of sign-in, and it cannot be
+extended locally. A sign-in that ends within eight days is `OK / refresh_expiry_soon`,
+shown in the report but not sent as a failed check-in. A sign-in that has ended is
+`PROBLEM / refresh_credential_expired`; recovery is the supported sign-in on the host.
 
 Optional OpenWolf, memory-adapter, and host harness lanes remain explicit omissions.
 Their owner/review date is declared in `scripts/context-doctor.config.json`. An expired
@@ -26,9 +30,10 @@ review makes configuration invalid until reviewed. Never demote a required probe
 a failure. Review config for other repositories: this pilot expects an existing CodeGraph
 index and never initializes one.
 
-The [October 15 coverage review](context-doctor-review-2026-10-15.md) retains these
-three explicit omissions through November 15, 2026. Required checks and expiry/
-freshness limits are unchanged. A recovered capture writer may retain its last
+The [November 12 coverage review](context-doctor-review-2026-11-12.md) retains these
+three explicit omissions through February 15, 2027, and records the sign-in expiry
+change above. It supersedes the [October 15 review](context-doctor-review-2026-10-15.md).
+Required checks and freshness limits are unchanged. A recovered capture writer may retain its last
 quota-error metadata; current failures and persisted capture evidence determine
 health, rather than the mere presence of a historical error.
 

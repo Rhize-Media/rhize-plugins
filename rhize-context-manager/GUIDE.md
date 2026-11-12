@@ -13,8 +13,9 @@ the right one, and health-checks the whole thing.
 
 ## When to reach for what
 
-The weekly doctor's [optional coverage review](docs/context-doctor-review-2026-10-15.md)
-is current through November 15, 2026; unavailable optional checks remain visible.
+The weekly doctor's [optional coverage review](docs/context-doctor-review-2026-11-12.md)
+is current through February 15, 2027; unavailable optional checks remain visible. A sign-in
+near its end shows as `refresh_expiry_soon` without failing the weekly check.
 
 - **"Which tool should hold this knowledge?" / "set up context tooling for this repo"**
   → the `context-stack` skill answers routing questions.
