@@ -24,6 +24,15 @@ One entry per external-skill ingestion decision.
   - Gate evidence: skill-forge 0.21.0 scanned all 32 SKILL.md files plus the MCP server; skill-map overlap < 0.2 everywhere (control self-match 0.982); independent Codex reviews on rhize-bridge jobs `6f1c2a8e` and `9a4d7c21`.
   - Revisit the WATCH if permission bypass or telemetry becomes opt-in.
   - Vault: "Forge decision - paperclip (2026-09-27)".
+- **Harness-loop prompt decision (2026-11-14, human-authorized):**
+  - REJECT as a skill: "Harness Loops + Task Graphs — One Prompt for Claude Code and Codex", a paste-ready prompt that Muse drafted from a public Instagram post by @0xsojalsec (2026-11-08; a one-page framework credited to "rari"). User-supplied file, SHA-256 `d013e4cc02bcf19a6f3f78e7da775f1a2932ae29f8c49118ee799ab032c5d6d8`. No upstream repository and no license stated.
+  - Nothing vendored. Three ideas were restated in original Rhize wording as proposals for the agent-coordination plan's `develop` procedure: a build-and-check loop of at most three attempts that stops on the same failure twice; a repository's checks must be seen to fail before they are trusted; a repeated failure files a candidate lesson for human review.
+  - Already here: dependency levels, `retry.max_attempts` of 3 at most and one writer per checkout (this skill's task-graph schema); single-node repair (procedural-memory `graph-workflow-builder`); code-only checks (rhize-devflow `check`).
+  - Left behind: a Stop hook that blocks stopping while the check fails (it conflicts with the prompt's own attempt limits and does not cover subagents); a generic allow/ask/deny table (it conflicts with the push-class lists); `STATE.md` as a run ledger (the name already means project state); automatic promotion of repeated failures into CLAUDE.md or AGENTS.md.
+  - Gate evidence: skill-forge 0.20.1 scanned the file wrapped in a SKILL.md, because the CLI refuses a bare prompt. License `NONE STATED`; safety `BLOCK` (three MP1 MEDIUM findings on the rule-promotion lines; `skillspector-unavailable` HIGH, which is no signal); skill-map top match `graph-workflow-builder` at 0.085 of 70 skills; no control scan was run. Independent Codex review on rhize-bridge job `6a0e20ce` reached the same verdict (served model unattested).
+  - Recorded here and not under its own heading: the skill-map build fails on a non-retired heading that has no SKILL.md.
+  - Do not re-evaluate unless the author publishes a licensed source. There is no upstream identifier to drift-check.
+  - Vault: "Forge decision - harness-task-graph (2026-11-14)".
 
 ## decision-premortem — 2026-10-17
 - **Source:** Five user-supplied screenshots of a dominatingtech carousel, numbered 1–5: pre-mortem prompt, verdict, rebuild, adversary, tripwire.
