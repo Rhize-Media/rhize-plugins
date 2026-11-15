@@ -186,7 +186,12 @@ def outcome(pairs):
 
 
 def plugin_skill_pairs(plugin, skill, plugins_root=None):
-    """[(skills dir, [skill path])] for a `<plugin>/<skill>` id; empty when the plugin is unknown."""
+    """([(skills dir, [skill path])], uncertain) for a `<plugin>/<skill>` id.
+
+    `uncertain` is True when a place that may hold the skill could not be examined;
+    the caller must then not report the target as missing.
+    """
+    uncertain = False
     if plugins_root is not None or not IN_CACHE:
         base = Path(plugins_root) if plugins_root is not None else PLUGIN_ROOT.parent
         dirs = [base / plugin / "skills"]
@@ -194,9 +199,20 @@ def plugin_skill_pairs(plugin, skill, plugins_root=None):
         base = PLUGIN_ROOT.parent.parent
         try:
             dirs = [v / "skills" for v in sorted((base / plugin).iterdir())]
+        except (FileNotFoundError, NotADirectoryError):
+            dirs = []  # the plugin is provably unknown here
         except (OSError, ValueError):
-            dirs = []
-    return [(d, [d / skill]) for d in dirs if dir_ok(d) and within(base, d) is True]
+            dirs, uncertain = [], True
+    pairs = []
+    for d in dirs:
+        state = probe(d)
+        if state is False:
+            continue  # this location provably has no skills folder
+        if state is None or not dir_ok(d) or within(base, d) is not True:
+            uncertain = True
+            continue
+        pairs.append((d, [d / skill]))
+    return pairs, uncertain
 
 
 def resolve_target(entry, roots, plugins_root=None):
@@ -227,8 +243,11 @@ def resolve_target(entry, roots, plugins_root=None):
             # An explicit path under the plugin's skills: absence is provable.
             return res or failed
         if len(parts) == 2:
-            pairs = plugin_skill_pairs(parts[0], parts[1], plugins_root)
-            return (outcome(pairs) if pairs else None) or failed
+            pairs, uncertain = plugin_skill_pairs(parts[0], parts[1], plugins_root)
+            res = outcome(pairs) if pairs else None
+            if res and res["status"] == "present":
+                return res
+            return failed if (uncertain or not res) else res
         # A bare name may be a built-in or another host's skill: absence is not provable.
         return failed
     except (OSError, RuntimeError, ValueError):

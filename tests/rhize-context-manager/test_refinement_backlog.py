@@ -230,3 +230,40 @@ def test_no_write(tmp_path):
     assert run(q, "--root", str(tmp_path)).returncode == 0
     assert run(q, as_json=False).returncode == 0
     assert (q.read_bytes(), q.stat().st_mtime_ns, sorted(os.listdir(d))) == before
+
+
+def _load_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("refinement_backlog_under_test", str(SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_unexaminable_plugin_location_is_never_missing(tmp_path):
+    mod = _load_module()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    # Checkout layout: the plugin's skills folder is a symlink that leaves the base.
+    repo = tmp_path / "repo"
+    (repo / "alpha").mkdir(parents=True)
+    os.symlink(str(outside), str(repo / "alpha" / "skills"))
+    entry = {"target_skill": "alpha/thing"}
+    assert mod.resolve_target(entry, [tmp_path / "skills"], str(repo)) == {"status": "lookup_failed"}
+    # Installed layout: one version is readable and lacks the skill, another cannot be examined.
+    cache = tmp_path / "cache"
+    (cache / "rhize-context-manager" / "1.0.0" / "skills").mkdir(parents=True)
+    (cache / "alpha" / "1.0.0" / "skills").mkdir(parents=True)
+    (cache / "alpha" / "2.0.0").mkdir(parents=True)
+    os.symlink(str(outside), str(cache / "alpha" / "2.0.0" / "skills"))
+    mod.IN_CACHE = True
+    mod.PLUGIN_ROOT = cache / "rhize-context-manager" / "1.0.0"
+    assert mod.resolve_target(entry, [tmp_path / "skills"]) == {"status": "lookup_failed"}
+    # Every version examined, none has it: absence is proved.
+    os.unlink(str(cache / "alpha" / "2.0.0" / "skills"))
+    (cache / "alpha" / "2.0.0" / "skills").mkdir()
+    res = mod.resolve_target(entry, [tmp_path / "skills"])
+    assert res["status"] == "target_missing" and len(res["checked"]) == 2
+    # Present in any version wins.
+    (cache / "alpha" / "2.0.0" / "skills" / "thing").mkdir()
+    assert mod.resolve_target(entry, [tmp_path / "skills"]) == {"status": "present"}
