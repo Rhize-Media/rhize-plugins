@@ -17,22 +17,67 @@ Ranking (pending entries only), descending, then `id` ascending:
   3. distinct sessions <- NO queue field identifies sessions, so this
                         criterion is omitted ("sessions": "not available").
 
-Output is limited to non-free-text fields (see _PUBLIC); pattern, note,
-evidence content, filter_note, triage_reason, harvest_log and disposition are
-never emitted.
+Target check (advisory). `target_missing` is reported only when absence can be
+proved: an absolute path under a readable allowed root; a path with the
+`rhize-context-manager/skills/` prefix; or a `<plugin>/<skill>` id whose plugin
+directory exists. A bare name that is not found, an unknown plugin or an
+unreadable root is `lookup_failed`, never missing.
+
+Supersession (advisory) needs the same target AND the same lesson: equal
+non-empty `signal_type` and `subtype`, or an identical normalised `pattern`.
+The pattern is only hashed for the comparison and is never printed.
+
+Output is limited to identifier and numeric fields; pattern, note, evidence
+content, filter_note, triage_reason, harvest_log and disposition are never
+emitted, and a non-string or over-long identifier is dropped.
 """
 import argparse
+import hashlib
 import json
 import os
+import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_QUEUE = "~/.claude/context-manager/refinement-queue.jsonl"
+PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 # Allowed roots per commands/skill-refine.md `review` step 3.
-PLUGIN_SKILLS = Path(__file__).resolve().parent.parent / "skills"
+PLUGIN_SKILLS = PLUGIN_ROOT / "skills"
 DEFAULT_ROOTS = [PLUGIN_SKILLS, Path("~/.claude/skills/learned").expanduser()]
 PLUGIN_PREFIX = "rhize-context-manager/skills/"
+# Installed copies live at <cache>/<plugin>/<version>/; a checkout at <repo>/<plugin>/.
+IN_CACHE = bool(re.match(r"\d+\.\d+", PLUGIN_ROOT.name))
+
+
+def text(v, limit=200):
+    """Identifier fields only: a string of sane length, else None."""
+    return v if isinstance(v, str) and len(v) <= limit else None
+
+
+def plugin_skill_candidates(plugin, skill, plugins_root=None):
+    """(plugin known?, paths to check) for a `<plugin>/<skill>` id."""
+    if plugins_root is not None or not IN_CACHE:
+        base = Path(plugins_root) if plugins_root is not None else PLUGIN_ROOT.parent
+        skills = base / plugin / "skills"
+        return skills.is_dir(), [skills / skill]
+    cache_plugin = PLUGIN_ROOT.parent.parent / plugin
+    try:
+        versions = [v / "skills" for v in sorted(cache_plugin.iterdir()) if (v / "skills").is_dir()]
+    except OSError:
+        versions = []
+    return bool(versions), [v / skill for v in versions]
+
+
+def lesson_key(entry):
+    st, sub = entry.get("signal_type"), entry.get("subtype")
+    if isinstance(st, str) and st.strip() and isinstance(sub, str) and sub.strip():
+        return ("type", st.strip(), sub.strip())
+    pat = entry.get("pattern")
+    if isinstance(pat, str) and pat.strip():
+        norm = " ".join(pat.split()).lower().encode("utf-8", "replace")
+        return ("pattern", hashlib.sha256(norm).hexdigest())
+    return None
 RULE = ("evidence count desc, latest evidence recency desc, id asc "
         "(sessions: not available)")
 
@@ -72,39 +117,65 @@ def load(path):
     return entries, unparsable
 
 
-def resolve_target(entry, roots):
+def _any_exists(cands):
+    """True / False, or None when a path cannot be examined."""
+    for c in cands:
+        try:
+            if c.exists():
+                return True
+        except OSError:
+            return None
+    return False
+
+
+def resolve_target(entry, roots, plugins_root=None):
     value = entry.get("target_path") or entry.get("target_skill")
     if not isinstance(value, str) or not value.strip():
         return None
     raw = os.path.expanduser(value.strip())
+    failed = {"status": "lookup_failed"}
     readable = [r for r in roots if r.is_dir() and os.access(str(r), os.R_OK | os.X_OK)]
     if os.path.isabs(raw):
         p = Path(os.path.normpath(raw))
         roots_ok = [r for r in roots if r == p or r in p.parents]
-        if not roots_ok or not os.access(str(roots_ok[0]), os.R_OK | os.X_OK) \
-                or not roots_ok[0].is_dir():
-            return {"status": "lookup_failed"}
+        if not roots_ok or roots_ok[0] not in readable:
+            return failed
         cands = [p, p.with_name(p.name + ".md")]
-        scope = roots_ok[:1]
-    else:
-        rel = raw[len(PLUGIN_PREFIX):] if raw.startswith(PLUGIN_PREFIX) else raw
-        if ".." in Path(rel).parts or not rel.strip("/"):
-            return {"status": "lookup_failed"}
-        scope = roots
-        cands = [r / rel for r in roots] + [r / (rel + ".md") for r in roots]
-    for c in cands:
-        try:
-            if c.exists():
-                return {"status": "present"}
-        except OSError:
-            return {"status": "lookup_failed"}
-    scope_ok = [r for r in scope if r in readable]
-    if len(scope_ok) != len(scope) or not scope_ok:
-        return {"status": "lookup_failed"}
-    return {"status": "target_missing", "checked": [str(c) for c in cands]}
+        found = _any_exists(cands)
+        if found is None:
+            return failed
+        return {"status": "present"} if found else {
+            "status": "target_missing", "checked": [str(c) for c in cands]}
+    prefixed = raw.startswith(PLUGIN_PREFIX)
+    rel = raw[len(PLUGIN_PREFIX):] if prefixed else raw
+    parts = Path(rel).parts
+    if ".." in parts or not rel.strip("/"):
+        return failed
+    cands = [r / rel for r in roots] + [r / (rel + ".md") for r in roots]
+    found = _any_exists(cands)
+    if found is None:
+        return failed
+    if found:
+        return {"status": "present"}
+    if prefixed:
+        # An explicit path under the plugin's skills: absence is provable.
+        if len(readable) != len(roots) or not readable:
+            return failed
+        return {"status": "target_missing", "checked": [str(c) for c in cands]}
+    if len(parts) == 2:
+        known, pcands = plugin_skill_candidates(parts[0], parts[1], plugins_root)
+        if not known:
+            return failed
+        found = _any_exists(pcands)
+        if found is None:
+            return failed
+        return {"status": "present"} if found else {
+            "status": "target_missing", "checked": [str(c) for c in pcands]}
+    # A bare name may be a built-in or another host's skill: absence is not provable.
+    return failed
 
 
-def build(entries, unparsable, now, stale_days, roots, top):
+def build(entries, unparsable, now, stale_days, roots, top, plugins_root=None):
     totals = {}
     pending = []
     for e in entries:
@@ -121,10 +192,10 @@ def build(entries, unparsable, now, stale_days, roots, top):
         cnt = e.get("count")
         has_cnt = isinstance(cnt, int) and not isinstance(cnt, bool)
         pending.append({
-            "id": str(e.get("id", "")),
-            "source": e.get("source"), "repo": e.get("repo"),
-            "target_skill": e.get("target_skill"), "target_path": e.get("target_path"),
-            "signal_type": e.get("signal_type"), "subtype": e.get("subtype"),
+            "id": text(str(e.get("id", ""))) or "",
+            "source": text(e.get("source")), "repo": text(e.get("repo")),
+            "target_skill": text(e.get("target_skill")), "target_path": text(e.get("target_path")),
+            "signal_type": text(e.get("signal_type")), "subtype": text(e.get("subtype")),
             "status": st,
             "age_days": None if age is None else round(age, 1),
             "stale": age is not None and age >= stale_days,
@@ -139,8 +210,9 @@ def build(entries, unparsable, now, stale_days, roots, top):
 
     groups = {}
     for r in pending:
-        if isinstance(r["target_skill"], str) and r["target_skill"].strip():
-            groups.setdefault((r["target_skill"], r["signal_type"], r["subtype"]), []).append(r)
+        key = lesson_key(r["_raw"])
+        if key and isinstance(r["target_skill"], str) and r["target_skill"].strip():
+            groups.setdefault((r["target_skill"].strip(), key), []).append(r)
     supersession = []
     for g in groups.values():
         newest = max(g, key=lambda r: (r["_ts"], r["id"]))
@@ -150,7 +222,7 @@ def build(entries, unparsable, now, stale_days, roots, top):
 
     target_loss = []
     for r in pending:
-        res = resolve_target(r["_raw"], roots)
+        res = resolve_target(r["_raw"], roots, plugins_root)
         if res and res["status"] != "present":
             target_loss.append(dict(res, id=r["id"]))
     target_loss.sort(key=lambda t: t["id"])
@@ -203,6 +275,7 @@ def main(argv=None):
     rp.add_argument("--stale-days", type=float, default=30)
     rp.add_argument("--now")
     rp.add_argument("--root", action="append", default=[])
+    rp.add_argument("--plugins-root", help="directory that holds <plugin>/skills/<skill>")
     rp.add_argument("--json", action="store_true")
     try:
         args = ap.parse_args(argv)
@@ -223,7 +296,8 @@ def main(argv=None):
         print("error: cannot read queue: %s" % e, file=sys.stderr)
         return 2
     roots = [Path(os.path.expanduser(r)) for r in args.root] or DEFAULT_ROOTS
-    rep = build(entries, bad, now, args.stale_days, roots, max(args.top, 0))
+    plugins_root = os.path.expanduser(args.plugins_root) if args.plugins_root else None
+    rep = build(entries, bad, now, args.stale_days, roots, max(args.top, 0), plugins_root)
     print(json.dumps(rep, indent=2) if args.json else render(rep))
     return 0
 

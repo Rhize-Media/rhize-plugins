@@ -89,16 +89,56 @@ def test_target_outcomes(tmp_path):
     (root / "here").mkdir(parents=True)
     q = write(tmp_path / "q.jsonl", [
         ent("p", target_skill="here"),
-        ent("m", target_skill="gone"),
+        ent("abs", target_path=str(root / "gone")),
+        ent("pre", target_skill="rhize-context-manager/skills/gone"),
+        ent("bare", target_skill="gone"),
         ent("esc", target_skill="../x"),
     ])
     rep = json.loads(run(q, "--root", str(root)).stdout)
     loss = {c["id"]: c for c in rep["target_loss_candidates"]}
     assert "p" not in loss
-    assert loss["m"]["status"] == "target_missing" and loss["m"]["checked"]
+    # Absence is provable for an absolute path under a root and for a prefixed path.
+    for k in ("abs", "pre"):
+        assert loss[k]["status"] == "target_missing" and loss[k]["checked"]
+    # A bare name may be a built-in or another host's skill: never "missing".
+    assert loss["bare"]["status"] == "lookup_failed"
     assert loss["esc"]["status"] == "lookup_failed"
     rep = json.loads(run(q, "--root", str(tmp_path / "absent")).stdout)
     assert {c["status"] for c in rep["target_loss_candidates"]} == {"lookup_failed"}
+
+
+def test_plugin_skill_ids(tmp_path):
+    plugins = tmp_path / "repo"
+    (plugins / "alpha" / "skills" / "real").mkdir(parents=True)
+    q = write(tmp_path / "q.jsonl", [
+        ent("ok", target_skill="alpha/real"),
+        ent("gone", target_skill="alpha/removed"),
+        ent("unknown", target_skill="no-such-plugin/thing"),
+    ])
+    rep = json.loads(run(q, "--root", str(tmp_path / "skills"), "--plugins-root", str(plugins)).stdout)
+    loss = {c["id"]: c for c in rep["target_loss_candidates"]}
+    assert "ok" not in loss
+    assert loss["gone"]["status"] == "target_missing"
+    assert loss["gone"]["checked"] == [str(plugins / "alpha" / "skills" / "removed")]
+    assert loss["unknown"]["status"] == "lookup_failed"
+
+
+def test_supersession_needs_the_same_lesson(tmp_path):
+    q = write(tmp_path / "q.jsonl", [
+        ent("a", ts="2026-11-01T00:00:00Z", target_skill="foo", pattern="First  lesson"),
+        ent("b", ts="2026-11-05T00:00:00Z", target_skill="foo", pattern="a different lesson"),
+        ent("c", ts="2026-11-09T00:00:00Z", target_skill="foo", pattern="first lesson"),
+        ent("d", ts="2026-11-02T00:00:00Z", target_skill="foo"),
+    ])
+    rep = json.loads(run(q).stdout)
+    assert rep["supersession_candidates"] == [{"older_id": "a", "newer_id": "c"}]
+
+
+def test_non_string_identifiers_are_dropped(tmp_path):
+    q = write(tmp_path / "q.jsonl", [ent("p", source={"x": MARK}, repo=[MARK], subtype=MARK * 40)])
+    for as_json in (True, False):
+        r = run(q, as_json=as_json)
+        assert r.returncode == 0 and MARK not in r.stdout + r.stderr
 
 
 def test_top_and_json_shape(tmp_path):

@@ -11,7 +11,7 @@ show queue counts by status and suggest the next subcommand.
 
 ## `review` — human triage (interactive)
 
-0. Run `python3 rhize-context-manager/scripts/refinement_backlog.py report` (read-only)
+0. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/refinement_backlog.py report` (read-only)
    and start triage with its top ten. `stale` is a label derived at read time and
    is never written to the queue; nothing expires by age. Supersession and
    target-loss candidates are proposals to confirm during triage, not automatic
