@@ -33,6 +33,17 @@ One entry per external-skill ingestion decision.
   - Recorded here and not under its own heading: the skill-map build fails on a non-retired heading that has no SKILL.md.
   - Do not re-evaluate unless the author publishes a licensed source. There is no upstream identifier to drift-check.
   - Vault: "Forge decision - harness-task-graph (2026-11-14)".
+- **Outside libraries decision (2026-11-15, human-authorized by delegation):**
+  - Four public repositories, all Apache-2.0, read at these commits: `google-research/rrsi` `be50316`, `google-research/harness2` `6868817`, `vercel-labs/agent-desktop` `8ffecc1`, `NVIDIA/auto-ontology` `9fba324`.
+  - `rrsi`: REJECT as a dependency, ideas only. Its rules were restated in original Rhize wording in the agent-coordination plan (section 3.9): a history of hypotheses, a leakage screen before evaluation, a noise band, a cost rule, held-out tasks, pruning. It needs a scored task suite that does not exist yet, and it bills by API key.
+  - `harness2`: REJECT, ideas only. One idea was restated: a stored lesson needs a cue, the lesson and its evidence. It spends four runs and three improver sessions on each task, and its Codex executor starts with the sandbox and hook trust switched off.
+  - `agent-desktop`: WATCH. No procedure needs native desktop control today, and accessibility access on the Mac reaches every signed-in app.
+  - `auto-ontology`: REJECT for the Obsidian vault. It builds terms from SQL schemas and query history and cannot read notes.
+  - Nothing vendored. Three of the four ship their own `SKILL.md` files; none was copied or installed.
+  - Gate evidence: no skill-forge scan was run, because the candidates are libraries, not skills. Licenses come from each repository's GitHub metadata and README. Independent Codex review on rhize-bridge job `4627c2a2` reached the same four verdicts (served model unattested).
+  - Authorization: on 2026-11-15 Jim delegated the open decisions of the agent-coordination plan to the session's recommendation where the Codex review agrees.
+  - Re-evaluate `rrsi` when the golden-task suite exists and proposing is the limit of the improvement loop; `agent-desktop` when a procedure needs native desktop control; `auto-ontology` when a SQL reporting need appears. Drift-check against the commits above.
+  - Vault: "Forge decision - rrsi, harness2, agent-desktop, auto-ontology (2026-11-15)".
 
 ## decision-premortem — 2026-10-17
 - **Source:** Five user-supplied screenshots of a dominatingtech carousel, numbered 1–5: pre-mortem prompt, verdict, rebuild, adversary, tripwire.
