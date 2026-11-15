@@ -1,5 +1,6 @@
 # Changelog — rhize-context-manager
 
+- Add read-only `scripts/refinement_backlog.py report`: ranks pending refinement-queue entries (evidence count, latest-evidence recency, id), derives `stale` at read time without storing it, and lists advisory supersession and target-loss candidates; `/skill-refine review` now starts from its top ten. Never writes the queue; free-text fields are never printed.
 - Raise the bounded streaming transcript admission ceiling to 512 MiB: long native sessions previously lost verifiable request context above 256 MiB. Larger/nonregular sources still fail closed; exact prompt/session/time/redaction checks, label policy, collection source identity and shadow-only authority remain unchanged.
 
 ## 0.30.0 — 2026-09-06
@@ -26,6 +27,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-15_ version bump — 0.50.5 → 0.51.0 (minor); marketplace 2.121.5 → 2.122.0.
 - _2026-11-12_ version bump — 0.50.4 → 0.50.5 (patch); marketplace 2.121.4 → 2.121.5.
 - _2026-11-08_ version bump — 0.50.3 → 0.50.4 (patch); marketplace 2.117.2 → 2.117.3.
 - _2026-11-03_ version bump — 0.50.2 → 0.50.3 (patch); marketplace 2.116.0 → 2.116.1.

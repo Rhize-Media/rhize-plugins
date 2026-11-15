@@ -11,6 +11,11 @@ show queue counts by status and suggest the next subcommand.
 
 ## `review` — human triage (interactive)
 
+0. Run `python3 rhize-context-manager/scripts/refinement_backlog.py report` (read-only)
+   and start triage with its top ten. `stale` is a label derived at read time and
+   is never written to the queue; nothing expires by age. Supersession and
+   target-loss candidates are proposals to confirm during triage, not automatic
+   changes.
 1. Load all `pending` entries. Present them one at a time (or grouped by
    source) with: pattern, source, repo, est_savings. Surface any `filter_note`
    (set by `/learn-harvest`'s noise filter) — it marks a probable composite of
@@ -210,6 +215,9 @@ supported; config/hook/script/full overrides require separate handling.
 
 ## Guardrails
 
+- Change queue statuses only when no routine that reads the queue is running (the
+  daily harvest runs on weekdays around 18:00 and the weekly audit on Mondays
+  around 18:30, America/New_York).
 - Never run `evolve` on an untriaged skill.
 - Never bypass a HOLD by re-running with `--force`.
 - A real `run` stages under `<repo-of-signals>/.skillopt-sleep/staging/` —

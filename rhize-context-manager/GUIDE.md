@@ -148,7 +148,8 @@ near its end shows as `refresh_expiry_soon` without failing the weekly check.
 - **"Harvest what we learned" / "refine our skills from real sessions"**
   → the refinement pipeline: `/learn-harvest` collects signals (headroom learn dry-run,
   claude-mem observations, skill-monitor snapshots) into a queue; `/skill-refine review`
-  is your triage pass; `/skill-refine run` drains triaged entries through skill-forge
+  is your triage pass (it starts from the read-only `scripts/refinement_backlog.py report` ranking);
+  `/skill-refine run` drains triaged entries through skill-forge
   `evolve` — gate-passing SKILL.md edits auto-promote, anything touching scripts/hooks
   HOLDs. The `refinement-pipeline` skill documents the trust model.
   *Example: "Run /learn-harvest across all sources, then let's review the queue."*
