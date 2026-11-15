@@ -129,9 +129,65 @@ def test_supersession_needs_the_same_lesson(tmp_path):
         ent("b", ts="2026-11-05T00:00:00Z", target_skill="foo", pattern="a different lesson"),
         ent("c", ts="2026-11-09T00:00:00Z", target_skill="foo", pattern="first lesson"),
         ent("d", ts="2026-11-02T00:00:00Z", target_skill="foo"),
+        # Same lesson, same timestamp as the newest: no order is proved, so no pair.
+        ent("e", ts="2026-11-09T00:00:00Z", target_skill="foo", pattern="FIRST lesson"),
+        # Same lesson, no valid timestamp: never a pair.
+        ent("f", ts="not-a-date", target_skill="foo", pattern="first lesson"),
     ])
     rep = json.loads(run(q).stdout)
     assert rep["supersession_candidates"] == [{"older_id": "a", "newer_id": "c"}]
+
+
+def test_free_text_in_identifier_fields_and_status(tmp_path):
+    q = write(tmp_path / "q.jsonl", [
+        ent("has space " + MARK),
+        ent("ok1", source="some words " + MARK, repo="a b " + MARK, signal_type=MARK + " x"),
+        ent("ok2", target_path="/tmp/a path with " + MARK),
+        ent("ok3", status=MARK + " secret status"),
+        ent({"note": MARK}),
+    ])
+    for as_json in (True, False):
+        r = run(q, as_json=as_json)
+        assert r.returncode == 0 and MARK not in r.stdout + r.stderr
+    rep = json.loads(run(q).stdout)
+    assert rep["totals_by_status"] == {"pending": 4, "other": 1}
+    # A target that is not identifier-shaped is never resolved or echoed.
+    assert [c for c in rep["target_loss_candidates"] if c["id"] == "ok2"] == [
+        {"status": "lookup_failed", "id": "ok2"}]
+
+
+def test_paths_cannot_leave_their_base(tmp_path):
+    root = tmp_path / "skills"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.md").write_text("x", encoding="utf-8")
+    os.symlink(str(outside), str(root / "link"))
+    q = write(tmp_path / "q.jsonl", [
+        ent("slash", target_skill="rhize-context-manager/skills/" + str(outside / "secret.md")),
+        ent("sym", target_skill="rhize-context-manager/skills/link/secret.md"),
+        ent("symgone", target_skill="rhize-context-manager/skills/link/absent.md"),
+    ])
+    rep = json.loads(run(q, "--root", str(root)).stdout)
+    loss = {c["id"]: c for c in rep["target_loss_candidates"]}
+    # Neither "present" (it would be absent from the list) nor "target_missing".
+    assert {k: loss[k]["status"] for k in ("slash", "sym", "symgone")} == {
+        "slash": "lookup_failed", "sym": "lookup_failed", "symgone": "lookup_failed"}
+
+
+def test_non_finite_numbers_give_strict_json(tmp_path):
+    q = write(tmp_path / "q.jsonl", [], raw=[
+        '{"id":"n1","ts":"2026-11-10T00:00:00Z","status":"pending","est_savings":NaN,"count":1e999}',
+        '{"id":"n2","ts":"2026-11-10T00:00:00Z","status":"pending","est_savings":Infinity,"count":-5}',
+    ])
+    r = run(q)
+
+    def reject(token):
+        raise AssertionError("non-standard JSON token: %s" % token)
+
+    rep = json.loads(r.stdout, parse_constant=reject)
+    assert [(x["id"], x["evidence_count"], x["est_savings"]) for x in rep["top"]] == [
+        ("n1", 1, None), ("n2", 1, None)]
 
 
 def test_non_string_identifiers_are_dropped(tmp_path):
