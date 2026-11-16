@@ -9,7 +9,7 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### rhize-core
 
-Version 1.0.12. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
+Version 1.0.13. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
 
 [README](../rhize-core/README.md) · [GUIDE](../rhize-core/GUIDE.md) · [0 skills](../generated/SKILL-CATALOG.md#rhize-core)
 
@@ -81,7 +81,7 @@ Version 0.2.1. Perplexity subscription Search and Research with durable local jo
 
 ### rhize-ad-research
 
-Version 0.1.0. Collect bounded Meta Ads Library research through a shared Claude Code and Codex CLI, with spend limits, resumable runs, and source evidence.
+Version 0.2.0. Research bounded public ads through Meta’s official MCP in Claude Code and Codex, with shared evidence journals, integrity checks and JSON/CSV exports.
 
 [README](../rhize-ad-research/README.md) · [GUIDE](../rhize-ad-research/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#rhize-ad-research)
 <!-- SKILL-MAP:END -->

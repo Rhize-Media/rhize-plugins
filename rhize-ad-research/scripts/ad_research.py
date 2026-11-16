@@ -1,40 +1,25 @@
 #!/usr/bin/env python3
-"""Local, fail-closed collection journal for the Ad Library research spike."""
+"""Bounded official Meta MCP research journal; native hosts own authentication and retrieval."""
 import argparse
 import csv
 import datetime as dt
 import fcntl
 import hashlib
-import http.client
 import json
 import os
-import pwd
 from pathlib import Path
 import re
 import socket
-import subprocess
 import sys
 import tempfile
-import urllib.error
-import urllib.parse
-import urllib.request
 import uuid
-from decimal import Decimal, InvalidOperation
 
-ACTOR = 'JJghSZmShuco4j9gJ'
-BUILD = 'vx9ZhrSrrahpCBZrI'
-BUILD_NUMBER = '0.0.410'
 ROOT = Path.home() / 'Library/Application Support/Rhize Ad Research'
 ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$')
 MAX_RESPONSE = 8 * 1024 * 1024
 
 class Blocked(Exception):
     pass
-
-class HTTPFailure(Blocked):
-    def __init__(self, status):
-        self.status = status
-        super().__init__('provider_http_' + str(status))
 
 def now():
     return dt.datetime.now(dt.timezone.utc).isoformat()
@@ -47,16 +32,7 @@ def ident(value):
         raise Blocked('Invalid identifier')
     return value
 
-def money(value):
-    try:
-        n = Decimal(str(value))
-        if not n.is_finite() or n < 0:
-            raise ValueError()
-        return n
-    except (InvalidOperation, ValueError):
-        raise Blocked('Invalid nonnegative monetary amount') from None
-
-def safe_dir(path):
+def safe_dir(path, create=True):
     path = Path(path).expanduser()
     if '..' in path.parts:
         raise Blocked('Parent traversal is not supported')
@@ -65,17 +41,32 @@ def safe_dir(path):
     for component in (path, *path.parents):
         if component.is_symlink():
             raise Blocked('Symlink paths are not supported')
-    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if create: path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    elif not path.exists(): raise Blocked('workspace_missing')
     if not path.is_dir():
         raise Blocked('Expected directory')
     return path
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result: raise Blocked('duplicate_json_key')
+        result[key] = value
+    return result
+
+
+def decode(value):
+    return json.loads(value, object_pairs_hook=unique_object)
+
 
 def read(path):
     path = Path(path)
     if path.is_symlink() or any(part.is_symlink() for part in path.parents):
         raise Blocked('Symlink files are not supported')
     with path.open(encoding='utf-8') as f:
-        return json.load(f)
+        raw = f.read(MAX_RESPONSE + 1)
+    if len(raw.encode('utf-8')) > MAX_RESPONSE: raise Blocked('response_too_large')
+    return decode(raw)
 
 def write(path, value):
     path = Path(path)
@@ -125,27 +116,19 @@ class Lock:
         os.close(self.fd)
 
 def mapping(client, account):
-    data = read(registry() / 'registry.json')
+    try: data = read(registry() / 'registry.json')
+    except FileNotFoundError: raise Blocked('Client/account not set up') from None
     try:
-        return safe_dir(data[key(client, account)]['workspace'])
+        return safe_dir(data[key(client, account)]['workspace'], create=False)
     except KeyError:
         raise Blocked('Client/account not set up') from None
-
-def ledger_path(client, account):
-    return registry() / (key(client, account) + '.json')
-
-def ledger(client, account):
-    p = ledger_path(client, account)
-    return read(p) if p.exists() else {'runs': {}, 'grant': None}
-
-def save_ledger(client, account, data):
-    write(ledger_path(client, account), data)
 
 def run_path(workspace, run):
     return workspace / 'runs' / ident(run) / 'manifest.json'
 
 def load_run(workspace, run_id, client, account):
-    run = read(run_path(workspace, run_id))
+    try: run = read(run_path(workspace, run_id))
+    except FileNotFoundError: raise Blocked('run_not_found') from None
     if run.get('client') != client or run.get('account') != account or run.get('id') != run_id:
         raise Blocked('run_scope_mismatch')
     return run
@@ -153,137 +136,12 @@ def load_run(workspace, run_id, client, account):
 def save_run(workspace, run):
     write(run_path(workspace, run['id']), run)
 
-def input_contains(actual, expected):
-    if isinstance(expected, dict):
-        if not isinstance(actual, dict): return False
-        extra = set(actual) - set(expected)
-        if extra and not (set(expected) == {'url'} and extra == {'method'} and actual['method'] == 'GET'): return False
-        return all(k in actual and input_contains(actual[k], v) for k, v in expected.items())
-    if isinstance(expected, list):
-        return isinstance(actual, list) and len(actual) == len(expected) and all(input_contains(a, b) for a, b in zip(actual, expected))
-    return type(actual) is type(expected) and actual == expected
+def workspaces_overlap(first, second):
+    if first == second or first in second.parents or second in first.parents: return True
+    if first.exists() and second.exists():
+        return any(os.path.samefile(first, p) for p in (second, *second.parents)) or any(os.path.samefile(second, p) for p in first.parents)
+    return False
 
-def validate_url(value):
-    try:
-        u = urllib.parse.urlsplit(value)
-        if u.scheme != 'https' or u.hostname not in ('facebook.com', 'www.facebook.com') or u.username or u.password or u.port not in (None, 443) or u.fragment:
-            raise ValueError()
-        if u.path.rstrip('/') == '/ads/library':
-            allowed = {'active_status', 'ad_type', 'country', 'is_targeted_country', 'media_type', 'search_type', 'view_all_page_id', 'q', 'content_languages[0]', 'publisher_platforms[0]', 'publisher_platforms[1]'}
-            pairs = urllib.parse.parse_qsl(u.query, keep_blank_values=True, strict_parsing=True)
-            if not pairs or any(k not in allowed for k, _ in pairs) or len({k for k, _ in pairs}) != len(pairs):
-                raise ValueError()
-        elif not re.fullmatch(r'/[A-Za-z0-9.][A-Za-z0-9._-]{0,99}/?', u.path) or u.query:
-            raise ValueError()
-        return value
-    except ValueError:
-        raise Blocked('Invalid Facebook Page or Library URL') from None
-
-def clean_url(value):
-    if not isinstance(value, str):
-        return None
-    try:
-        u = urllib.parse.urlsplit(value)
-        if u.scheme not in ('https', 'http') or not u.hostname or u.username or u.password:
-            return None
-        q = [(k, v) for k, v in urllib.parse.parse_qsl(u.query) if not re.search(r'(token|secret|signature|credential|auth|^utm_|^fbclid$|^expires$|^x-amz-)', k, re.I)]
-        return urllib.parse.urlunsplit((u.scheme, u.netloc, u.path, urllib.parse.urlencode(q), ''))
-    except ValueError:
-        return None
-
-def token():
-    value = os.environ.get('RHIZE_APIFY_TOKEN')
-    if value:
-        return value
-    try:
-        p = subprocess.run(['security', 'find-generic-password', '-a', os.environ.get('USER', ''), '-s', 'Rhize Ad Research Apify Token', '-w'], capture_output=True, text=True, timeout=10, check=True)
-        return p.stdout.strip()
-    except (OSError, subprocess.SubprocessError):
-        raise Blocked('Provider credential unavailable') from None
-
-class NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, *args, **kwargs):
-        raise Blocked('Provider redirect refused')
-
-class Transport:
-    def request(self, method, path, payload=None, authenticated=True):
-        if not path.startswith('/v2/') or '\n' in path:
-            raise Blocked('Invalid provider path')
-        headers = {'Accept': 'application/json'}
-        if authenticated:
-            headers['Authorization'] = 'Bearer ' + token()
-        body = None
-        if payload is not None:
-            headers['Content-Type'] = 'application/json'
-            body = json.dumps(payload, separators=(',', ':')).encode()
-        req = urllib.request.Request('https://api.apify.com' + path, data=body, headers=headers, method=method)
-        try:
-            with urllib.request.build_opener(NoRedirect).open(req, timeout=30) as response:
-                raw = response.read(MAX_RESPONSE + 1)
-                if len(raw) > MAX_RESPONSE:
-                    raise Blocked('Provider response too large')
-                return json.loads(raw)
-        except urllib.error.HTTPError as exc:
-            raise HTTPFailure(exc.code) from None
-        except (urllib.error.URLError, OSError, ValueError, http.client.HTTPException) as exc:
-            # Do not include provider text, URL, headers, or credential in error output.
-            raise Blocked('Provider request failed: ' + type(exc).__name__) from None
-
-def provider_check(transport, authenticated=False):
-    actor = transport.request('GET', '/v2/acts/' + ACTOR, authenticated=False)['data']
-    build = transport.request('GET', '/v2/actor-builds/' + BUILD, authenticated=False)['data']
-    schema = json.loads(build['inputSchema'])
-    prices = actor['pricingInfos']
-    try:
-        dated = [(dt.datetime.fromisoformat(p['startedAt'].replace('Z', '+00:00')), p) for p in prices]
-        current = dt.datetime.now(dt.timezone.utc)
-        if not dated or any(t.tzinfo is None or t > current for t, _ in dated):
-            raise ValueError()
-        effective = max(dated, key=lambda x: x[0])[1]
-    except (KeyError, TypeError, ValueError):
-        raise Blocked('schema_change') from None
-    if actor['id'] != ACTOR or build['id'] != BUILD or build['actId'] != ACTOR or build['buildNumber'] != BUILD_NUMBER or effective['pricingModel'] != 'PAY_PER_EVENT' or effective.get('isPPEPlatformUsagePaidByUser', False):
-        raise Blocked('schema_change')
-    props = schema['properties']
-    expected = {'startUrls', 'resultsLimit', 'activeStatus', 'sorting', 'onlyTotal', 'includeAboutPage', 'isDetailsPerAd', 'enrichWithEcommerceData'}
-    if not expected.issubset(props) or 'startUrls' not in schema.get('required', []):
-        raise Blocked('schema_change')
-    events = effective.get('pricingPerEvent', {}).get('actorChargeEvents', {})
-    if set(events) != {'apify-default-dataset-item', 'ecommerce-enrichment'} or not events['apify-default-dataset-item'].get('isPrimaryEvent'):
-        raise Blocked('schema_change')
-    tiers = events['apify-default-dataset-item'].get('eventTieredPricingUsd', {})
-    if set(tiers) != {'FREE', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'}:
-        raise Blocked('schema_change')
-    rates = [money(v['tieredEventPriceUsd']) for v in tiers.values()]
-    if min(rates) <= 0:
-        raise Blocked('schema_change')
-    result = {'minimum_published_unit_price_usd': str(min(rates)), 'maximum_published_unit_price_usd': str(max(rates)), 'minimum_charge_usd': str(money(effective['minimalMaxTotalChargeUsd'])), 'actor_id': ACTOR, 'build_id': BUILD, 'build_number': BUILD_NUMBER, 'schema_hash': digest(schema), 'pricing_hash': digest(prices), 'pricing_model': effective['pricingModel'], 'checked_at': now(), 'paid_limit_qualified': False}
-    if authenticated:
-        user = transport.request('GET', '/v2/users/me')['data']
-        result['authenticated_account_id'] = user['id']
-        usage = transport.request('GET', '/v2/users/me/usage/monthly')['data']
-        result['usage_baseline'] = {k: usage[k] for k in ('usageCycle', 'totalUsageCreditsUsdAfterVolumeDiscount')}
-    return result
-
-def grant_validate(g, client, account):
-    required = ('grantor', 'issued_at', 'expires_at', 'source_reference', 'client', 'account', 'cumulative_usd', 'billable_units', 'covered_cost_classes', 'provider_use_decision', 'retention_decision', 'collector', 'mode')
-    if not isinstance(g, dict) or any(not g.get(x) for x in required) or g['client'] != client or g['account'] != account or g['mode'] != 'spike':
-        raise Blocked('Invalid or out-of-scope spike authority')
-    try:
-        issued = dt.datetime.fromisoformat(g['issued_at'].replace('Z', '+00:00'))
-        expiry = dt.datetime.fromisoformat(g['expires_at'].replace('Z', '+00:00'))
-        if issued.tzinfo is None or expiry.tzinfo is None or issued > dt.datetime.now(dt.timezone.utc) or expiry <= dt.datetime.now(dt.timezone.utc):
-            raise ValueError()
-    except (TypeError, ValueError):
-        raise Blocked('expired_authority') from None
-    if g['provider_use_decision'] != 'allowed' or g['retention_decision'] != 'metadata_links_only':
-        raise Blocked('provider_policy_not_approved')
-    money(g.get('ancillary_usd'))
-    if not isinstance(g['billable_units'], int) or isinstance(g['billable_units'], bool) or g['billable_units'] < 1 or money(g['cumulative_usd']) <= 0:
-        raise Blocked('Invalid grant limits')
-    if not isinstance(g['covered_cost_classes'], list) or 'actor_events' not in g['covered_cost_classes'] or 'all_in' in g['covered_cost_classes']:
-        raise Blocked('Unsupported cost coverage')
-    return g
 
 def setup(args):
     with Lock('registry', 'global'):
@@ -291,7 +149,7 @@ def setup(args):
         path = registry() / 'registry.json'
         data = read(path) if path.exists() else {}
         k = key(args.client, args.account)
-        if any(other != k and value['workspace'] == str(workspace) for other, value in data.items()):
+        if any(other != k and workspaces_overlap(Path(value['workspace']), workspace) for other, value in data.items()):
             raise Blocked('Workspace already belongs to another client/account')
         if k in data and data[k]['workspace'] != str(workspace):
             raise Blocked('Workspace relocation is not supported')
@@ -299,325 +157,11 @@ def setup(args):
         write(path, data)
         return data[k]
 
-def plan(args):
-    with Lock(args.client, args.account):
-        workspace = mapping(args.client, args.account)
-        urls = [validate_url(x) for x in args.urls]
-        if args.results_limit < 1 or not urls or money(args.max_charge) <= 0:
-            raise Blocked('Invalid collection limits')
-        input_data = {'startUrls': [{'url': x} for x in urls], 'resultsLimit': args.results_limit, 'activeStatus': 'active', 'sorting': 'relevancy_monthly_grouped', 'onlyTotal': False, 'includeAboutPage': False, 'isDetailsPerAd': False, 'enrichWithEcommerceData': False}
-        run = {'id': uuid.uuid4().hex, 'created_at': now(), 'client': args.client, 'account': args.account, 'actor_id': ACTOR, 'build_id': BUILD, 'input': input_data, 'input_hash': digest(input_data), 'max_charge_usd': str(money(args.max_charge)), 'unit_ceiling': args.results_limit * len(urls), 'lifecycle': 'planned', 'coverage': 'unknown', 'result': 'unknown', 'billing': 'pending', 'block_reason': None, 'fetched': 0, 'normalized': 0, 'quarantined': 0}
-        save_run(workspace, run)
-        return run
-
-def operator_status(run):
-    lifecycle = run['lifecycle']
-    if lifecycle == 'submission_unknown': return 'Submission unknown', 'Reconcile; never resubmit automatically'
-    if run.get('block_reason'): return 'Held: ' + run['block_reason'], 'Resolve named block; review/export existing data'
-    if lifecycle in ('running', 'submitting'): return 'In progress', 'Resume existing job'
-    if lifecycle in ('failed', 'cancelled'): return lifecycle.capitalize(), 'Inspect retained data and reason'
-    if lifecycle == 'planned': return 'Ready to collect if unblocked', 'Review scope and authority'
-    if run['coverage'] != 'complete': return 'Partial/capped', 'Review coverage limitations'
-    return 'Research collected', 'Begin human review'
-
-def submit_run(workspace, run, data, transport):
-    """Reserve and journal before the sole paid POST. Never retry it."""
-    if run['id'] in data['runs']:
-        raise Blocked('Existing intent must be resumed, never resubmitted')
-    if digest(run['input']) != run['input_hash']:
-        raise Blocked('input_changed')
-    grant = grant_validate(data.get('grant') or {}, run['client'], run['account'])
-    if grant['collector'] != pwd.getpwuid(os.getuid()).pw_name:
-        raise Blocked('collector_mismatch')
-    inp = run['input']
-    fixed = {'activeStatus': 'active', 'sorting': 'relevancy_monthly_grouped', 'onlyTotal': False, 'includeAboutPage': False, 'isDetailsPerAd': False, 'enrichWithEcommerceData': False}
-    if not isinstance(inp, dict) or set(inp) != set(fixed) | {'startUrls', 'resultsLimit'} or any(type(inp.get(k)) is not type(v) or inp[k] != v for k, v in fixed.items()) or not isinstance(inp['resultsLimit'], int) or isinstance(inp['resultsLimit'], bool) or inp['resultsLimit'] < 1 or not isinstance(inp['startUrls'], list) or not inp['startUrls']:
-        raise Blocked('input_changed')
-    for url in inp['startUrls']:
-        if not isinstance(url, dict) or set(url) != {'url'}: raise Blocked('input_changed')
-        validate_url(url['url'])
-    if run['unit_ceiling'] != inp['resultsLimit'] * len(inp['startUrls']): raise Blocked('input_changed')
-    # An approved spike needs independent documentation of the limit semantics and
-    # a conservative unit-price floor; metadata alone is not paid-limit qualification.
-    policy = grant.get('spike_limit_policy') or {}
-    if not policy.get('source_reference'):
-        raise Blocked('unverified_provider_limit')
-    check = provider_check(transport, True)
-    floor = money(check['minimum_published_unit_price_usd'])
-    if money(run['max_charge_usd']) < money(check['minimum_charge_usd']):
-        raise Blocked('charge_limit_below_provider_minimum')
-    if check.get('authenticated_account_id') != run['account']:
-        raise Blocked('auth_account_mismatch')
-    if check['schema_hash'] != policy.get('schema_hash') or check['pricing_hash'] != policy.get('pricing_hash'):
-        raise Blocked('schema_change')
-    charges = Decimal('0'); units = 0
-    for prior in data['runs'].values():
-        if prior.get('provider_run_id') and not prior.get('collection_finalized'):
-            raise Blocked('collection_incomplete')
-        if prior.get('collection_block'):
-            raise Blocked('provider_collection_unqualified')
-        if prior.get('billing') != 'reconciled':
-            raise Blocked('billing_unknown')
-        charges += money(prior['actual_charge_usd']); units += prior['charged_units']
-    # Whole events can be charged across a charge threshold. Reserve the documented
-    # maximum overshoot as well as the charge-limited units.
-    reserved_units = int((money(run['max_charge_usd']) / floor).to_integral_value(rounding='ROUND_CEILING')) + 1
-    reservation = money(run['max_charge_usd']) + 1 * money(check['maximum_published_unit_price_usd'])
-    if units + reserved_units > grant['billable_units']:
-        raise Blocked('budget_exhausted')
-    if grant.get('per_run_usd') and money(run['max_charge_usd']) > money(grant['per_run_usd']):
-        raise Blocked('budget_exhausted')
-    baseline = grant.get('usage_baseline') or {}
-    usage = transport.request('GET', '/v2/users/me/usage/monthly')['data']
-    if not baseline.get('usageCycle') or baseline['usageCycle'] != usage.get('usageCycle') or 'totalUsageCreditsUsdAfterVolumeDiscount' not in usage:
-        raise Blocked('billing_unknown')
-    current_usage = money(usage['totalUsageCreditsUsdAfterVolumeDiscount'])
-    baseline_usage = money(baseline.get('totalUsageCreditsUsdAfterVolumeDiscount'))
-    if current_usage < baseline_usage: raise Blocked('billing_unknown')
-    delta = current_usage - baseline_usage
-    ancillary = money(grant['ancillary_usd'])
-    unclassified = max(Decimal(0), delta - charges)
-    if unclassified > ancillary: raise Blocked('unexplained_account_usage')
-    if max(delta, charges) + reservation + ancillary - unclassified > money(grant['cumulative_usd']):
-        raise Blocked('budget_exhausted')
-    intent = {'input_hash': run['input_hash'], 'created_at': now(), 'lifecycle': 'submitting', 'billing': 'pending', 'reservation_usd': str(reservation), 'reserved_units': reserved_units, 'minimum_unit_price_usd': str(floor), 'maximum_unit_price_usd': check['maximum_published_unit_price_usd'], 'provider_run_id': None}
-    data['runs'][run['id']] = intent
-    save_ledger(run['client'], run['account'], data)
-    run.update(lifecycle='submitting', submitted_at=intent['created_at'], reserved_units=reserved_units, block_reason=None)
-    save_run(workspace, run)
-    try:
-        response = transport.request('POST', '/v2/acts/' + ACTOR + '/runs?build=' + BUILD_NUMBER + '&timeout=120&memory=1024&maxTotalChargeUsd=' + urllib.parse.quote(run['max_charge_usd']), run['input'])['data']
-        if response.get('actId') != ACTOR or response.get('buildId') != BUILD or response.get('userId') != run['account']:
-            raise Blocked('provider_identity_mismatch')
-        provider_id = ident(response['id'])
-        if any(v.get('provider_run_id') == provider_id for k, v in data['runs'].items() if k != run['id']):
-            raise Blocked('provider_id_already_bound')
-    except HTTPFailure as exc:
-        if exc.status in (400, 401, 402, 403, 404, 422, 429):
-            intent.update(lifecycle='failed', billing='reconciled', actual_charge_usd='0', charged_units=0, rejection_status=exc.status)
-            save_ledger(run['client'], run['account'], data)
-            run.update(lifecycle='failed', billing='reconciled', actual_charge_usd='0', charged_units=0, block_reason='provider_rejected_' + str(exc.status))
-            save_run(workspace, run)
-            raise Blocked('provider_rejected_' + str(exc.status)) from None
-        intent.update(lifecycle='submission_unknown', billing='unknown')
-        save_ledger(run['client'], run['account'], data)
-        run.update(lifecycle='submission_unknown', billing='unknown', block_reason='unresolved_submission')
-        save_run(workspace, run)
-        raise Blocked('unresolved_submission') from None
-    except (Blocked, KeyError, TypeError, AttributeError, ValueError, http.client.HTTPException):
-        intent.update(lifecycle='submission_unknown', billing='unknown')
-        save_ledger(run['client'], run['account'], data)
-        run.update(lifecycle='submission_unknown', billing='unknown', block_reason='unresolved_submission')
-        save_run(workspace, run)
-        raise Blocked('unresolved_submission') from None
-    intent.update(provider_run_id=provider_id, lifecycle='running')
-    save_ledger(run['client'], run['account'], data)
-    run.update(provider_run_id=provider_id, lifecycle='running')
-    save_run(workspace, run)
-    return run
-
-def reconcile_submission(workspace, run, data, transport):
-    intent = data['runs'].get(run['id'])
-    if not intent:
-        raise Blocked('No existing submission intent')
-    if intent.get('provider_run_id'):
-        run.update(provider_run_id=intent['provider_run_id'])
-        save_run(workspace, run)
-        return run
-    history = transport.request('GET', '/v2/acts/' + ACTOR + '/runs?limit=1000&desc=true')['data']
-    items = history.get('items'); total = history.get('total')
-    if not isinstance(items, list) or not isinstance(total, int) or total > len(items):
-        raise Blocked('unresolved_submission')
-    try:
-        submitted = dt.datetime.fromisoformat(intent['created_at'].replace('Z', '+00:00'))
-        start = submitted - dt.timedelta(minutes=2)
-        end = submitted + dt.timedelta(minutes=10)
-        if digest(run['input']) != intent['input_hash']: raise ValueError()
-    except (KeyError, TypeError, ValueError):
-        raise Blocked('unresolved_submission') from None
-    bound = {v.get('provider_run_id') for k, v in data['runs'].items() if k != run['id']}
-    matches = []
-    for item in items:
-        try:
-            candidate = ident(item['id'])
-            at = dt.datetime.fromisoformat(item['startedAt'].replace('Z', '+00:00'))
-            if candidate in bound or at < start or at > end or item.get('actId') != ACTOR or item.get('buildId') != BUILD:
-                continue
-        except (KeyError, TypeError, ValueError, Blocked):
-            continue
-        detail = transport.request('GET', '/v2/actor-runs/' + candidate)['data']
-        try:
-            options = detail.get('options') or {}
-            if detail.get('actId') != ACTOR or detail.get('buildId') != BUILD or detail.get('userId') != run['account'] or money(options.get('maxTotalChargeUsd')) != money(run['max_charge_usd']) or options.get('timeoutSecs') != 120 or options.get('memoryMbytes') != 1024:
-                continue
-            store = ident(detail['defaultKeyValueStoreId'])
-        except (KeyError, TypeError, ValueError, Blocked):
-            continue
-        inp = transport.request('GET', '/v2/key-value-stores/' + store + '/records/INPUT')
-        if input_contains(inp, run['input']):
-            matches.append(candidate)
-    if len(matches) != 1:
-        raise Blocked('unresolved_submission')
-    intent.update(provider_run_id=matches[0], lifecycle='running', billing='pending')
-    save_ledger(run['client'], run['account'], data)
-    run.update(provider_run_id=matches[0], lifecycle='running', billing='pending', block_reason=None)
-    save_run(workspace, run)
-    return run
-
-def resume_run(workspace, run, data, transport):
-    run = reconcile_submission(workspace, run, data, transport)
-    provider = transport.request('GET', '/v2/actor-runs/' + ident(run['provider_run_id']))['data']
-    if provider.get('actId') != ACTOR or provider.get('buildId') != BUILD or provider.get('userId') != run['account']:
-        raise Blocked('provider_identity_mismatch')
-    state = provider.get('status')
-    if state in ('READY', 'RUNNING', 'ABORTING', 'TIMING-OUT'):
-        return run
-    statuses = {'SUCCEEDED': 'succeeded', 'FAILED': 'failed', 'TIMED-OUT': 'failed', 'ABORTED': 'cancelled'}
-    if state not in statuses:
-        raise Blocked('Unknown provider run state')
-    run['lifecycle'] = statuses[state]
-    run['provider_status'] = state
-    intent = data['runs'][run['id']]
-    intent['collection_finalized'] = False
-    intent['lifecycle'] = run['lifecycle']
-    counts = provider.get('chargedEventCounts')
-    if counts == {} and money(provider.get('usageTotalUsd')) == 0:
-        counts = {'apify-default-dataset-item': 0}
-    # Actual owner-wide total is authoritative; never sum it with event charges.
-    if 'usageTotalUsd' not in provider or not isinstance(counts, dict) or not isinstance(counts.get('apify-default-dataset-item'), int) or any(v for k, v in counts.items() if k != 'apify-default-dataset-item'):
-        run.update(billing='unknown', block_reason='billing_unknown')
-        intent['billing'] = 'unknown'
-    else:
-        actual = money(provider['usageTotalUsd'])
-        count = counts['apify-default-dataset-item']
-        floor = money(intent.get('minimum_unit_price_usd'))
-        ceiling = money(intent.get('maximum_unit_price_usd'))
-        if actual > money(intent['reservation_usd']) or count > intent['reserved_units'] or count < 0 or not count * floor - Decimal('0.000000001') <= actual <= count * ceiling + Decimal('0.000000001'):
-            run.update(billing='unknown', block_reason='billing_overrun')
-            intent['billing'] = 'unknown'
-        else:
-            intent.update(billing='reconciled', actual_charge_usd=str(actual), charged_units=count)
-            run.update(billing='reconciled', actual_charge_usd=str(actual), charged_units=count, minimum_unit_price_usd=str(floor), maximum_unit_price_usd=str(ceiling))
-    save_ledger(run['client'], run['account'], data)
-    if provider.get('defaultDatasetId'):
-        run['dataset_id'] = ident(provider['defaultDatasetId'])
-    save_run(workspace, run)
-    if run.get('dataset_id'):
-        return paginate(workspace, run, transport)
-    return run
-
-def normalize(item, run):
-    if not isinstance(item, dict):
-        return None
-    ad_id = item.get('ad_archive_id') or item.get('adArchiveID') or item.get('adArchiveId')
-    advertiser = item.get('page_name') or item.get('pageName')
-    if not isinstance(ad_id, (str, int)) or not str(ad_id) or not isinstance(advertiser, str) or not advertiser.strip():
-        return None
-    snapshot = item.get('snapshot') if isinstance(item.get('snapshot'), dict) else {}
-    body = snapshot.get('body') if isinstance(snapshot.get('body'), dict) else {}
-    text = body.get('text') if isinstance(body.get('text'), str) else None
-    source = 'https://www.facebook.com/ads/library/?id=' + str(ad_id) if str(ad_id).isdigit() else None
-    return {'ad_id': str(ad_id), 'advertiser': advertiser, 'page_id': item.get('page_id') or item.get('pageId'), 'active_status': item.get('is_active'), 'start_date': item.get('start_date') or item.get('startDate'), 'end_date': item.get('end_date') or item.get('endDate'), 'format': snapshot.get('display_format'), 'platforms': item.get('publisher_platforms'), 'observed_at': run.get('observed_at'), 'query_urls': [x['url'] for x in run['input']['startUrls']], 'source_url': source, 'text': text}
-
-def paginate(workspace, run, transport):
-    """Save each immutable provider page before advancing its cursor."""
-    if run['lifecycle'] not in ('succeeded', 'failed', 'cancelled'):
-        raise Blocked('Provider run is not terminal')
-    dataset = ident(run['dataset_id'])
-    run['coverage'] = 'pagination_incomplete'
-    data = ledger(run['client'], run['account'])
-    if run['id'] in data['runs']:
-        data['runs'][run['id']]['collection_finalized'] = False
-        save_ledger(run['client'], run['account'], data)
-    save_run(workspace, run)
-    directory = run_path(workspace, run['id']).parent
-    metadata = transport.request('GET', '/v2/datasets/' + dataset)['data']
-    total = metadata.get('itemCount')
-    if not isinstance(total, int) or total < 0:
-        raise Blocked('Dataset count unavailable')
-    offset = run.get('offset', 0)
-    while offset < total:
-        limit = min(100, total - offset)
-        page_path = directory / 'pages' / (str(offset) + '.json')
-        page = read(page_path) if page_path.exists() else transport.request('GET', '/v2/datasets/' + dataset + '/items?offset=' + str(offset) + '&limit=' + str(limit) + '&format=json')
-        if not isinstance(page, list) or not page or len(page) > limit:
-            raise Blocked('Dataset pagination incomplete')
-        if not page_path.exists(): write(page_path, page)
-        offset += len(page)
-        run['offset'] = offset
-        run['coverage'] = 'pagination_incomplete'
-        save_run(workspace, run)
-    run.setdefault('observed_at', now())
-    records, quarantined, duplicates, seen = [], 0, 0, set()
-    provider_errors = []
-    for file in sorted((directory / 'pages').glob('*.json'), key=lambda x: int(x.stem)) if (directory / 'pages').exists() else []:
-        for item in read(file):
-            if isinstance(item, dict) and item.get('error'):
-                code = item['error'] if isinstance(item['error'], str) and re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', item['error']) else 'provider_error'
-                provider_errors.append(code)
-                continue
-            record = normalize(item, run)
-            if record is None:
-                quarantined += 1
-            elif record['ad_id'] not in seen:
-                records.append(record); seen.add(record['ad_id'])
-            else:
-                duplicates += 1
-    write(directory / 'records.json', records)
-    run.update(fetched=total, normalized=len(records), quarantined=quarantined, duplicates=duplicates)
-    run['provider_errors'] = provider_errors
-    run['coverage_reasons'] = []
-    if provider_errors:
-        run['coverage_reasons'].append('provider_error')
-        run['block_reason'] = 'provider_result_error'
-        data = ledger(run['client'], run['account'])
-        if run['id'] in data['runs']:
-            data['runs'][run['id']]['collection_block'] = 'provider_result_error'
-            save_ledger(run['client'], run['account'], data)
-    if not records and not provider_errors and not quarantined:
-        run['coverage_reasons'].append('unverified_empty')
-    if quarantined: run['coverage_reasons'].append('parse_incomplete')
-    if total >= run['input']['resultsLimit'] or (run['billing'] == 'reconciled' and money(run['max_charge_usd']) - money(run['actual_charge_usd']) < money(run.get('maximum_unit_price_usd'))): run['coverage_reasons'].append('capped')
-    if run['billing'] == 'reconciled' and run.get('charged_units') != total:
-        run['coverage_reasons'].append('count_mismatch')
-        run.update(billing='unknown', block_reason='count_mismatch')
-        data = ledger(run['client'], run['account'])
-        if run['id'] in data['runs']:
-            data['runs'][run['id']]['billing'] = 'unknown'
-            save_ledger(run['client'], run['account'], data)
-    if run['lifecycle'] != 'succeeded': run['coverage_reasons'].append('provider_' + run['lifecycle'])
-    if run['billing'] != 'reconciled': run['coverage_reasons'].append('billing_unknown')
-    if run['lifecycle'] != 'succeeded':
-        run['coverage'] = 'pagination_incomplete'
-    elif provider_errors:
-        run['coverage'] = 'provider_error'
-    elif quarantined:
-        run['coverage'] = 'parse_incomplete'
-    elif run['billing'] != 'reconciled' or 'count_mismatch' in run['coverage_reasons'] or 'unverified_empty' in run['coverage_reasons']:
-        run['coverage'] = 'unknown'
-    elif 'capped' in run['coverage_reasons']:
-        run['coverage'] = 'capped'
-    else:
-        run['coverage'] = 'complete'
-    run['result'] = 'nonempty' if records else 'unknown'
-    data = ledger(run['client'], run['account'])
-    if run['id'] in data['runs']:
-        intent = data['runs'][run['id']]
-        holds = [reason for reason in run['coverage_reasons'] if reason != 'capped']
-        if holds:
-            intent['collection_block'] = holds[0]
-            run['block_reason'] = holds[0]
-        elif intent.get('collection_block') not in ('provider_error', 'provider_result_error'):
-            intent.pop('collection_block', None)
-            run['block_reason'] = None
-        intent['collection_finalized'] = True
-    save_run(workspace, run)
-    save_ledger(run['client'], run['account'], data)
-    return run
-
 def export(args):
     workspace = mapping(args.client, args.account)
     run = load_run(workspace, args.run, args.client, args.account)
+    verify_evidence(workspace, run)
+    if run.get('provider') == PROVIDER and run['lifecycle'] != 'succeeded': raise Blocked('no_exportable_sample')
     if run['lifecycle'] not in ('succeeded', 'failed', 'cancelled'): raise Blocked('Run is not terminal')
     records_path = run_path(workspace, args.run).parent / 'records.json'
     if not records_path.exists(): raise Blocked('No fetched records available')
@@ -625,24 +169,255 @@ def export(args):
     output = safe_dir(args.output)
     rows = []
     for item in records:
-        rows.append({k: item.get(k) for k in ('ad_id', 'advertiser', 'page_id', 'active_status', 'start_date', 'end_date', 'format', 'platforms', 'observed_at', 'query_urls', 'source_url', 'text')})
+        rows.append({k: item.get(k) for k in FIELDS + ['created_at', 'query_urls']})
         rows[-1]['source_url'] = 'https://www.facebook.com/ads/library/?id=' + str(item['ad_id']) if str(item['ad_id']).isdigit() else None
-    write(output / 'research.json', {'run': {k: run.get(k) for k in ('id', 'lifecycle', 'coverage', 'result', 'billing', 'block_reason', 'fetched', 'normalized', 'quarantined', 'duplicates', 'coverage_reasons', 'provider_errors')}, 'records': rows})
-    csv_path = output / 'research.csv'
+    write(output / (run['id'] + '-research.json'), {'run': {k: run.get(k) for k in ('id', 'provider', 'service', 'input', 'response_hash', 'records_hash', 'capture_host', 'capture_method', 'observed_at', 'ingested_at', 'estimated_total_count', 'pagination_supported', 'lifecycle', 'coverage', 'result', 'billing', 'block_reason', 'fetched', 'normalized', 'quarantined', 'duplicates', 'coverage_reasons', 'provider_errors')}, 'records': rows})
+    csv_path = output / (run['id'] + '-research.csv')
     if csv_path.is_symlink(): raise Blocked('Symlink files are not supported')
     fd, temp = tempfile.mkstemp(prefix='.csv-', dir=output)
     try:
         os.fchmod(fd, 0o600)
         with os.fdopen(fd, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=['ad_id', 'advertiser', 'page_id', 'active_status', 'start_date', 'end_date', 'format', 'platforms', 'observed_at', 'query_urls', 'source_url', 'text'])
+            writer = csv.DictWriter(f, fieldnames=FIELDS + ['created_at', 'query_urls'])
             writer.writeheader()
             for row in rows:
-                writer.writerow({k: ("'" + str(v) if isinstance(v, str) and v.lstrip().startswith(('=', '+', '-', '@', '\t', '\r')) else v) for k, v in row.items()})
+                writer.writerow({k: ("'" + str(v) if isinstance(v, str) and v.lstrip().startswith(('=', '+', '-', '@', '\t', '\r')) else json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v) for k, v in row.items()})
             f.flush(); os.fsync(f.fileno())
         os.replace(temp, csv_path)
     finally:
         if os.path.exists(temp): os.unlink(temp)
-    return {'json': str(output / 'research.json'), 'csv': str(csv_path), 'records': len(rows), 'lifecycle': run['lifecycle'], 'coverage': run['coverage'], 'result': run['result'], 'billing': run['billing'], 'coverage_reasons': run.get('coverage_reasons', [])}
+    return {'json': str(output / (run['id'] + '-research.json')), 'csv': str(csv_path), 'records': len(rows), 'lifecycle': run['lifecycle'], 'coverage': run.get('coverage'), 'result': run.get('result'), 'billing': run.get('billing'), 'coverage_reasons': run.get('coverage_reasons', [])}
+
+PROVIDER = 'meta-ads-mcp'
+ENDPOINT = 'https://mcp.facebook.com/ads'
+TOOL = 'ads_library_search'
+FILTERS = {'search_terms', 'page_ids', 'countries', 'ad_active_status', 'ad_type', 'limit'}
+PROVENANCE = {'advertiser_job', 'advertiser_request', 'client_conversation_id', 'scheduled_task_run'}
+FIELDS = ['ad_id', 'advertiser', 'page_id', 'title', 'text', 'active_status', 'start_date',
+          'end_date', 'format', 'platforms', 'observed_at', 'source_url', 'query', 'query_service', 'relevance']
+
+
+def query_validate(query):
+    if not isinstance(query, dict) or set(query) - FILTERS:
+        raise Blocked('unsupported_query_or_pagination')
+    if type(query.get('limit')) is not int or not 1 <= query['limit'] <= 50:
+        raise Blocked('limit_must_be_1_to_50')
+    if query.get('ad_active_status') not in ('ALL', 'ACTIVE', 'INACTIVE') or query.get('ad_type') != 'ALL':
+        raise Blocked('unsupported_status_or_ad_type')
+    countries = query.get('countries')
+    if not isinstance(countries, list) or not 1 <= len(countries) <= 10 or any(not isinstance(c, str) or not re.fullmatch('[A-Z]{2}', c) for c in countries):
+        raise Blocked('invalid_countries')
+    pages, terms = query.get('page_ids'), query.get('search_terms')
+    if pages is not None and (not isinstance(pages, list) or not 1 <= len(pages) <= 10 or any(not isinstance(p, str) or not re.fullmatch('[0-9]{1,32}', p) for p in pages)):
+        raise Blocked('invalid_page_ids')
+    if terms is not None and (not isinstance(terms, str) or not terms.strip() or len(terms) > 300):
+        raise Blocked('invalid_search_terms')
+    if not pages and not terms:
+        raise Blocked('select_keywords_or_pages_for_bounded_research')
+    return query
+
+
+def plan(args):
+    query = {'countries': args.countries, 'limit': args.limit, 'ad_active_status': args.status, 'ad_type': 'ALL'}
+    if args.search_terms: query['search_terms'] = args.search_terms
+    if args.page_ids: query['page_ids'] = args.page_ids
+    query_validate(query)
+    with Lock(args.client, args.account):
+        workspace = mapping(args.client, args.account)
+        run = {'id': uuid.uuid4().hex, 'created_at': now(), 'client': args.client, 'account': args.account,
+               'provider': PROVIDER, 'tool': TOOL, 'capture_host': args.host, 'service': args.service, 'input': query,
+               'input_hash': digest(query), 'lifecycle': 'planned', 'coverage': 'unknown',
+               'result': 'unknown', 'billing': 'not_managed_by_plugin', 'fetched': 0, 'normalized': 0,
+               'quarantined': 0, 'duplicates': 0, 'block_reason': None, 'pagination_supported': False}
+        save_run(workspace, run)
+        return run
+
+
+def operator_status(run):
+    if run.get('provider') != PROVIDER:
+        return 'Historical Apify run (read-only)', ('Inspect/export retained evidence; paid provider retired' if run.get('lifecycle') in ('succeeded', 'failed', 'cancelled') else 'Non-terminal historical run: inspect retained files only; paid provider retired')
+    if run.get('block_reason'):
+        return 'Held: ' + run['block_reason'], 'Inspect retained response; do not overwrite or silently retry'
+    if run.get('lifecycle') == 'capturing':
+        return 'Response sealed; processing incomplete', 'Resume locally without a provider call; if raw write was interrupted, supply the identical inbox'
+    if run.get('result') == 'unverified_empty':
+        return 'No ads returned; absence unverified', 'Review query and provider coverage; this does not prove no ads exist'
+    if run['lifecycle'] == 'succeeded':
+        return ('Partial sample collected' if run.get('quarantined') else 'Bounded sample collected'), 'Export and review sources; not a complete inventory or performance ranking'
+    return 'Awaiting native Meta MCP response', 'Use the emitted request in this host, save its exact response, then resume'
+
+
+def timestamp(value):
+    if value is None: return None
+    if type(value) is not int or value < 0: raise ValueError('invalid_timestamp')
+    return dt.datetime.fromtimestamp(value, dt.timezone.utc).isoformat()
+
+
+def normalize(item, run):
+    if not isinstance(item, dict): raise ValueError('invalid_ad')
+    ad_id, page = item.get('id'), item.get('page_id')
+    if type(ad_id) not in (str, int) or not re.fullmatch('[0-9]{1,32}', str(ad_id)):
+        raise ValueError('invalid_ad_id')
+    if type(page) not in (str, int) or not re.fullmatch('[0-9]{1,32}', str(page)):
+        raise ValueError('invalid_page_id')
+    name = item.get('page_name')
+    if not isinstance(name, str) or not name.strip(): raise ValueError('invalid_page_name')
+    if run['input'].get('page_ids') and str(page) not in run['input']['page_ids']:
+        raise ValueError('page_filter_mismatch')
+    for field in ('ad_creative_body', 'ad_creative_link_title'):
+        if item.get(field) is not None and not isinstance(item[field], str): raise ValueError('invalid_creative')
+    for text in (name, item.get('ad_creative_body'), item.get('ad_creative_link_title')):
+        if text is not None: text.encode('utf-8')
+    return {'ad_id': str(ad_id), 'advertiser': name, 'page_id': str(page),
+            'title': item.get('ad_creative_link_title'), 'text': item.get('ad_creative_body'),
+            'active_status': None, 'start_date': timestamp(item.get('ad_delivery_start_time')),
+            'created_at': timestamp(item.get('ad_creation_time')), 'end_date': None,
+            'format': None, 'platforms': None, 'observed_at': run['observed_at'],
+            'source_url': 'https://www.facebook.com/ads/library/?id=' + str(ad_id),
+            'query': run['input'], 'query_service': run['service'], 'relevance': 'unverified'}
+
+
+def payload_from(envelope, run):
+    if not isinstance(envelope, dict) or envelope.get('provider') != PROVIDER or envelope.get('tool') != TOOL:
+        raise Blocked('response_provider_mismatch')
+    if envelope.get('run_id') != run['id'] or envelope.get('input_hash') != run['input_hash']:
+        raise Blocked('response_run_mismatch')
+    if envelope.get('capture_host') != run['capture_host']:
+        raise Blocked('response_host_mismatch')
+    if envelope.get('capture_method') not in ('tool_serialized', 'host_transcribed'):
+        raise Blocked('invalid_capture_method')
+    try:
+        captured = dt.datetime.fromisoformat(envelope['captured_at'].replace('Z', '+00:00'))
+        if captured.tzinfo is None or not dt.datetime.fromisoformat(run['created_at']) <= captured <= dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=5):
+            raise ValueError()
+    except (KeyError, TypeError, ValueError):
+        raise Blocked('invalid_capture_time') from None
+    request = envelope.get('request')
+    if not isinstance(request, dict) or set(request) - FILTERS - PROVENANCE:
+        raise Blocked('unsupported_request_fields')
+    if {k: v for k, v in request.items() if k in FILTERS} != run['input']:
+        raise Blocked('response_query_mismatch')
+    for field in PROVENANCE & request.keys():
+        value = request[field]
+        if field == 'scheduled_task_run':
+            valid = type(value) is bool
+        else:
+            valid = isinstance(value, str) and 0 < len(value) <= 2000
+        if not valid: raise Blocked('invalid_request_provenance')
+    value = envelope.get('response')
+    if not isinstance(value, dict): raise Blocked('invalid_response')
+    if value.get('isError'): raise Blocked('provider_error')
+    if isinstance(value.get('structuredContent'), dict):
+        value = value['structuredContent']
+    elif 'content' in value:
+        blocks = value['content']
+        if not isinstance(blocks, list) or len(blocks) != 1 or (blocks[0].get('type') if isinstance(blocks[0], dict) else None) != 'text':
+            raise Blocked('invalid_response_content')
+        value = decode(blocks[0]['text'])
+    if isinstance(value, dict) and 'results' in value:
+        value = value['results'] if isinstance(value['results'], dict) else decode(value['results'])
+    if not isinstance(value, dict) or value.get('error'):
+        raise Blocked('provider_error')
+    if set(value) & {'paging', 'pagination', 'next', 'cursor', 'after', 'has_more'}:
+        raise Blocked('unexpected_pagination')
+    if set(value) - {'ads', 'estimated_total_count'}:
+        raise Blocked('response_schema_drift')
+    ads, total = value.get('ads'), value.get('estimated_total_count')
+    if not isinstance(ads, list) or len(ads) > run['input']['limit'] or type(total) is not int or total < 0:
+        raise Blocked('invalid_response_shape')
+    return value
+
+
+def verify_evidence(workspace, run):
+    if run.get('provider') != PROVIDER: return
+    if digest(run['input']) != run['input_hash']: raise Blocked('input_changed')
+    directory = run_path(workspace, run['id']).parent
+    for filename, field in (('response.json', 'response_hash'), ('records.json', 'records_hash')):
+        expected = run.get(field)
+        required = expected is not None or run['lifecycle'] == 'succeeded'
+        if not required: continue
+        path = directory / filename
+        if not path.exists(): raise Blocked('evidence_missing:' + filename)
+        if expected is None or digest(read(path)) != expected: raise Blocked('evidence_changed:' + filename)
+
+
+def collect(args):
+    with Lock(args.client, args.account):
+        workspace = mapping(args.client, args.account)
+        run = load_run(workspace, args.run, args.client, args.account)
+        if run.get('provider') != PROVIDER: raise Blocked('legacy_provider_retired_read_only')
+        query_validate(run['input'])
+        if digest(run['input']) != run['input_hash']: raise Blocked('input_changed')
+        directory = run_path(workspace, run['id']).parent
+        raw = directory / 'response.json'
+        terminal = run['lifecycle'] in ('succeeded', 'failed', 'cancelled')
+        if terminal:
+            verify_evidence(workspace, run)
+            if args.response and digest(read(args.response)) != run.get('response_hash'):
+                raise Blocked('immutable_response_conflict')
+            return {'run': run, 'operator_status': operator_status(run)[0]}
+        if args.response:
+            try: incoming = read(args.response)
+            except FileNotFoundError: raise Blocked('response_file_not_found') from None
+            incoming_hash = digest(incoming)
+            if run.get('response_hash') and incoming_hash != run['response_hash']:
+                raise Blocked('immutable_response_conflict')
+            if raw.exists() and digest(read(raw)) != incoming_hash:
+                raise Blocked('immutable_response_conflict')
+            if not run.get('response_hash'):
+                run.update(response_hash=incoming_hash, ingested_at=now(), lifecycle='capturing')
+                save_run(workspace, run)
+            if not raw.exists(): write(raw, incoming)
+        if not raw.exists():
+            if run.get('response_hash'): raise Blocked('evidence_missing:response.json')
+            run['lifecycle'] = 'awaiting_response'
+            save_run(workspace, run)
+            return {'run': run, 'endpoint': ENDPOINT, 'tool': TOOL, 'request': run['input'],
+                    'inbox_path': str(directory / 'inbox.json'),
+                    'envelope': {'provider': PROVIDER, 'tool': TOOL, 'run_id': run['id'],
+                                 'input_hash': run['input_hash'], 'capture_host': run['capture_host'],
+                                 'capture_method': 'host_transcribed', 'captured_at': None,
+                                 'request': run['input'], 'response': None},
+                    'action': 'Call native MCP once; save envelope in inbox; resume --response INBOX_PATH',
+                    'pagination': 'unsupported; never invent cursors, offsets or repeated-query pagination'}
+        if not run.get('response_hash'): raise Blocked('unsealed_response')
+        verify_evidence(workspace, run)
+        try:
+            envelope = read(raw)
+            payload = payload_from(envelope, run)
+            run.update(observed_at=envelope['captured_at'], capture_method=envelope['capture_method'])
+            records, seen, quarantine, duplicates = [], set(), 0, 0
+            for item in payload['ads']:
+                try: record = normalize(item, run)
+                except (ValueError, TypeError, OverflowError, OSError):
+                    quarantine += 1
+                    continue
+                if record['ad_id'] in seen:
+                    duplicates += 1
+                    continue
+                seen.add(record['ad_id']); records.append(record)
+            reasons = ['no_pagination', 'estimated_count_not_inventory', 'relevance_unverified']
+            if len(payload['ads']) >= run['input']['limit'] or payload['estimated_total_count'] > len(payload['ads']): reasons.append('capped')
+            if payload['estimated_total_count'] < len(payload['ads']) or (not payload['ads'] and payload['estimated_total_count']): reasons.append('estimate_mismatch')
+            if not records: reasons.append('unverified_empty')
+            if quarantine: reasons.append('parse_incomplete')
+        except (Blocked, ValueError, TypeError, KeyError, AttributeError) as exc:
+            reason = str(exc) if isinstance(exc, Blocked) else 'invalid_response_shape'
+            run.update(lifecycle='failed', coverage='unknown', result='unknown', block_reason=reason)
+            save_run(workspace, run)
+            raise Blocked(reason) from None
+        # IO interruption leaves capturing state; resume derives the same records from sealed evidence.
+        write(directory / 'records.json', records)
+        run.update(lifecycle='failed' if quarantine and not records else 'succeeded',
+                   coverage='sample' if records else 'unknown',
+                   result='nonempty' if records else ('all_quarantined' if quarantine else 'unverified_empty'),
+                   fetched=len(payload['ads']), normalized=len(records), quarantined=quarantine,
+                   duplicates=duplicates, estimated_total_count=payload['estimated_total_count'],
+                   coverage_reasons=reasons, records_hash=digest(records),
+                   block_reason='all_quarantined' if quarantine and not records else None)
+        save_run(workspace, run)
+        return {'run': run, 'operator_status': operator_status(run)[0]}
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
@@ -652,65 +427,51 @@ def main(argv=None):
     p = sub.add_parser('setup'); scope(p); p.add_argument('--workspace', required=True)
     p = sub.add_parser('doctor'); scope(p)
     p = sub.add_parser('list'); scope(p)
-    p = sub.add_parser('provider-check'); p.add_argument('--authenticated', action='store_true')
-    p = sub.add_parser('grant-import'); scope(p); p.add_argument('--file', required=True)
-    p = sub.add_parser('plan'); scope(p); p.add_argument('--urls', nargs='+', required=True); p.add_argument('--results-limit', type=int, required=True); p.add_argument('--max-charge', required=True)
-    for name in ('collect', 'status', 'resume', 'export'):
+    sub.add_parser('provider-check')
+    p = sub.add_parser('plan'); scope(p)
+    p.add_argument('--host', required=True, choices=['claude', 'codex'])
+    p.add_argument('--service', required=True, choices=['detailing', 'ceramic-coating'])
+    p.add_argument('--search-terms'); p.add_argument('--page-ids', nargs='+')
+    p.add_argument('--countries', nargs='+', default=['US']); p.add_argument('--limit', type=int, default=25)
+    p.add_argument('--status', choices=['ACTIVE','ALL','INACTIVE'], default='ACTIVE')
+    for name in ('collect', 'resume', 'status', 'export'):
         p = sub.add_parser(name); scope(p); p.add_argument('--run', required=True)
+        if name in ('collect', 'resume'): p.add_argument('--response')
         if name == 'export': p.add_argument('--output', required=True)
     a = parser.parse_args(argv)
+    if sys.version_info < (3, 11):
+        print(json.dumps({'error':'python_3_11_required'}), file=sys.stderr); return 2
     try:
         if a.command == 'setup': result = setup(a)
+        elif a.command == 'provider-check':
+            result = {'provider': PROVIDER, 'endpoint': ENDPOINT, 'tool': TOOL, 'limit_max': 50,
+                      'pagination_supported': False, 'authentication': 'native host OAuth',
+                      'live_access': 'not_checked; call the native tool with a bounded query'}
         elif a.command == 'doctor':
-            workspace = mapping(a.client, a.account)
-            data = ledger(a.client, a.account)
-            result = {'python': sys.version.split()[0], 'workspace': str(workspace), 'registry': str(registry()), 'grant_present': bool(data.get('grant')), 'journaled_runs': len(data['runs']), 'unreconciled_runs': [k for k, v in data['runs'].items() if v.get('billing') != 'reconciled'], 'provider_access': 'not_checked_by_doctor', 'live_qualification': 'requires_review_of_provider_evidence'}
+            result = {'python': sys.version.split()[0], 'workspace': str(mapping(a.client,a.account)),
+                      'registry': str(registry()), 'provider': PROVIDER,
+                      'live_access': 'not_checked_by_local_doctor', 'legacy_billing': 'preserved; not modified'}
+        elif a.command == 'plan': result = plan(a)
+        elif a.command in ('collect', 'resume'): result = collect(a)
+        elif a.command == 'export': result = export(a)
         elif a.command == 'list':
             workspace = mapping(a.client, a.account)
-            runs_dir = workspace / 'runs'
-            result = {'runs': []}
-            if runs_dir.exists():
-                for manifest in sorted(runs_dir.glob('*/manifest.json')):
-                    run = load_run(workspace, manifest.parent.name, a.client, a.account)
-                    state, action = operator_status(run)
-                    result['runs'].append({'id': run['id'], 'lifecycle': run['lifecycle'], 'operator_status': state, 'next_action': action})
-        elif a.command == 'provider-check': result = provider_check(Transport(), a.authenticated)
-        elif a.command == 'grant-import':
-            with Lock(a.client, a.account):
-                mapping(a.client, a.account)
-                g = grant_validate(read(a.file), a.client, a.account)
-                l = ledger(a.client, a.account)
-                if l['runs']: raise Blocked('Grant replacement after journaled runs is not supported')
-                l['grant'] = g; save_ledger(a.client, a.account, l)
-                result = {'imported': True, 'grant': g}
-        elif a.command == 'plan': result = plan(a)
-        elif a.command == 'export': result = export(a)
+            rows = []
+            for path in sorted((workspace/'runs').glob('*/manifest.json')):
+                try:
+                    run = load_run(workspace, path.parent.name, a.client, a.account)
+                    verify_evidence(workspace, run)
+                    rows.append({'id': run['id'], 'provider': run.get('provider','apify-legacy'), 'service': run.get('service'), 'operator_status': operator_status(run)[0]})
+                except (Blocked, OSError, ValueError, KeyError, TypeError) as exc:
+                    rows.append({'id': path.parent.name, 'operator_status': 'Held: ' + (str(exc) if isinstance(exc, Blocked) else 'unreadable_run')})
+            result = {'runs': rows}
         else:
-            workspace = mapping(a.client, a.account)
-            run = load_run(workspace, a.run, a.client, a.account)
-            if a.command in ('collect', 'resume'):
-                with Lock(a.client, a.account):
-                    run = load_run(workspace, a.run, a.client, a.account)
-                    data = ledger(a.client, a.account)
-                    try:
-                        if a.command == 'collect':
-                            if run['lifecycle'] != 'planned': raise Blocked('Existing job must be resumed')
-                            run = submit_run(workspace, run, data, Transport())
-                        else:
-                            run = resume_run(workspace, run, data, Transport())
-                    except Blocked as exc:
-                        run = load_run(workspace, a.run, a.client, a.account)
-                        run['block_reason'] = re.sub(r'[^a-z0-9]+', '_', str(exc).lower()).strip('_')
-                        save_run(workspace, run)
-                        raise
-            status, action = operator_status(run)
-            result = {'run': run, 'operator_status': status, 'next_action': action}
-        print(json.dumps(result, ensure_ascii=False))
-        return 0
-    except (Blocked, OSError, KeyError, TypeError, ValueError, AttributeError, http.client.HTTPException) as exc:
-        # Exception text can contain data from a provider or filesystem: only controlled messages are exposed.
-        message = str(exc) if isinstance(exc, Blocked) else type(exc).__name__
-        print(json.dumps({'error': message}), file=sys.stderr)
+            run = load_run(mapping(a.client,a.account), a.run, a.client, a.account)
+            verify_evidence(mapping(a.client,a.account), run)
+            result = {'run': run, 'operator_status': operator_status(run)[0], 'next_action': operator_status(run)[1]}
+        print(json.dumps(result, ensure_ascii=False)); return 0
+    except (Blocked, OSError, KeyError, TypeError, ValueError, AttributeError, RecursionError) as exc:
+        print(json.dumps({'error': str(exc) if isinstance(exc, Blocked) else type(exc).__name__}), file=sys.stderr)
         return 2
 
 if __name__ == '__main__':

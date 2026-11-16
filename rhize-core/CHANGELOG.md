@@ -4,6 +4,8 @@
 
 ### Added
 
+- Update Ad Research setup guidance and generated artifact inventory for official native Meta MCP; local doctor is distinct from live host acceptance.
+- _2026-11-16_ version bump — 1.0.12 → 1.0.13 (patch); marketplace 2.124.0 → 2.124.1.
 - _2026-11-16_ version bump — 1.0.11 → 1.0.12 (patch); marketplace 2.123.0 → 2.123.1.
 
 - Register the experimental Ad Research setup wizard and offline evaluation suite.

@@ -308,3 +308,5 @@ skills total). Its conditional seven-family native cases are manual; coverage do
 rendered quality, host activation or measured benefit.
 
 The experimental Ad Research setup and offline suite are registered. Its live provider failed qualification; setup availability does not authorize paid research or establish usable coverage.
+
+Ad Research setup connects the official Meta MCP through each native host and shares a private local evidence journal. Its local doctor does not establish live access; follow the plugin guide for authentication and host acceptance.

@@ -1,7 +1,10 @@
 import contextlib
+import copy
 import importlib.util
 import io
 import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,12 +15,15 @@ spec = importlib.util.spec_from_file_location('ad_research', SCRIPT)
 core = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(core)
 
+
 class CoreTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name).resolve()
         self.old_root = core.ROOT
         core.ROOT = self.root / 'registry'
+        self.scope = ['--client','tag','--account','rhize']
+        self.invoke('setup', *self.scope, '--workspace', str(self.root/'workspace'))
     def tearDown(self):
         core.ROOT = self.old_root
         self.tmp.cleanup()
@@ -26,280 +32,231 @@ class CoreTests(unittest.TestCase):
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = core.main(list(args))
         return code, json.loads(out.getvalue() or err.getvalue())
-    def setup_client(self):
-        return self.invoke('setup', '--client', 'tag', '--account', 'acct', '--workspace', str(self.root / 'workspace'))
-    def test_setup_plan_and_safe_block(self):
-        self.assertEqual(self.setup_client()[0], 0)
-        code, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://www.facebook.com/ExamplePage', '--results-limit', '3', '--max-charge', '0.25')
+    def plan(self, *extra):
+        code, run = self.invoke('plan', *self.scope, '--host','codex','--service','detailing','--search-terms','mobile detailing','--limit','5', *extra)
         self.assertEqual(code, 0)
-        self.assertEqual(run['unit_ceiling'], 3)
-        code, failure = self.invoke('collect', '--client', 'tag', '--account', 'acct', '--run', run['id'])
-        self.assertEqual(code, 2)
-        self.assertEqual(failure['error'], 'Invalid or out-of-scope spike authority')
-        self.assertEqual(core.read(core.run_path(self.root / 'workspace', run['id']))['lifecycle'], 'planned')
-    def test_workspace_and_run_scope_are_bound(self):
-        self.setup_client()
-        code, _ = self.invoke('setup', '--client', 'other', '--account', 'acct', '--workspace', str(self.root/'workspace'))
-        self.assertEqual(code, 2)
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '1', '--max-charge', '0.01')
-        run['client'] = 'other'; core.save_run(self.root/'workspace', run)
-        with patch.object(core.Transport, 'request') as request:
-            for command in ('collect', 'resume', 'status', 'export'):
-                extra = ['--output', str(self.root/'out')] if command == 'export' else []
-                code, error = self.invoke(command, '--client', 'tag', '--account', 'acct', '--run', run['id'], *extra)
-                self.assertEqual((code, error['error']), (2, 'run_scope_mismatch'))
-            request.assert_not_called()
+        return run
+    def envelope(self, run, ads=None, total=50):
+        return {'provider':core.PROVIDER,'tool':core.TOOL,'request':run['input'],
+                'run_id':run['id'],'input_hash':run['input_hash'],'capture_host':run['capture_host'],
+                'capture_method':'host_transcribed','captured_at':core.now(),
+                'response':{'structuredContent':{'results':json.dumps({'estimated_total_count':total,'ads':ads if ads is not None else [self.ad()]})},'isError':False}}
+    def ad(self, **changes):
+        return dict({'id':'1418113620529463','page_id':807611415766243,'page_name':'The Aesthetics Garage',
+                     'ad_creative_link_title':'Full Detail From $195, We Come to You.',
+                     'ad_creation_time':1794182190,'ad_delivery_start_time':1794187030,
+                     'ad_snapshot_url':'https://www.facebook.com/ads/library/?id=1418113620529463','currency':'USD'}, **changes)
+    def ingest(self, run, value):
+        p=self.root/'input.json';core.write(p,value)
+        return self.invoke('collect',*self.scope,'--run',run['id'],'--response',str(p))
+    def directory(self, run): return core.run_path(self.root/'workspace',run['id']).parent
+    def test_actual_meta_shape_and_missing_fields(self):
+        run=self.plan(); code,result=self.ingest(run,self.envelope(run))
+        self.assertEqual(code,0); state=result['run']
+        self.assertEqual((state['normalized'],state['coverage'],state['estimated_total_count']),(1,'sample',50))
+        row=core.read(self.directory(run)/'records.json')[0]
+        self.assertIsNone(row['text']);self.assertIsNone(row['active_status'])
+        self.assertEqual(row['title'],'Full Detail From $195, We Come to You.')
+        self.assertTrue(row['start_date'].endswith('+00:00'))
+        self.assertIn('no_pagination',state['coverage_reasons'])
+    def test_all_supported_mcp_wrappers(self):
+        for wrapper in ('raw','structured','text'):
+            run=self.plan(); env=self.envelope(run)
+            value=json.loads(env['response']['structuredContent']['results'])
+            env['response']={'raw':value,'structured':{'results':json.dumps(value)},'text':{'content':[{'type':'text','text':json.dumps(value)}]}}[wrapper]
+            self.assertEqual(self.ingest(run,env)[0],0)
+    def test_duplicates_quarantine_and_no_complete_inventory(self):
+        run=self.plan();ads=[self.ad(),self.ad(),self.ad(id=True),self.ad(ad_delivery_start_time='bad')]
+        code,result=self.ingest(run,self.envelope(run,ads,4))
+        self.assertEqual(code,0)
+        self.assertEqual([result['run'][k] for k in ('normalized','duplicates','quarantined')],[1,1,2])
+        self.assertIn('parse_incomplete',result['run']['coverage_reasons'])
+        self.assertNotEqual(result['run']['coverage'],'complete')
+    def test_zero_results_are_unverified(self):
+        run=self.plan();_,r=self.ingest(run,self.envelope(run,[],0))
+        self.assertEqual((r['run']['coverage'],r['run']['result']),('unknown','unverified_empty'))
+        self.assertEqual(r['operator_status'],'No ads returned; absence unverified')
+    def test_capped_and_estimate_mismatch(self):
+        for total,reason in ((900,'capped'),(0,'estimate_mismatch')):
+            run=self.plan();_,r=self.ingest(run,self.envelope(run,total=total))
+            self.assertIn(reason,r['run']['coverage_reasons'])
+    def test_invalid_query_bounds_and_pagination(self):
+        for change in ({'limit':0},{'limit':51},{'limit':True},{'offset':2},{'countries':['USA']},{'page_ids':['../../x']}):
+            query=dict(self.plan()['input'],**change)
+            with self.assertRaises(core.Blocked):core.query_validate(query)
+    def test_wrong_query_provider_and_tool_fail_closed(self):
+        for field in ('request','provider','tool'):
+            run=self.plan();env=self.envelope(run)
+            env[field]={'search_terms':'different'} if field=='request' else 'other'
+            self.assertEqual(self.ingest(run,env)[0],2)
+            self.assertTrue((self.directory(run)/'response.json').exists())
+            self.assertFalse((self.directory(run)/'records.json').exists())
+    def test_errors_malformed_and_oversized_response(self):
+        for response in ({'isError':True,'content':[]},{'results':'not json'},{'ads':[], 'estimated_total_count':False},{'ads':[self.ad()]*6,'estimated_total_count':6},{'content':[3]}):
+            run=self.plan();env=self.envelope(run);env['response']=response
+            self.assertEqual(self.ingest(run,env)[0],2)
+        path=self.root/'huge';path.write_text('x'*(core.MAX_RESPONSE+1))
+        with self.assertRaisesRegex(core.Blocked,'response_too_large'):core.read(path)
+    def test_resume_does_not_call_provider_or_duplicate(self):
+        run=self.plan();_,request=self.invoke('collect',*self.scope,'--run',run['id'])
+        self.assertEqual(request['request'],run['input'])
+        core.write(Path(request['inbox_path']),self.envelope(run))
+        _,first=self.invoke('resume',*self.scope,'--run',run['id'],'--response',request['inbox_path'])
+        before=(self.directory(run)/'records.json').read_bytes()
+        _,second=self.invoke('resume',*self.scope,'--run',run['id'])
+        self.assertEqual(first['run'],second['run']);self.assertEqual(before,(self.directory(run)/'records.json').read_bytes())
+    def test_interruption_after_raw_write_recovers(self):
+        run=self.plan();original=core.write
+        def interrupted(path,value):
+            if Path(path).name=='records.json':raise OSError('interrupted')
+            return original(path,value)
+        with patch.object(core,'write',side_effect=interrupted):self.assertEqual(self.ingest(run,self.envelope(run))[0],2)
+        self.assertTrue((self.directory(run)/'response.json').exists())
+        code,r=self.invoke('resume',*self.scope,'--run',run['id'])
+        self.assertEqual((code,r['run']['normalized']),(0,1))
+    def test_response_is_immutable_and_hash_checked(self):
+        run=self.plan();env=self.envelope(run);self.ingest(run,env)
+        other=copy.deepcopy(env);other['response']['isError']=True
+        self.assertEqual(self.ingest(run,other)[1]['error'],'immutable_response_conflict')
+        core.write(self.directory(run)/'response.json',other)
+        self.assertEqual(self.invoke('resume',*self.scope,'--run',run['id'])[1]['error'],'evidence_changed:response.json')
+    def test_missing_terminal_evidence_never_reopens(self):
+        for name in ('response.json','records.json'):
+            run=self.plan();self.ingest(run,self.envelope(run))
+            (self.directory(run)/name).unlink()
+            before=(self.directory(run)/'manifest.json').read_bytes()
+            for command in ('resume','status','export'):
+                extra=['--output',str(self.root/'out')] if command=='export' else []
+                self.assertEqual(self.invoke(command,*self.scope,'--run',run['id'],*extra)[1]['error'],'evidence_missing:'+name)
+            self.assertEqual(before,(self.directory(run)/'manifest.json').read_bytes())
+    def test_record_tampering_blocks_export_status_resume(self):
+        run=self.plan();self.ingest(run,self.envelope(run))
+        core.write(self.directory(run)/'records.json',[{'ad_id':'999'}])
+        for command in ('resume','status','export'):
+            extra=['--output',str(self.root/'out')] if command=='export' else []
+            self.assertEqual(self.invoke(command,*self.scope,'--run',run['id'],*extra)[1]['error'],'evidence_changed:records.json')
+    def test_capture_binding_and_schema_drift(self):
+        for field,value,reason in (('run_id','wrong','response_run_mismatch'),('input_hash','wrong','response_run_mismatch'),('capture_host','claude','response_host_mismatch'),('captured_at','2020-01-01T00:00:00Z','invalid_capture_time'),('capture_method','invented','invalid_capture_method')):
+            run=self.plan();env=self.envelope(run);env[field]=value
+            self.assertEqual(self.ingest(run,env)[1]['error'],reason)
+        for extra,reason in (({'cursor':'abc'},'unexpected_pagination'),({'new_field':1},'response_schema_drift')):
+            run=self.plan();env=self.envelope(run);env['response']={'ads':[],'estimated_total_count':0,**extra}
+            self.assertEqual(self.ingest(run,env)[1]['error'],reason)
+    def test_failed_capture_is_sealed_and_not_reparsed(self):
+        run=self.plan();env=self.envelope(run);env['response']={'isError':True}
+        self.assertEqual(self.ingest(run,env)[1]['error'],'provider_error')
+        manifest=core.read(self.directory(run)/'manifest.json')
+        self.assertEqual(manifest['response_hash'],core.digest(env))
+        self.assertEqual(self.invoke('resume',*self.scope,'--run',run['id'])[1]['run']['block_reason'],'provider_error')
+        self.assertEqual(self.invoke('export',*self.scope,'--run',run['id'],'--output',str(self.root/'out'))[1]['error'],'no_exportable_sample')
+    def test_all_quarantined_held_and_mixed_partial(self):
+        run=self.plan();_,result=self.ingest(run,self.envelope(run,[self.ad(id=True)]))
+        self.assertEqual((result['run']['lifecycle'],result['operator_status']),('failed','Held: all_quarantined'))
+        run=self.plan();_,result=self.ingest(run,self.envelope(run,[self.ad(),self.ad(id=True)]))
+        self.assertEqual(result['operator_status'],'Partial sample collected')
+    def test_duplicate_json_keys_and_unsealed_file_rejected(self):
+        with self.assertRaisesRegex(core.Blocked,'duplicate_json_key'):core.decode('{"ads":[],"ads":[]}')
+        run=self.plan();core.write(self.directory(run)/'response.json',self.envelope(run))
+        self.assertEqual(self.invoke('resume',*self.scope,'--run',run['id'])[1]['error'],'unsealed_response')
+    def test_crash_after_records_before_terminal_manifest_recovers(self):
+        run=self.plan();original=core.save_run
+        def interrupted(workspace,value):
+            if value['lifecycle']=='succeeded':raise OSError('interrupted')
+            return original(workspace,value)
+        with patch.object(core,'save_run',side_effect=interrupted):self.assertEqual(self.ingest(run,self.envelope(run))[0],2)
+        before=(self.directory(run)/'records.json').read_bytes()
+        code,result=self.invoke('resume',*self.scope,'--run',run['id'])
+        self.assertEqual((code,result['run']['lifecycle']),(0,'succeeded'))
+        self.assertEqual(before,(self.directory(run)/'records.json').read_bytes())
+    def test_scope_binding_and_workspace_ownership(self):
+        self.assertEqual(self.invoke('setup','--client','other','--account','rhize','--workspace',str(self.root/'workspace'))[0],2)
+        run=self.plan();run['client']='other';core.save_run(self.root/'workspace',run)
+        for cmd in ('collect','resume','status','export'):
+            extra=['--output',str(self.root/'out')] if cmd=='export' else []
+            self.assertEqual(self.invoke(cmd,*self.scope,'--run',run['id'],*extra)[1]['error'],'run_scope_mismatch')
+    def test_page_filter_mismatch_is_quarantined(self):
+        run=self.plan('--page-ids','123');_,r=self.ingest(run,self.envelope(run))
+        self.assertEqual(r['run']['quarantined'],1)
+    def test_csv_formula_and_safe_snapshot_link(self):
+        run=self.plan();self.ingest(run,self.envelope(run,[self.ad(page_name='=evil',ad_creative_body=' +cmd',ad_snapshot_url='https://evil.test/?access_token=secret')]))
+        code,_=self.invoke('export',*self.scope,'--run',run['id'],'--output',str(self.root/'out'))
+        self.assertEqual(code,0)
+        csv=(self.root/'out'/(run['id']+'-research.csv')).read_text()
+        self.assertIn("'=evil",csv);self.assertIn("' +cmd",csv);self.assertNotIn('secret',csv)
+    def test_legacy_evidence_and_ledger_remain_readable_unchanged(self):
+        run=self.plan();run.pop('provider');run.update(lifecycle='succeeded',billing='reconciled',actual_charge_usd='0.0058')
+        core.save_run(self.root/'workspace',run);core.write(self.directory(run)/'records.json',[])
+        ledger=core.ROOT/(core.key('tag','rhize')+'.json');core.write(ledger,{'runs':{run['id']:{'actual_charge_usd':'0.0058'}}});before=ledger.read_bytes()
+        for command in ('collect','resume'):self.assertEqual(self.invoke(command,*self.scope,'--run',run['id'])[1]['error'],'legacy_provider_retired_read_only')
+        self.assertEqual(self.invoke('status',*self.scope,'--run',run['id'])[0],0)
+        self.assertEqual(self.invoke('export',*self.scope,'--run',run['id'],'--output',str(self.root/'out'))[0],0)
+        self.assertEqual(before,ledger.read_bytes())
+    def test_symlink_traversal_and_concurrency(self):
+        (self.root/'alias').symlink_to(self.root/'target')
+        with self.assertRaises(core.Blocked):core.safe_dir(self.root/'alias'/'child')
+        with self.assertRaises(core.Blocked):core.ident('../secret')
+        with core.Lock('tag','rhize'):
+            with self.assertRaisesRegex(core.Blocked,'active_collector'):
+                with core.Lock('tag','rhize'):pass
+    def test_noncontrolled_exceptions_are_redacted(self):
+        with patch.object(core,'mapping',side_effect=ValueError('token=secret')):
+            code,error=self.invoke('doctor',*self.scope)
+        self.assertEqual(code,2);self.assertNotIn('secret',json.dumps(error))
+    def test_meta_tool_guard_is_search_only_without_granting_permission(self):
+        script=SCRIPT.with_name('meta_tool_guard.py')
+        for name,blocked in (('mcp__meta-ads__ads_library_search',False),('mcp__meta_ads__ads_library_search',False),('mcp__meta-ads__ads_create_campaign',True),('mcp__meta-ads__ads_get_ad_accounts',True),('mcp__meta-ads__ads_delete__ads_library_search',True),('mcp__other__read',False)):
+            result=subprocess.run([sys.executable,str(script)],input=json.dumps({'tool_name':name}),text=True,capture_output=True,check=True)
+            if blocked:self.assertEqual(json.loads(result.stdout)['hookSpecificOutput']['permissionDecision'],'deny')
+            else:self.assertEqual(result.stdout,'')
+    def test_response_and_export_symlinks_rejected(self):
+        run=self.plan();source=self.root/'source.json';core.write(source,self.envelope(run))
+        link=self.root/'link.json';link.symlink_to(source)
+        self.assertEqual(self.invoke('resume',*self.scope,'--run',run['id'],'--response',str(link))[1]['error'],'Symlink files are not supported')
+        self.ingest(run,core.read(source));out=self.root/'out';out.mkdir()
+        (out/(run['id']+'-research.csv')).symlink_to(self.root/'victim')
+        self.assertEqual(self.invoke('export',*self.scope,'--run',run['id'],'--output',str(out))[1]['error'],'Symlink files are not supported')
+    def test_missing_workspace_is_not_recreated(self):
+        self.plan();workspace=self.root/'workspace';workspace.rename(self.root/'moved')
+        for command in ('doctor','list'):
+            self.assertEqual(self.invoke(command,*self.scope)[1]['error'],'workspace_missing')
+        self.assertFalse(workspace.exists())
+    def test_capture_utc_z_and_transcription_wrappers(self):
+        for wrapper in ('object','null'):
+            run=self.plan();env=self.envelope(run);env['captured_at']=core.now().replace('+00:00','Z')
+            value=json.loads(env['response']['structuredContent']['results'])
+            env['response']={'structuredContent':{'results':value}} if wrapper=='object' else {'structuredContent':None,'content':[{'type':'text','text':json.dumps(value)}]}
+            self.assertEqual(self.ingest(run,env)[0],0)
+    def test_lone_surrogate_quarantines_instead_of_sticking(self):
+        run=self.plan();code,result=self.ingest(run,self.envelope(run,[self.ad(ad_creative_body=chr(0xd83d))]))
+        self.assertEqual((code,result['run']['result']),(0,'all_quarantined'))
+    def test_capturing_status_does_not_suggest_provider_call(self):
+        run=self.plan();run['lifecycle']='capturing'
+        self.assertEqual(core.operator_status(run)[0],'Response sealed; processing incomplete')
+        self.assertIn('without a provider call',core.operator_status(run)[1])
+    def test_case_alias_overlap_uses_directory_identity(self):
+        first=self.root/'one';second=self.root/'two';first.mkdir();second.mkdir()
+        with patch.object(core.os.path,'samefile',return_value=True):
+            self.assertTrue(core.workspaces_overlap(first,second))
+    def test_legacy_nonterminal_is_inspect_only(self):
+        run={'lifecycle':'running'}
+        self.assertIn('inspect retained files only',core.operator_status(run)[1])
+    def test_captured_native_host_fixtures(self):
+        for host in ('claude','codex'):
+            run=self.plan('--host',host,'--page-ids','807611415766243');env=self.envelope(run)
+            env['response']=json.loads((Path(__file__).parent/'fixtures'/('meta-'+host+'.json')).read_text())
+            code,result=self.ingest(run,env)
+            self.assertEqual((code,result['run']['normalized']),(0,4))
+            ids={row['ad_id'] for row in core.read(self.directory(run)/'records.json')}
+            self.assertEqual(ids,{'28924778817173958','1418113620529463','4803258856623755','1451717590384988'})
+    def test_captured_legacy_manifest_exports_without_mutation(self):
+        run=json.loads((Path(__file__).parent/'fixtures/legacy-manifest.json').read_text())
+        core.save_run(self.root/'workspace',run);core.write(self.directory(run)/'records.json',[])
+        before=(self.directory(run)/'manifest.json').read_bytes()
+        code,result=self.invoke('export',*self.scope,'--run',run['id'],'--output',str(self.root/'out'))
+        self.assertEqual((code,result['records'],result['coverage']),(0,0,'provider_error'))
+        self.assertEqual(before,(self.directory(run)/'manifest.json').read_bytes())
+    def test_local_doctor_does_not_claim_authentication(self):
+        self.assertEqual(self.invoke('doctor',*self.scope)[1]['live_access'],'not_checked_by_local_doctor')
+        self.assertFalse(self.invoke('provider-check')[1]['pagination_supported'])
 
-    def test_hostile_urls_and_ids(self):
-        for url in ['https://facebook.com@evil.test/page', 'https://www.facebook.com/page?access_token=x', 'http://www.facebook.com/page', 'https://www.facebook.com/ads/library/?access_token=x']:
-            with self.subTest(url=url), self.assertRaises(core.Blocked): core.validate_url(url)
-        with self.assertRaises(core.Blocked): core.ident('../secret')
-        self.assertEqual(core.clean_url('https://www.facebook.com/ads/library/?id=7&access_token=secret&utm_source=x'), 'https://www.facebook.com/ads/library/?id=7')
-    def test_lock_prevents_concurrent_collector(self):
-        with core.Lock('tag', 'acct'):
-            with self.assertRaisesRegex(core.Blocked, 'active_collector'):
-                with core.Lock('tag', 'acct'): pass
-    def test_csv_formula_and_signed_link_redaction(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '1', '--max-charge', '1')
-        run.update(lifecycle='succeeded', coverage='complete', result='nonempty'); core.save_run(self.root / 'workspace', run)
-        core.write(core.run_path(self.root / 'workspace', run['id']).parent / 'records.json', [{'ad_id':'1','advertiser':'=evil','source_url':'https://example.com/?id=1&access_token=secret','text':' +cmd'}])
-        code, _ = self.invoke('export', '--client', 'tag', '--account', 'acct', '--run', run['id'], '--output', str(self.root / 'out'))
-        self.assertEqual(code, 0)
-        result = (self.root / 'out/research.csv').read_text()
-        self.assertIn("'=evil", result); self.assertIn("' +cmd", result); self.assertNotIn('secret', result)
-    def test_grant_expired_and_unsupported_all_in(self):
-        grant = dict(grantor='Jim', issued_at='2020-01-01T00:00:00Z', expires_at='2021-01-01T00:00:00Z', source_reference='instruction', client='tag', account='acct', cumulative_usd='1', billable_units=10, covered_cost_classes=['actor_events'], provider_use_decision='allowed', retention_decision='metadata_links_only', collector=core.pwd.getpwuid(core.os.getuid()).pw_name, mode='spike', ancillary_usd='0')
-        with self.assertRaisesRegex(core.Blocked, 'expired_authority'): core.grant_validate(grant, 'tag', 'acct')
-        grant['expires_at'] = '2099-01-01T00:00:00Z'; grant['covered_cost_classes'].append('all_in')
-        with self.assertRaises(core.Blocked): core.grant_validate(grant, 'tag', 'acct')
-    def test_pagination_resume_and_quarantine(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '100', '--max-charge', '1')
-        run.update(lifecycle='succeeded', dataset_id='dataset', billing='reconciled', actual_charge_usd='0', charged_units=0, maximum_unit_price_usd='0.0058')
-        workspace = self.root / 'workspace'
-        core.save_run(workspace, run)
-        class Fake:
-            failed = False
-            def request(self, method, path):
-                if '/items?' not in path: return {'data': {'itemCount': 101}}
-                if 'offset=0&' in path: return [{'ad_archive_id': str(i), 'page_name': 'Page'} for i in range(100)]
-                if not self.failed:
-                    self.failed = True
-                    raise core.Blocked('interruption')
-                return [{'page_name': 'Missing ID'}]
-        fake = Fake()
-        with self.assertRaises(core.Blocked): core.paginate(workspace, run, fake)
-        run = core.read(core.run_path(workspace, run['id']))
-        self.assertEqual(run['offset'], 100)
-        run = core.paginate(workspace, run, fake)
-        self.assertEqual((run['coverage'], run['result'], run['normalized'], run['quarantined']), ('parse_incomplete', 'nonempty', 100, 1))
-    def test_complete_empty_vs_capped(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '1', '--max-charge', '1')
-        run.update(lifecycle='succeeded', dataset_id='dataset', billing='reconciled', actual_charge_usd='0', charged_units=0, maximum_unit_price_usd='0.0058')
-        class Fake:
-            def request(self, method, path): return {'data': {'itemCount': 0}}
-        run = core.paginate(self.root / 'workspace', run, Fake())
-        self.assertEqual((run['coverage'], run['result']), ('unknown', 'unknown'))
-    def test_lost_ack_reconciles_without_second_post(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '1', '--max-charge', '0.006')
-        grant = dict(grantor='Jim', issued_at='2020-01-01T00:00:00Z', expires_at='2099-01-01T00:00:00Z', source_reference='instruction', client='tag', account='acct', cumulative_usd='10', billable_units=50, covered_cost_classes=['actor_events'], provider_use_decision='allowed', retention_decision='metadata_links_only', collector=core.pwd.getpwuid(core.os.getuid()).pw_name, mode='spike', ancillary_usd='0', spike_limit_policy={'source_reference':'provider docs','schema_hash':'schema','pricing_hash':'prices'}, usage_baseline={'usageCycle':{'startAt':'a','endAt':'b'}, 'totalUsageCreditsUsdAfterVolumeDiscount':'0'})
-        data = {'grant': grant, 'runs': {}}
-        class Fake:
-            posts = 0
-            matches = 1
-            def request(self, method, path, payload=None, authenticated=True):
-                if path == '/v2/users/me/usage/monthly': return {'data': grant['usage_baseline']}
-                if method == 'POST': self.posts += 1; raise core.Blocked('lost acknowledgement')
-                if '/acts/' in path:
-                    items = [{'id': 'provider' + str(i), 'startedAt': core.now(), 'actId':core.ACTOR, 'buildId':core.BUILD, 'defaultKeyValueStoreId':'store'} for i in range(self.matches)]
-                    return {'data': {'items':items,'total':len(items)}}
-                if '/records/INPUT' in path:
-                    return dict(run['input'], startUrls=[dict(run['input']['startUrls'][0], method='GET')])
-                if '/actor-runs/' in path: return {'data': {'actId':core.ACTOR, 'buildId':core.BUILD, 'userId':'acct', 'defaultKeyValueStoreId':'store', 'options':{'maxTotalChargeUsd':'0.006','timeoutSecs':120,'memoryMbytes':1024}}}
-                raise AssertionError(path)
-        fake = Fake()
-        check = {'authenticated_account_id':'acct', 'schema_hash':'schema', 'pricing_hash':'prices', 'minimum_published_unit_price_usd':'0.001', 'maximum_published_unit_price_usd':'0.0058', 'minimum_charge_usd':'0.0058'}
-        workspace = self.root / 'workspace'
-        with patch.object(core, 'provider_check', return_value=check):
-            with self.assertRaisesRegex(core.Blocked, 'unresolved_submission'): core.submit_run(workspace, run, data, fake)
-        run = core.read(core.run_path(workspace, run['id']))
-        data = core.ledger('tag', 'acct')
-        self.assertEqual(run['lifecycle'], 'submission_unknown')
-        for matches in (0, 2):
-            fake.matches = matches
-            with self.assertRaisesRegex(core.Blocked, 'unresolved_submission'): core.reconcile_submission(workspace, run, data, fake)
-        fake.matches = 1
-        run = core.reconcile_submission(workspace, run, data, fake)
-        self.assertEqual(run['provider_run_id'], 'provider0')
-        self.assertEqual(fake.posts, 1)
-        with self.assertRaises(core.Blocked): core.submit_run(workspace, run, data, fake)
-    def test_unit_and_usd_overrun_block_before_post(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '1', '--max-charge', '0.05')
-        grant = dict(grantor='Jim', issued_at='2020-01-01T00:00:00Z', expires_at='2099-01-01T00:00:00Z', source_reference='instruction', client='tag', account='acct', cumulative_usd='10', billable_units=50, covered_cost_classes=['actor_events'], provider_use_decision='allowed', retention_decision='metadata_links_only', collector=core.pwd.getpwuid(core.os.getuid()).pw_name, mode='spike', ancillary_usd='0', spike_limit_policy={'source_reference':'docs','schema_hash':'s','pricing_hash':'p'}, usage_baseline={'usageCycle':{'startAt':'a'},'totalUsageCreditsUsdAfterVolumeDiscount':'0'})
-        check = {'authenticated_account_id':'acct','schema_hash':'s','pricing_hash':'p','minimum_published_unit_price_usd':'0.001','maximum_published_unit_price_usd':'0.0058','minimum_charge_usd':'0.0058'}
-        with patch.object(core, 'provider_check', return_value=check):
-            with self.assertRaisesRegex(core.Blocked, 'budget_exhausted'): core.submit_run(self.root / 'workspace', run, {'grant':grant, 'runs':{}}, object())
-    def test_failed_and_cap_never_report_empty_success(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '1', '--max-charge', '0.006')
-        run.update(lifecycle='failed', dataset_id='dataset', billing='reconciled', actual_charge_usd='0', charged_units=0, maximum_unit_price_usd='0.0058')
-        class Fake:
-            def request(self, method, path): return {'data': {'itemCount': 0}}
-        run = core.paginate(self.root / 'workspace', run, Fake())
-        self.assertEqual((run['coverage'], run['result']), ('pagination_incomplete', 'unknown'))
-        self.assertEqual(core.operator_status(run)[0], 'Failed')
-        run.update(lifecycle='succeeded', actual_charge_usd='0.006')
-        run = core.paginate(self.root / 'workspace', run, Fake())
-        self.assertEqual((run['coverage'], run['result']), ('unknown', 'unknown'))
-        self.assertIn('capped', run['coverage_reasons'])
-    def test_schema_drift_fails_closed(self):
-        props = {x:{} for x in ('startUrls','resultsLimit','activeStatus','sorting','onlyTotal','includeAboutPage','isDetailsPerAd','enrichWithEcommerceData')}
-        schema = {'properties':props, 'required':['startUrls']}
-        tiers = {x:{'tieredEventPriceUsd':0.001} for x in ('FREE','BRONZE','SILVER','GOLD','PLATINUM','DIAMOND')}
-        pricing = {'pricingModel':'PAY_PER_EVENT','startedAt':'2020-01-01T00:00:00Z','minimalMaxTotalChargeUsd':0.0058,'pricingPerEvent':{'actorChargeEvents':{'apify-default-dataset-item':{'isPrimaryEvent':True,'eventTieredPricingUsd':tiers},'ecommerce-enrichment':{}}}}
-        class Fake:
-            def request(self, method, path, authenticated=False):
-                return {'data': {'id':core.ACTOR,'pricingInfos':[pricing]} if '/acts/' in path else {'id':core.BUILD,'actId':core.ACTOR,'buildNumber':core.BUILD_NUMBER,'inputSchema':json.dumps(schema)}}
-        self.assertEqual(core.provider_check(Fake())['pricing_model'], 'PAY_PER_EVENT')
-        pricing['startedAt'] = '2099-01-01T00:00:00Z'
-        with self.assertRaisesRegex(core.Blocked, 'schema_change'): core.provider_check(Fake())
-        pricing['startedAt'] = '2020-01-01T00:00:00Z'
-        pricing['isPPEPlatformUsagePaidByUser'] = True
-        with self.assertRaisesRegex(core.Blocked, 'schema_change'): core.provider_check(Fake())
-        pricing['isPPEPlatformUsagePaidByUser'] = False
-        del schema['properties']['enrichWithEcommerceData']
-        with self.assertRaisesRegex(core.Blocked, 'schema_change'): core.provider_check(Fake())
-    def test_rejection_unknown_and_successful_resume(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '2', '--max-charge', '0.006')
-        grant = dict(grantor='Jim', issued_at='2020-01-01T00:00:00Z', expires_at='2099-01-01T00:00:00Z', source_reference='instruction', client='tag', account='acct', cumulative_usd='10', billable_units=50, covered_cost_classes=['actor_events'], provider_use_decision='allowed', retention_decision='metadata_links_only', collector=core.pwd.getpwuid(core.os.getuid()).pw_name, mode='spike', ancillary_usd='0.01', spike_limit_policy={'source_reference':'docs','schema_hash':'s','pricing_hash':'p'}, usage_baseline={'usageCycle':{'startAt':'a'},'totalUsageCreditsUsdAfterVolumeDiscount':'0'})
-        check = {'authenticated_account_id':'acct','schema_hash':'s','pricing_hash':'p','minimum_published_unit_price_usd':'0.001','maximum_published_unit_price_usd':'0.0058','minimum_charge_usd':'0.0058'}
-        class Fake:
-            status = None
-            posts = 0
-            usage = '0'
-            count = 0
-            def request(self, method, path, payload=None, authenticated=True):
-                if '/usage/monthly' in path: return {'data': {'usageCycle':{'startAt':'a'}, 'totalUsageCreditsUsdAfterVolumeDiscount':self.usage}}
-                if method == 'POST':
-                    self.posts += 1
-                    if self.status: raise core.HTTPFailure(self.status)
-                    return {'data':{'id':'provider' + str(self.posts),'actId':core.ACTOR,'buildId':core.BUILD,'userId':'acct'}}
-                if '/actor-runs/' in path: return {'data':{'actId':core.ACTOR,'buildId':core.BUILD,'userId':'acct','status':'SUCCEEDED','usageTotalUsd':0.0058 if self.count else 0,'chargedEventCounts':{'apify-default-dataset-item':self.count} if self.count else {},'defaultDatasetId':'dataset'}}
-                if '/items?' in path: return [{'ad_archive_id':'1','page_name':'Page'}]
-                if '/datasets/' in path: return {'data':{'itemCount':self.count}}
-                raise AssertionError(path)
-        workspace = self.root / 'workspace'
-        fake = Fake(); fake.status = 400
-        data = {'grant':grant,'runs':{}}
-        with patch.object(core, 'provider_check', return_value=check):
-            with self.assertRaisesRegex(core.Blocked, 'provider_rejected_400'): core.submit_run(workspace, run, data, fake)
-        self.assertEqual((data['runs'][run['id']]['billing'], data['runs'][run['id']]['actual_charge_usd']), ('reconciled', '0'))
-        _, next_run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '2', '--max-charge', '0.006')
-        fake.status = None; fake.usage = '0.002'
-        with patch.object(core, 'provider_check', return_value=check): core.submit_run(workspace, next_run, data, fake)
-        fake.count = 1
-        done = core.resume_run(workspace, next_run, data, fake)
-        self.assertEqual((done['lifecycle'], done['billing'], done['coverage'], done['result']), ('succeeded', 'reconciled', 'capped', 'nonempty'))
-        data = core.ledger('tag', 'acct')
-        self.assertEqual(fake.posts, 2)
-        _, billed = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '2', '--max-charge', '0.006')
-        fake.usage = '0.002'; fake.count = 1
-        with patch.object(core, 'provider_check', return_value=check): core.submit_run(workspace, billed, data, fake)
-        billed = core.resume_run(workspace, billed, data, fake)
-        data = core.ledger('tag', 'acct')
-        self.assertEqual((billed['billing'], billed['charged_units'], billed['result']), ('reconciled', 1, 'nonempty'))
-        with patch.object(core, 'provider_check', return_value=check):
-            _, third = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '2', '--max-charge', '0.006')
-            fake.usage = '0.03'
-            with self.assertRaisesRegex(core.Blocked, 'unexplained_account_usage'): core.submit_run(workspace, third, data, fake)
-        self.assertEqual(fake.posts, 3)
-        fake.usage = '0.0136'; fake.status = 500
-        with patch.object(core, 'provider_check', return_value=check):
-            with self.assertRaisesRegex(core.Blocked, 'unresolved_submission'): core.submit_run(workspace, third, data, fake)
-        self.assertEqual(data['runs'][third['id']]['lifecycle'], 'submission_unknown')
-        self.assertEqual(fake.posts, 4)
-    def test_malformed_post_response_is_unknown(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '2', '--max-charge', '0.006')
-        grant = dict(grantor='Jim', issued_at='2020-01-01T00:00:00Z', expires_at='2099-01-01T00:00:00Z', source_reference='instruction', client='tag', account='acct', cumulative_usd='10', billable_units=50, covered_cost_classes=['actor_events'], provider_use_decision='allowed', retention_decision='metadata_links_only', collector=core.pwd.getpwuid(core.os.getuid()).pw_name, mode='spike', ancillary_usd='0.01', spike_limit_policy={'source_reference':'docs','schema_hash':'s','pricing_hash':'p'}, usage_baseline={'usageCycle':{'startAt':'a'},'totalUsageCreditsUsdAfterVolumeDiscount':'0'})
-        check = {'authenticated_account_id':'acct','schema_hash':'s','pricing_hash':'p','minimum_published_unit_price_usd':'0.001','maximum_published_unit_price_usd':'0.0058','minimum_charge_usd':'0.0058'}
-        class Malformed:
-            posts = 0
-            def request(self, method, path, payload=None, authenticated=True):
-                if method == 'POST':
-                    self.posts += 1
-                    return {'data': []}
-                return {'data': grant['usage_baseline']}
-        transport = Malformed()
-        data = {'grant': grant, 'runs': {}}
-        with patch.object(core, 'provider_check', return_value=check):
-            with self.assertRaisesRegex(core.Blocked, 'unresolved_submission'):
-                core.submit_run(self.root/'workspace', run, data, transport)
-        self.assertEqual(transport.posts, 1)
-        self.assertEqual(data['runs'][run['id']]['lifecycle'], 'submission_unknown')
-
-    def test_list_export_guards_and_tampering(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '2', '--max-charge', '0.006')
-        code, listing = self.invoke('list', '--client', 'tag', '--account', 'acct')
-        self.assertEqual(code, 0); self.assertEqual(listing['runs'][0]['id'], run['id'])
-        code, _ = self.invoke('export', '--client', 'tag', '--account', 'acct', '--run', run['id'], '--output', str(self.root/'out'))
-        self.assertEqual(code, 2)
-        run['input']['enrichWithEcommerceData'] = True; run['input_hash'] = core.digest(run['input'])
-        grant = dict(grantor='Jim', issued_at='2020-01-01T00:00:00Z', expires_at='2099-01-01T00:00:00Z', source_reference='instruction', client='tag', account='acct', cumulative_usd='10', billable_units=50, covered_cost_classes=['actor_events'], provider_use_decision='allowed', retention_decision='metadata_links_only', collector=core.pwd.getpwuid(core.os.getuid()).pw_name, mode='spike', ancillary_usd='0')
-        with self.assertRaisesRegex(core.Blocked, 'input_changed'): core.submit_run(self.root/'workspace', run, {'grant':grant,'runs':{}}, object())
-        grant['provider_use_decision'] = 'denied'
-        with self.assertRaisesRegex(core.Blocked, 'provider_policy_not_approved'): core.grant_validate(grant, 'tag', 'acct')
-    def test_coverage_capped_with_per_url_bound_and_price_headroom(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', 'https://facebook.com/page2', '--results-limit', '2', '--max-charge', '0.006')
-        run.update(lifecycle='succeeded', dataset_id='dataset', billing='reconciled', actual_charge_usd='0.002', charged_units=2, maximum_unit_price_usd='0.0058')
-        class Fake:
-            def request(self, method, path):
-                if '/items?' not in path: return {'data':{'itemCount':2}}
-                return [{'ad_archive_id':'1','page_name':'A'},{'ad_archive_id':'2','page_name':'B'}]
-        run = core.paginate(self.root/'workspace', run, Fake())
-        self.assertEqual(run['coverage'], 'capped')
-        run['charged_units'] = 3
-        run = core.paginate(self.root/'workspace', run, Fake())
-        self.assertEqual(run['coverage'], 'unknown')
-    def test_billed_error_row_blocks_followup_collection(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '5', '--max-charge', '0.024')
-        run.update(lifecycle='succeeded', dataset_id='dataset', billing='reconciled', actual_charge_usd='0.0058', charged_units=1, maximum_unit_price_usd='0.0058')
-        core.save_ledger('tag','acct',{'grant':None,'runs':{run['id']:{'billing':'reconciled','actual_charge_usd':'0.0058','charged_units':1}}})
-        class Provider:
-            def request(self, method, path):
-                if '/items?' in path: return [{'error':'no_items','errorDescription':'Empty or private data for provided input','url':'https://facebook.com/page'}]
-                return {'data':{'itemCount':1}}
-        run=core.paginate(self.root/'workspace',run,Provider())
-        self.assertEqual((run['coverage'],run['result'],run['normalized'],run['billing']),('provider_error','unknown',0,'reconciled'))
-        self.assertEqual(run['provider_errors'],['no_items'])
-        self.assertEqual(core.ledger('tag','acct')['runs'][run['id']]['collection_block'],'provider_error')
-
-    def test_classification_failure_retains_incomplete_intent(self):
-        self.setup_client()
-        _, run = self.invoke('plan', '--client', 'tag', '--account', 'acct', '--urls', 'https://facebook.com/page', '--results-limit', '2', '--max-charge', '0.006')
-        run.update(lifecycle='succeeded',dataset_id='dataset',billing='reconciled',actual_charge_usd='0.0058',charged_units=1,maximum_unit_price_usd='0.0058')
-        core.save_ledger('tag','acct',{'grant':None,'runs':{run['id']:{'provider_run_id':'provider','billing':'reconciled','collection_finalized':True,'collection_block':'count_mismatch'}}})
-        class Failure:
-            def request(self,*args): raise core.Blocked('network_failure')
-        with self.assertRaises(core.Blocked): core.paginate(self.root/'workspace',run,Failure())
-        intent=core.ledger('tag','acct')['runs'][run['id']]
-        self.assertFalse(intent['collection_finalized'])
-        self.assertEqual(intent['collection_block'],'count_mismatch')
-
-    def test_symlink_rejected(self):
-        (self.root / 'alias').symlink_to(self.root / 'target')
-        with self.assertRaises(core.Blocked): core.safe_dir(self.root / 'alias' / 'child')
-    def test_error_redacts_untrusted_exception(self):
-        with patch.object(core, 'provider_check', side_effect=ValueError('token=secret')):
-            code, error = self.invoke('provider-check')
-        self.assertEqual(code, 2); self.assertNotIn('secret', json.dumps(error))
-
-if __name__ == '__main__': unittest.main()
+if __name__=='__main__':unittest.main()

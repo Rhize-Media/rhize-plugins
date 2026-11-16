@@ -1,0 +1,13 @@
+{
+  "id": "legacy-capture",
+  "client": "tag",
+  "account": "rhize",
+  "lifecycle": "succeeded",
+  "coverage": "provider_error",
+  "result": "unknown",
+  "billing": "reconciled",
+  "fetched": 1,
+  "normalized": 0,
+  "quarantined": 0,
+  "block_reason": "provider_error"
+}

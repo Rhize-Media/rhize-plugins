@@ -1,7 +1,7 @@
 ---
 description: Run ad research setup
 argument-hint: "[client and task]"
-allowed-tools: [Skill, Bash, Read]
+allowed-tools: [Skill, Bash, Read, Write, mcp__meta-ads__ads_library_search]
 ---
 
 Invoke `rhize-ad-research:rhize-ad-research-setup` with `$ARGUMENTS`. Use the shared CLI and preserve its gates.

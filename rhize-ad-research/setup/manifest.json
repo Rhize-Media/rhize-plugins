@@ -6,9 +6,9 @@
     {
       "name": "macOS",
       "kind": "platform",
-      "purpose": "Keychain and shared local operator state.",
+      "purpose": "Shared private local research state and native host authentication.",
       "required": true,
-      "degradedBehavior": "Credential enrollment and this local workflow are unsupported."
+      "degradedBehavior": "This local workflow is unsupported."
     },
     {
       "name": "python3",
@@ -21,7 +21,7 @@
   ],
   "wizard": {
     "skill": "rhize-ad-research:setup",
-    "purpose": "Prepare private shared storage and verify provider access; paid qualification remains held.",
+    "purpose": "Prepare private shared storage and verify native Meta MCP access in each host.",
     "when": "required"
   },
   "doctor": {
@@ -33,7 +33,7 @@
       "id": "research-registry",
       "path": "<home>/Library/Application Support/Rhize Ad Research/",
       "kind": "directory",
-      "purpose": "Private workspace registry, spend ledgers and process locks shared by both hosts.",
+      "purpose": "Private workspace registry and locks shared by both hosts; historical ledgers remain read-only.",
       "viewer": "ls -ld \"$HOME/Library/Application Support/Rhize Ad Research\"",
       "lifetime": "persistent",
       "confidentiality": "client",

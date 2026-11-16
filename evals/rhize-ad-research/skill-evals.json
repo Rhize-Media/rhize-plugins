@@ -15,10 +15,10 @@
         "setup-negative-2"
       ],
       "quality_terms": [
-        "Keychain",
         "Never request",
         "provider-check",
-        "grant-import"
+        "enabled_tools",
+        "native"
       ]
     },
     {
