@@ -2,11 +2,11 @@
 
 **Current status:** the first live provider test returned a billed error after Meta blocked the scraper. Research collection is held; setup, status, evidence review and export remain usable. No usable ads were collected.
 
-Ask either Claude Code or Codex: “Set up Rhize Ad Research for TAG.” Use the same Mac account and workspace in both tools. The assistant will check Python, identify Apify access, and prepare local storage. You should not need to write JSON or copy secrets into the conversation.
+Start with `/rhize-ad-research:setup` in Claude Code or `$rhize-ad-research-setup` in Codex, and say “Set up Rhize Ad Research for TAG.” Use the same Mac account and workspace in both tools. The assistant will check Python, identify Apify access, and prepare local storage. You should not need to write JSON or copy secrets into the conversation.
 
 Jim administers the account and authorizes the allowance. Complete account sign-in and secure Keychain enrollment when prompted. A provider connection alone does not permit paid work. The first allowance is a bounded qualification spike; subsequent collection needs applicable authority. Only one person/computer collects for the same account/client at a time.
 
-Ask: “Research detailing and ceramic coating equally within the approved allowance.” Review the selected search or advertiser URLs and the planned limits. Keep the run ID. Claude Code and Codex can inspect the same job; if the app closes, ask to resume that exact run. Never start a fresh job just because an earlier request timed out.
+Use `/rhize-ad-research:research` in Claude Code or `$rhize-ad-research-collect` in Codex, and ask: “Research detailing and ceramic coating equally within the approved allowance.” Review the selected search or advertiser URLs and the planned limits. Keep the run ID. Claude Code and Codex can inspect the same job; if the app closes, ask to resume that exact run. Never start a fresh job just because an earlier request timed out.
 
 | Result | Next action |
 | --- | --- |

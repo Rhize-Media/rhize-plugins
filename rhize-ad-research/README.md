@@ -28,6 +28,8 @@ codex plugin add rhize-ad-research@rhize-plugins
 
 Restart the host after an installed plugin change. Claude Code exposes `/rhize-ad-research:setup` and `/rhize-ad-research:research`; Codex exposes `$rhize-ad-research-setup` and `$rhize-ad-research-collect`. Both resolve the same shipped `scripts/ad_research.py`. Local development in Claude Code uses `claude --plugin-dir /absolute/path/to/rhize-ad-research`; this does not replace installed caches.
 
+Use explicit skill/command invocation: the shared hook-router corpus does not select these two new skills from its plain-language positive prompts. Native model selection has separate behavior.
+
 Python must be on the host's PATH. No pip/npm installation or custom MCP server is needed. State is outside the versioned plugin, in `~/Library/Application Support/Rhize Ad Research/`, plus the selected workspace. Both hosts on one Mac/user reuse the registry, grant ledger, locks, and run IDs. Different computers do not share a lock: designate one active collector per account/client. Tom's real-machine acceptance remains a separate test.
 
 ## CLI

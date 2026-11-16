@@ -7,3 +7,4 @@
 - Distinguish charged provider error rows from ads; hold paid follow-up collection after the live no_items/BLOCKED result.
 - Fable review corrections cover rejection recovery, response shape, cap classification, pricing drift, authority decisions and billing cross-checks.
 - Keep incomplete dataset classification and unverified empty results held; bind every run and workspace to its client/account.
+- Document explicit host invocation; shared hook-router positive prompts are silent, without changing global routing or thresholds.
