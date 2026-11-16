@@ -796,6 +796,56 @@
           "weight": 2
         }
       ],
+      "skill:rhize-ad-research/rhize-ad-research-collect": [
+        {
+          "kind": "name",
+          "label": "rhize-ad-research-collect",
+          "weight": 1
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "evidence",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-ad-research/rhize-ad-research-setup": [
+        {
+          "kind": "name",
+          "label": "rhize-ad-research-setup",
+          "weight": 1
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "evidence",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
       "skill:rhize-context-manager/context-compression": [
         {
           "kind": "name",

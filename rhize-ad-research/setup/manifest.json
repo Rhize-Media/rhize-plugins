@@ -1,0 +1,49 @@
+{
+  "schema": 3,
+  "plugin": "rhize-ad-research",
+  "items": [],
+  "dependencies": [
+    {
+      "name": "macOS",
+      "kind": "platform",
+      "purpose": "Keychain and shared local operator state.",
+      "required": true,
+      "degradedBehavior": "Credential enrollment and this local workflow are unsupported."
+    },
+    {
+      "name": "python3",
+      "kind": "cli",
+      "binary": "python3",
+      "purpose": "Python 3.11 or newer runs the standard-library collector.",
+      "required": true,
+      "degradedBehavior": "The collector cannot run."
+    }
+  ],
+  "wizard": {
+    "skill": "rhize-ad-research:setup",
+    "purpose": "Prepare private shared storage and verify provider access; paid qualification remains held.",
+    "when": "required"
+  },
+  "doctor": {
+    "kind": "skill",
+    "value": "rhize-ad-research:setup"
+  },
+  "artifacts": [
+    {
+      "id": "research-registry",
+      "path": "<home>/Library/Application Support/Rhize Ad Research/",
+      "kind": "directory",
+      "purpose": "Private workspace registry, spend ledgers and process locks shared by both hosts.",
+      "viewer": "ls -ld \"$HOME/Library/Application Support/Rhize Ad Research\"",
+      "lifetime": "persistent",
+      "confidentiality": "client",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
+    }
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-ad-research"
+  }
+}

@@ -31,7 +31,7 @@
     {
       "id": "content-intelligence",
       "title": "Content Intelligence",
-      "components": ["seo-aeo-geo", "perplexity-research"]
+      "components": ["seo-aeo-geo", "perplexity-research", "rhize-ad-research"]
     },
     {
       "id": "toolchain",
@@ -165,6 +165,37 @@
           "protocol": "evals/perplexity-research/benchmark_spec.json",
           "arm_a": "user-confirmed manual Perplexity workflow",
           "arm_b": "durable local MCP bridge",
+          "natural_capture_eligible": false
+        }
+      ]
+    },
+    {
+      "id": "rhize-ad-research",
+      "kind": "plugin",
+      "domain": "content-intelligence",
+      "skills": [
+        "rhize-ad-research-setup",
+        "rhize-ad-research-collect"
+      ],
+      "suites": [
+        {
+          "id": "ad-research-local",
+          "kind": "python",
+          "path": "evals/rhize-ad-research/run_evals.py",
+          "args": [],
+          "cwd": ".",
+          "network": "none",
+          "cost": "free",
+          "timeout_seconds": 120,
+          "automatic": true
+        }
+      ],
+      "benchmarks": [
+        {
+          "id": "ad-research-manual-vs-plugin",
+          "protocol": "evals/rhize-ad-research/benchmark_spec.json",
+          "arm_a": "operator-led API collection with the same scope and limits",
+          "arm_b": "shared CLI and skills",
           "natural_capture_eligible": false
         }
       ]

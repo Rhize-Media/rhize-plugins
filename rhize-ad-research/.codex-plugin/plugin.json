@@ -1,0 +1,33 @@
+{
+  "name": "rhize-ad-research",
+  "version": "0.1.0",
+  "description": "Collect bounded Meta Ads Library research through a shared Claude Code and Codex CLI, with spend limits, resumable runs, and source evidence.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "meta-ads-library",
+    "research",
+    "apify",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rhize Ad Research",
+    "shortDescription": "Collect and resume bounded ad-library research.",
+    "longDescription": "Collect bounded Meta Ads Library research through a shared Claude Code and Codex CLI, with spend limits, resumable runs, and source evidence.",
+    "developerName": "Rhize Media",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Set up Rhize Ad Research on this Mac.",
+      "Collect or resume Meta Ads Library research."
+    ],
+    "websiteURL": "https://rhize.media"
+  }
+}

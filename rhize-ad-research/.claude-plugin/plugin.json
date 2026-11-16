@@ -1,0 +1,15 @@
+{
+  "name": "rhize-ad-research",
+  "version": "0.1.0",
+  "description": "Collect bounded Meta Ads Library research through a shared Claude Code and Codex CLI, with spend limits, resumable runs, and source evidence.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "meta-ads-library",
+    "research",
+    "apify",
+    "rhize"
+  ]
+}

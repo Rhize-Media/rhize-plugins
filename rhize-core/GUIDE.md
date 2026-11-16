@@ -101,3 +101,5 @@ or decision-quality evidence. Existing evaluation domains and baseline policy ar
 For Perplexity, select `perplexity-research` in the setup hub. Its wizard selects a private
 Python interpreter and connects the session only when requested. Offline evaluations do not
 consume subscription allowance. Live health and saved-report reads are separate verification.
+
+For Ad Research, select `rhize-ad-research` in the setup hub. Both hosts use one local CLI and workspace registry. The pinned provider failed live qualification; setup and offline evaluation do not enable an operational research rollout. See the Ad Research guide for current holds.

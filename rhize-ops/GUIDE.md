@@ -306,3 +306,5 @@ research may opt into at most 2,000 ms of admission waiting inside its existing 
 deadline. The local service must support that header; no request is retried. Native routing
 and operational deadline benchmarks retain their existing budgets and default admission.
 Waiting and unavailable responses do not establish model speed, acceptance or earned authority.
+
+For Ad Research, select `rhize-ad-research` in the setup hub. Both hosts use one local CLI and workspace registry. The pinned provider failed live qualification; setup and offline evaluation do not enable an operational research rollout. See the Ad Research guide for current holds.

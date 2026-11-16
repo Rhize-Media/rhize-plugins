@@ -147,6 +147,18 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "rhize-ad-research",
+      "source": {
+        "source": "local",
+        "path": "./rhize-ad-research"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Marketing"
     }
   ]
 }

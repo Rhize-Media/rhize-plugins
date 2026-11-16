@@ -269,6 +269,10 @@ Grades the host-neutral memory adapter for Claude Code and Codex: byte-equivalen
 conflict preservation, inert untrusted content, scope denial, TTL/source-revision invalidation,
 and (for the graph fixture) tenant/ACL denial and purge, without opening a database connection.
 
+### rhize-ad-research
+
+Offline provider/collection recovery tests and two shared-skill routing/quality contracts. Run `python3 evals/rhize-ad-research/run_evals.py`. The paired benchmark protocol has no measurements yet; live provider and host acceptance are separate.
+
 ### rhize-outreach
 
 Grades the portable Rhize Outreach plugin contract: manifest parity, pinned runtime and template

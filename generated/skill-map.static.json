@@ -703,6 +703,30 @@
       "type": "contains"
     },
     {
+      "from": "plugin:rhize-ad-research",
+      "source": "marketplace",
+      "to": "command:rhize-ad-research/research",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ad-research",
+      "source": "marketplace",
+      "to": "command:rhize-ad-research/setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ad-research",
+      "source": "marketplace",
+      "to": "skill:rhize-ad-research/rhize-ad-research-collect",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ad-research",
+      "source": "marketplace",
+      "to": "skill:rhize-ad-research/rhize-ad-research-setup",
+      "type": "contains"
+    },
+    {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "command:rhize-context-manager/context-doctor",
@@ -2001,6 +2025,42 @@
       "from": "skill:project-launcher/rhize-visual-plan",
       "source": "frontmatter",
       "to": "tag:topic/visualization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ad-research/rhize-ad-research-collect",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ad-research/rhize-ad-research-collect",
+      "source": "frontmatter",
+      "to": "tag:topic/evidence",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ad-research/rhize-ad-research-collect",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ad-research/rhize-ad-research-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ad-research/rhize-ad-research-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/evidence",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ad-research/rhize-ad-research-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
     },
     {
@@ -3487,6 +3547,20 @@
       "path": "project-launcher/commands/write-prd.md"
     },
     {
+      "description": "Collect or inspect ad research",
+      "id": "command:rhize-ad-research/research",
+      "kind": "command",
+      "name": "research",
+      "path": "rhize-ad-research/commands/research.md"
+    },
+    {
+      "description": "Run ad research setup",
+      "id": "command:rhize-ad-research/setup",
+      "kind": "command",
+      "name": "setup",
+      "path": "rhize-ad-research/commands/setup.md"
+    },
+    {
       "description": "Run the deterministic context-stack doctor and preserve its evidence-backed result",
       "id": "command:rhize-context-manager/context-doctor",
       "kind": "command",
@@ -4778,6 +4852,13 @@
       "path": "project-launcher"
     },
     {
+      "description": "Collect bounded Meta Ads Library research through a shared Claude Code and Codex CLI, with spend limits, resumable runs, and source evidence.",
+      "id": "plugin:rhize-ad-research",
+      "kind": "plugin",
+      "name": "rhize-ad-research",
+      "path": "rhize-ad-research"
+    },
+    {
       "description": "Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.",
       "id": "plugin:rhize-context-manager",
       "kind": "plugin",
@@ -5038,6 +5119,28 @@
       "summary": "Turns an implementation plan into a reviewable visual document with diagrams and file maps.",
       "totalBytes": 607274,
       "treeHash": "70c0fddef524352297616fd2362cd159bdf1a47463165235b9744059a2662d08"
+    },
+    {
+      "contentHash": "8865a69e5165f4727f1ed25d07160d429be12241f7a94c84ad9a9e4796dc95ba",
+      "description": "Collect, resume, inspect, or export bounded Meta Ads Library research through Rhize Ad Research. Use for detailing and ceramic coating competitor ad evidence, not campaign launch or private performance reporting.",
+      "fileCount": 2,
+      "id": "skill:rhize-ad-research/rhize-ad-research-collect",
+      "kind": "skill",
+      "name": "rhize-ad-research-collect",
+      "path": "rhize-ad-research/skills/rhize-ad-research-collect/SKILL.md",
+      "totalBytes": 2914,
+      "treeHash": "de5193d751b69eaf70905d7ab6f32801592615cc565c154ab642def7f63d50af"
+    },
+    {
+      "contentHash": "10281d5596b5efa1b84675299f72f345e16d958671122d9d48d71b6e09d795b5",
+      "description": "Set up or diagnose Rhize Ad Research on a Mac for Claude Code and Codex. Use when connecting the Apify provider, choosing research storage, or checking collection readiness.",
+      "fileCount": 2,
+      "id": "skill:rhize-ad-research/rhize-ad-research-setup",
+      "kind": "skill",
+      "name": "rhize-ad-research-setup",
+      "path": "rhize-ad-research/skills/rhize-ad-research-setup/SKILL.md",
+      "totalBytes": 2429,
+      "treeHash": "1ce1e2d4f7fec593e32bbaf7c0e0c57aa3a2e5562c576bde49145e454da7f23b"
     },
     {
       "contentHash": "681d3602631ab11e6113c9a309c89e6709b4aa20d907941d0dcfad1c54f3b645",
