@@ -68,6 +68,21 @@
     "wrong": 0
    }
   },
+  "rhize-ad-research": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 4,
+    "other_cross_plugin": 0,
+    "other_same_plugin": 0,
+    "silent": 4
+   },
+   "eval_positives": {
+    "hit": 0,
+    "n": 2,
+    "silent": 2,
+    "wrong": 0
+   }
+  },
   "rhize-context-manager": {
    "eval_negatives": {
     "false_trigger": 0,
@@ -1969,6 +1984,60 @@
   },
   {
    "group": "eval",
+   "id": "rhize-ad-research/setup-positive",
+   "outcome": "silent",
+   "prompt": "Set up Rhize Ad Research for TAG.",
+   "should_trigger": true,
+   "target": "skill:rhize-ad-research/rhize-ad-research-setup",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-ad-research/setup-negative-1@rhize-ad-research-setup",
+   "outcome": "silent",
+   "prompt": "Write a setup training document for our staff.",
+   "should_trigger": false,
+   "target": "skill:rhize-ad-research/rhize-ad-research-setup",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-ad-research/setup-negative-2@rhize-ad-research-setup",
+   "outcome": "silent",
+   "prompt": "Diagnose the booking website API.",
+   "should_trigger": false,
+   "target": "skill:rhize-ad-research/rhize-ad-research-setup",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-ad-research/collect-positive",
+   "outcome": "silent",
+   "prompt": "Collect Meta Ads Library research for detailing.",
+   "should_trigger": true,
+   "target": "skill:rhize-ad-research/rhize-ad-research-collect",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-ad-research/collect-negative-1@rhize-ad-research-collect",
+   "outcome": "silent",
+   "prompt": "Launch a Meta ceramic coating campaign.",
+   "should_trigger": false,
+   "target": "skill:rhize-ad-research/rhize-ad-research-collect",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-ad-research/collect-negative-2@rhize-ad-research-collect",
+   "outcome": "silent",
+   "prompt": "Report private Meta ROAS from Ads Manager.",
+   "should_trigger": false,
+   "target": "skill:rhize-ad-research/rhize-ad-research-collect",
+   "top": null
+  },
+  {
+   "group": "eval",
    "id": "rhize-tasks/preferences-positive",
    "outcome": "silent",
    "prompt": "Change my working hours and planning buffer preferences, preserving everything else.",
@@ -3003,20 +3072,20 @@
    "top": null
   }
  ],
- "rows_sha": "9ef04d8866fa2625",
+ "rows_sha": "a76f8df37872071c",
  "schema": 1,
  "summary": {
   "eval_negatives": {
    "false_trigger": 5,
-   "n": 126,
+   "n": 130,
    "other_cross_plugin": 0,
    "other_same_plugin": 2,
-   "silent": 119
+   "silent": 123
   },
   "eval_positives": {
    "hit": 24,
-   "n": 90,
-   "silent": 58,
+   "n": 92,
+   "silent": 60,
    "wrong": 8
   },
   "long_negatives": {

@@ -66,7 +66,7 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
 
 ## Committed artifacts
 
-- `baseline.json`: the 313-row corpus measured against unmodified routing source
+- `baseline.json`: the 319-row corpus measured against unmodified routing source
   `846ba7ade6bf732834d4fd972e43d699643fe3a8` (2026-11-03). It retains all 301 prior
   assertions and adds 12 assertions for eight fresh requests: four package requests
   each require package selection and forbid email selection, plus four email revision
@@ -78,6 +78,11 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
   The third-party snapshot and all case labels remain unchanged. The inferred baseline
   was refreshed from actual control A: its 21 changed skill entries predate this treatment;
   control A and repaired candidate D have identical inferred signals.
+  On 2026-11-16, six Ad Research assertions were added and the same original control
+  was remeasured. All313 historical control outcomes are unchanged; candidate versus
+  current main also preserves every prior outcome. Inferred signals and thresholds
+  are unchanged. The two new positive prompts are silent in this hook router; use
+  explicit skill/command invocation. Native model selection is a separate mechanism.
   These are authored development checks, not real-world outcome evidence.
 - `corpus.json`: the corpus as built from the repo, for review; `run.py` rebuilds it.
 - `third_party_snapshot.json`: **a point-in-time snapshot of the third-party (marketplace)

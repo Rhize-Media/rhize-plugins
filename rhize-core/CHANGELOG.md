@@ -4,6 +4,12 @@
 
 ### Added
 
+- Update Ad Research setup guidance and generated artifact inventory for official native Meta MCP; local doctor is distinct from live host acceptance.
+- _2026-11-16_ version bump — 1.0.12 → 1.0.13 (patch); marketplace 2.124.0 → 2.124.1.
+- _2026-11-16_ version bump — 1.0.11 → 1.0.12 (patch); marketplace 2.123.0 → 2.123.1.
+
+- Register the experimental Ad Research setup wizard and offline evaluation suite.
+
 - Include frontend-development in the 70-skill evaluation catalog and exact inventory guard; retain capture and benchmark authority.
 - _2026-11-01_ version bump — 1.0.10 → 1.0.11 (patch); marketplace 2.115.2 → 2.115.3.
 - Graph workflow builder evaluation coverage: synchronize the 69-skill catalog/validator mirrors, add the manual subscription-native authoring benchmark, and preserve setup/capture consent and authority.

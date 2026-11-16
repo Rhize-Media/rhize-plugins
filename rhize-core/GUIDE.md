@@ -101,3 +101,5 @@ or decision-quality evidence. Existing evaluation domains and baseline policy ar
 For Perplexity, select `perplexity-research` in the setup hub. Its wizard selects a private
 Python interpreter and connects the session only when requested. Offline evaluations do not
 consume subscription allowance. Live health and saved-report reads are separate verification.
+
+For Ad Research, select `rhize-ad-research` in the setup hub. Both hosts use one local CLI and workspace registry. The official Meta MCP supplies bounded public samples through native host authentication; no Apify account is required. Follow the Ad Research guide for search-only restrictions and separate Tom-machine acceptance.

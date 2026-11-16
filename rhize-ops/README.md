@@ -303,6 +303,8 @@ deadline. The local service must support that header; no request is retried. Nat
 and operational deadline benchmarks retain their existing budgets and default admission.
 Waiting and unavailable responses do not establish model speed, acceptance or earned authority.
 
-The shared evaluation inventory includes `rhize-devflow:frontend-development` (70 marketplace
+The shared evaluation inventory includes `rhize-devflow:frontend-development` (72 marketplace
 skills total). Its conditional seven-family native cases are manual; coverage does not establish
 rendered quality, host activation or measured benefit.
+
+The fallback setup catalog includes experimental Ad Research and its offline checks. Its failed live provider qualification remains a separate rollout hold.

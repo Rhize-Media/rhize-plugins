@@ -1,0 +1,33 @@
+{
+  "name": "rhize-ad-research",
+  "version": "0.2.0",
+  "description": "Research bounded public ads through Meta’s official MCP in Claude Code and Codex, with shared evidence journals, integrity checks and JSON/CSV exports.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "meta-ads-library",
+    "research",
+    "meta-mcp",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rhize Ad Research",
+    "shortDescription": "Collect and resume bounded ad-library research.",
+    "longDescription": "Research bounded public ads through Meta’s official MCP in Claude Code and Codex, with shared evidence journals, integrity checks and JSON/CSV exports.",
+    "developerName": "Rhize Media",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Set up Rhize Ad Research on this Mac.",
+      "Collect or resume Meta Ads Library research."
+    ],
+    "websiteURL": "https://rhize.media"
+  }
+}

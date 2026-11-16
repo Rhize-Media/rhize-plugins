@@ -11,6 +11,10 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-16_ version bump — 0.35.3 → 0.35.4 (patch); marketplace 2.123.1 → 2.123.2.
+
+- Keep fallback setup evaluation inventory aligned with the new Ad Research plugin.
+
 - _2026-11-11_ version bump — 0.35.2 → 0.35.3 (patch); marketplace 2.121.3 → 2.121.4.
 - Confine Codex bridge workers from ambient context: `-c skills.include_instructions=false`, pinned file auth store, and a bridge-owned `CODEX_HOME` (`<state>/codex-home`) holding only a symlink to the existing `auth.json`, so no user skills or global `AGENTS.md` reach workers. No credential is copied and no login is needed.
 - Document the 2026-11-11 Codex worker ambient-context probe: the bridge's Codex argv still sends 59 user/system skills (`features.skip_host_skill_discovery` is a no-op; `-c skills.include_instructions=false` removes them) and the global `~/.codex/AGENTS.md`, which no `-c` setting removes. Correct the runtime-contract sentence. Bridge code unchanged.

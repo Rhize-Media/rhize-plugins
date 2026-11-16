@@ -133,4 +133,11 @@ _No skills._
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `perplexity-research` | Use Perplexity subscription Search or Research for user-requested cited answers and reports. | automation, evidence, search |
+
+## rhize-ad-research
+
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `rhize-ad-research-collect` | Collect, resume, inspect, or export bounded Meta Ads Library research through Rhize Ad Research. | automation, evidence, workflow-patterns |
+| `rhize-ad-research-setup` | Set up or diagnose Rhize Ad Research on a Mac for Claude Code and Codex. | automation, evidence, workflow-patterns |
 <!-- SKILL-MAP:END -->

@@ -13,7 +13,7 @@ one release (see [Compatibility](#compatibility-with-rhize-ops-one-release-windo
 
 ## Graph workflow evaluation coverage
 
-The shared evaluation catalog covers 69 marketplace skills, including Procedural Memory's
+The shared evaluation catalog covers 72 marketplace skills, including Procedural Memory's
 `graph-workflow-builder`. Its authoring benchmark uses the separate cross-domain protocol and
 requires an explicitly confirmed baseline and subscription-native trials; it is not eligible
 for automatic natural capture. An existing component-level registry baseline does not confirm
@@ -303,6 +303,10 @@ Perplexity Research is registered in the setup/evaluation catalog. Its free offl
 checks packaging and durable lifecycle behavior; it never submits a live query or refreshes
 credentials. See [Perplexity setup](../perplexity-research/README.md).
 
-The shared evaluation inventory includes `rhize-devflow:frontend-development` (70 marketplace
+The shared evaluation inventory includes `rhize-devflow:frontend-development` (72 marketplace
 skills total). Its conditional seven-family native cases are manual; coverage does not establish
 rendered quality, host activation or measured benefit.
+
+The experimental Ad Research setup and offline suite are registered. Its live provider failed qualification; setup availability does not authorize paid research or establish usable coverage.
+
+Ad Research setup connects the official Meta MCP through each native host and shares a private local evidence journal. Its local doctor does not establish live access; follow the plugin guide for authentication and host acceptance.

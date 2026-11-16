@@ -1,0 +1,17 @@
+{
+  "description": "Restrict the dedicated Meta research server to library search. Native Codex enabled_tools is required for code-mode filtering.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__meta[-_]ads__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/meta_tool_guard.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

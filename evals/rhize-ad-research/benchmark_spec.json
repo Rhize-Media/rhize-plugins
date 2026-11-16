@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Compare operator-led API collection with the plugin on identical frozen provider responses; no benefit claim yet.",
+  "arms": {
+    "a": "operator-led API collection with the same scope and limits",
+    "b": "rhize-ad-research shared CLI and skills"
+  },
+  "applicability": [
+    "rhize-ad-research-setup",
+    "rhize-ad-research-collect"
+  ],
+  "measurements": [],
+  "natural_capture_eligible": false,
+  "acceptance": [
+    "no duplicate submissions",
+    "same factual dataset",
+    "correct independent coverage and billing state",
+    "no secret leakage"
+  ],
+  "limitations": "No live paired trial or measured time savings."
+}

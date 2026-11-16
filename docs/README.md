@@ -9,7 +9,7 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### rhize-core
 
-Version 1.0.11. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
+Version 1.0.13. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
 
 [README](../rhize-core/README.md) · [GUIDE](../rhize-core/GUIDE.md) · [0 skills](../generated/SKILL-CATALOG.md#rhize-core)
 
@@ -45,7 +45,7 @@ Version 0.51.0. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.35.3. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
+Version 0.35.4. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [5 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
@@ -78,6 +78,12 @@ Version 0.4.2. Find local businesses with concrete website and search opportunit
 Version 0.2.1. Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS.
 
 [README](../perplexity-research/README.md) · [GUIDE](../perplexity-research/GUIDE.md) · [1 skill](../generated/SKILL-CATALOG.md#perplexity-research)
+
+### rhize-ad-research
+
+Version 0.2.0. Research bounded public ads through Meta’s official MCP in Claude Code and Codex, with shared evidence journals, integrity checks and JSON/CSV exports.
+
+[README](../rhize-ad-research/README.md) · [GUIDE](../rhize-ad-research/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#rhize-ad-research)
 <!-- SKILL-MAP:END -->
 
 ## Cross-plugin references

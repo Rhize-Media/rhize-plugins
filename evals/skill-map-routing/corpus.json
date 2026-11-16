@@ -1,7 +1,7 @@
 {
  "counts": {
-  "eval:neg": 126,
-  "eval:pos": 90,
+  "eval:neg": 130,
+  "eval:pos": 92,
   "probe:pos": 17
  },
  "rows": [
@@ -1786,6 +1786,60 @@
    "should_trigger": false,
    "source": "evals/procedural-memory/skill-evals.json",
    "target": "skill:procedural-memory/graph-workflow-builder"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/setup-positive",
+   "prompt": "Set up Rhize Ad Research for TAG.",
+   "should_trigger": true,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-ad-research-setup"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/setup-negative-1@rhize-ad-research-setup",
+   "prompt": "Write a setup training document for our staff.",
+   "should_trigger": false,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-ad-research-setup"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/setup-negative-2@rhize-ad-research-setup",
+   "prompt": "Diagnose the booking website API.",
+   "should_trigger": false,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-ad-research-setup"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/collect-positive",
+   "prompt": "Collect Meta Ads Library research for detailing.",
+   "should_trigger": true,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-ad-research-collect"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/collect-negative-1@rhize-ad-research-collect",
+   "prompt": "Launch a Meta ceramic coating campaign.",
+   "should_trigger": false,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-ad-research-collect"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/collect-negative-2@rhize-ad-research-collect",
+   "prompt": "Report private Meta ROAS from Ads Manager.",
+   "should_trigger": false,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-ad-research-collect"
   },
   {
    "authored": "eval",

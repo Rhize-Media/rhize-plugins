@@ -1,0 +1,15 @@
+{
+  "name": "rhize-ad-research",
+  "version": "0.2.0",
+  "description": "Research bounded public ads through Meta’s official MCP in Claude Code and Codex, with shared evidence journals, integrity checks and JSON/CSV exports.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "meta-ads-library",
+    "research",
+    "meta-mcp",
+    "rhize"
+  ]
+}

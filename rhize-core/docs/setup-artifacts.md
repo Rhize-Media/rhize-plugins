@@ -15,6 +15,7 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | hookify-local-rules | project-launcher | <project>/.claude/hookify.*.local.md | cat .claude/hookify.<rule-id>.local.md | persistent | config | authored | ignored |
 | planning-directory | project-launcher | <project>/.planning/ | cat .planning/STATE.md | persistent | none | authored | project |
 | prd-directory | project-launcher | <project>/prd/ | cat prd/<name>.md | persistent | none | authored | project |
+| research-registry | rhize-ad-research | <home>/Library/Application Support/Rhize Ad Research/ | ls -ld "$HOME/Library/Application Support/Rhize Ad Research" | persistent | client | derived | outside-repo |
 | context-experiments | rhize-context-manager | <home>/.claude/rhize-context-manager/context-experiments.json | cat ~/.claude/rhize-context-manager/context-experiments.json | persistent | config | derived | ignored |
 | doctor-history | rhize-context-manager | <home>/.claude/context-manager/doctor/ | ls ~/.claude/context-manager/doctor/ | per-run | none | derived | outside-repo |
 | harvest-logs | rhize-context-manager | <home>/.claude/context-manager/harvest-logs/ | cat ~/.claude/context-manager/harvest-logs/<date>-filter.txt | append-only | none | derived | outside-repo |

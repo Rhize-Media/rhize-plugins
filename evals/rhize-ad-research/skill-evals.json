@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "id": "rhize-ad-research-setup",
+      "source": "rhize-ad-research/skills/rhize-ad-research-setup/SKILL.md",
+      "include_patterns": [
+        "set up rhize ad research"
+      ],
+      "positive_cases": [
+        "setup-positive"
+      ],
+      "negative_cases": [
+        "setup-negative-1",
+        "setup-negative-2"
+      ],
+      "quality_terms": [
+        "Never request",
+        "provider-check",
+        "enabled_tools",
+        "native"
+      ]
+    },
+    {
+      "id": "rhize-ad-research-collect",
+      "source": "rhize-ad-research/skills/rhize-ad-research-collect/SKILL.md",
+      "include_patterns": [
+        "collect meta ads library research"
+      ],
+      "positive_cases": [
+        "collect-positive"
+      ],
+      "negative_cases": [
+        "collect-negative-1",
+        "collect-negative-2"
+      ],
+      "quality_terms": [
+        "Never resubmit",
+        "screening signal",
+        "untrusted",
+        "export"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "setup-positive",
+      "prompt": "Set up Rhize Ad Research for TAG.",
+      "expected": [
+        "rhize-ad-research-setup"
+      ]
+    },
+    {
+      "id": "setup-negative-1",
+      "prompt": "Write a setup training document for our staff.",
+      "expected": []
+    },
+    {
+      "id": "setup-negative-2",
+      "prompt": "Diagnose the booking website API.",
+      "expected": []
+    },
+    {
+      "id": "collect-positive",
+      "prompt": "Collect Meta Ads Library research for detailing.",
+      "expected": [
+        "rhize-ad-research-collect"
+      ]
+    },
+    {
+      "id": "collect-negative-1",
+      "prompt": "Launch a Meta ceramic coating campaign.",
+      "expected": []
+    },
+    {
+      "id": "collect-negative-2",
+      "prompt": "Report private Meta ROAS from Ads Manager.",
+      "expected": []
+    }
+  ]
+}

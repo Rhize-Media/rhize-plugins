@@ -63,6 +63,8 @@ calendar as Rhize's to schedule. Reach for it when you want one honest answer to
 work on now?" Its runtime is fetched from its own repository at a pinned release during setup,
 so upgrading or rolling it back is a tag, not a copy. Start with → [GUIDE](./rhize-tasks/GUIDE.md).
 
+**rhize-ad-research** — bounded Meta Ads Library collection and resumable evidence exports, shared by local Claude Code and Codex on Mac. Start with → [GUIDE](./rhize-ad-research/GUIDE.md). Live provider qualification and Tom acceptance are separate from local tests.
+
 **rhize-outreach** — internal prospect research and reviewed website/audit/email-draft workflow for the Rhize team. It runs locally and requires a signed-in Codex CLI. Start with → [GUIDE](./rhize-outreach/GUIDE.md).
 
 ### Engineering & Delivery

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ad Research Setup"
+  short_description: "Run the shared ad research workflow"
+  default_prompt: "Use $rhize-ad-research-setup for this ad research task."
