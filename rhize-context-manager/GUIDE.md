@@ -437,6 +437,11 @@ regex timing limits remain unchanged. Known residual: Codex still receives the n
 Temporary pipe backpressure is retried within the existing call deadline. It does not change
 the no-tools policy, output limits, label acceptance or scheduled-run authority.
 
+Read-only case preparation runs in a separate process bounded by the remaining run deadline.
+A stalled transcript scan is stopped with `selection_deadline_exceeded` before model calls, labels
+or attempt-ledger writes. Native authentication probes share the remaining run budget; timeouts,
+malformed responses and launch errors are reported separately from a verified missing login.
+
 Failed model calls retain bounded, redacted stdout/stderr in private `call-*/failure.json` receipts. Both labelers report `callFailures` by error tag; skill-fit archives only these receipts under `skill-fit/labeling/failed/` before removing transient CLI files. A fresh successful probe does not erase an earlier failure or establish label acceptance.
 
 The default loopback skill-fit client uses Node's direct HTTP transport, avoiding cold global-fetch initialization inside the 800 ms deadline. It retains identity-before-prompt, redirect refusal, capped responses, abort cleanup and proxy checks, and rechecks the monotonic deadline after decoding.

@@ -446,6 +446,13 @@ regex timing limits remain unchanged. Known residual: Codex still receives the n
 The subprocess transport retries temporary nonblocking pipe backpressure within the existing
 deadline, preserving partial writes, stream guards and output limits.
 
+Case preparation runs in a separate read-only process bounded by the run's remaining deadline.
+A stalled transcript scan is killed and reported as `selection_deadline_exceeded`, with no model
+calls, labels or attempt-ledger writes. Native authentication probes share the remaining run budget;
+probe timeout, malformed response and launch errors are distinct from a verified missing subscription
+login. Existing completed cases and original failed runs remain preserved; source qualification does
+not establish a future scheduled run's completion.
+
 Failed model calls retain bounded, redacted stdout/stderr in private `call-*/failure.json` receipts. Both labelers report `callFailures` by error tag; skill-fit archives only these receipts under `skill-fit/labeling/failed/` before removing transient CLI files. A fresh successful probe does not erase an earlier failure or establish label acceptance.
 
 The default loopback skill-fit client uses Node's direct HTTP transport, avoiding cold global-fetch initialization inside the 800 ms deadline. It retains identity-before-prompt, redirect refusal, capped responses, abort cleanup and proxy checks, and rechecks the monotonic deadline after decoding.
