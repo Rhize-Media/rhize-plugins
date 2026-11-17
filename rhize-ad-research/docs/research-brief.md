@@ -34,7 +34,7 @@ The assistant prepares JSON, validates it and saves the selected output in your 
 }
 ```
 
-Allowed purpose: customer/content/competitive/product/technical/topics. Providers: native-web/public-http/official-mcp. These identify the host-asserted acquisition path; they do not authenticate it. Agent Reach and all unknown providers are rejected. A host cannot make unqualified execution safe by relabeling a provider.
+Allowed purpose: customer/content/competitive/product/technical/topics. Providers: native-web/public-http/official-mcp/agent-reach-public. These identify the host-asserted acquisition path; they do not authenticate it. Full upstream agent-reach, browser/opencli and all unknown providers are rejected; agent-reach-public refers only to the shipped qualified adapter. A host cannot make unqualified execution safe by relabeling a provider.
 
 Each retrieved source needs a summary and coverage explanation. An unavailable source has null summary and cannot support a finding. A finding has exactly claim and source_ids; each reference must resolve to retrieved evidence. Published dates may be null. The requested window does not assert that all results fall inside it: exclude clearly out-of-window consumer observations, disclose uncertain dates and separate timeless primary references. Do not infer a date from an unreliable relative label. Never interpret timestamps in this envelope as proof of retrieval.
 
@@ -52,7 +52,7 @@ Both hosts may render the same immutable input concurrently: no shared mutable s
 
 ## Tom's acceptance
 
-Update/install the marketplace plugin in each host and restart after installed changes. Use the two invocations above; no Meta access is required for a public research brief. Meta ad collection still needs its documented roles/scopes. Ask the assistant to collect two public sources, keep one intentionally unavailable source, and export all three formats. Check citations against actual tool results, verify missing dates stay null, and render the same file from the other host without recollection. Ask it to include Agent Reach as a provider: validation must hold; do not install or run it. Report host/plugin/Python versions, question, run ID, statuses, export results and any missing tool/access. Never send secrets or raw private sessions.
+Update/install the marketplace plugin in each host and restart after installed changes. Use the two invocations above; no Meta access is required for a public research brief. Meta ad collection still needs its documented roles/scopes. Ask the assistant to collect two public sources, keep one intentionally unavailable source, and export all three formats. Check citations against actual tool results, verify missing dates stay null, and render the same file from the other host without recollection. Verify agent-reach-public evidence renders, while arbitrary agent-reach/opencli provider labels still fail. Follow the separate public adapter qualification/setup guide before collecting; never install the full upstream package. Report host/plugin/Python versions, question, run ID, statuses, export results and any missing tool/access. Never send secrets or raw private sessions.
 
 Offline CLI parity, a bounded native-host instruction check and Tom's own Mac acceptance are different evidence tiers. No telemetry or recurring collection is enabled.
 

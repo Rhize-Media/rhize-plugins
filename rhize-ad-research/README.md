@@ -61,3 +61,7 @@ From the source checkout run `python3 -m unittest discover -s tests/rhize-ad-res
 ## Broader research briefs
 
 Use `/rhize-ad-research:brief` in Claude Code or `$rhize-research-brief` in Codex for bounded customer, content, competitive, product or technical research with existing approved tools. The shared offline validator renders cited Markdown and JSON/CSV without accessing networks, browsers, credentials or sessions. See [the evidence contract](docs/research-brief.md), [comparison results](docs/existing-tool-comparison.md) and [Agent Reach isolation holds](docs/agent-reach-isolation.md). Agent Reach remains optional and unavailable; no new provider account is required.
+
+## Agent Reach public adapter candidate
+
+The bounded public adapter implementation and setup/acceptance guide are in [Agent Reach public research](docs/agent-reach-public.md). It is not yet released: live qualification, the exact scanner exception and final review remain pending. Existing public tools and Meta research continue to work.

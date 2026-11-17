@@ -81,7 +81,7 @@ Version 0.2.1. Perplexity subscription Search and Research with durable local jo
 
 ### rhize-ad-research
 
-Version 0.3.0. Research bounded public ads through Meta’s official MCP and build cited public research briefs in Claude Code and Codex, with shared evidence validation and exports.
+Version 0.4.0. Research bounded public ads through Meta’s official MCP and build cited public research briefs in Claude Code and Codex, with shared evidence validation and exports.
 
 [README](../rhize-ad-research/README.md) · [GUIDE](../rhize-ad-research/GUIDE.md) · [3 skills](../generated/SKILL-CATALOG.md#rhize-ad-research)
 <!-- SKILL-MAP:END -->

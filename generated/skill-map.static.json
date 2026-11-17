@@ -5191,15 +5191,15 @@
       "treeHash": "fb2f148a2e2373655141b31f6cfb02e242b9d571c6e2a2114ae5bfbff02064b2"
     },
     {
-      "contentHash": "3602c8e349750f8453a501781ccaa21bc5b8a0eeed47d786a3ac1cb72de35097",
-      "description": "Build a bounded, cited research brief from existing public web or official tools, compare retrieval coverage, and validate the evidence in both Claude Code and Codex. Use for customer objections, content, competitor, product or technical research; no Agent Reach execution or session import.",
+      "contentHash": "7cf37353e64f695b7b6e49b4705136f61e2357b30681eb8aecdb2f6e96db8c1c",
+      "description": "Build a bounded, cited research brief from existing public web or official tools, compare retrieval coverage, and validate the evidence in both Claude Code and Codex. Use for customer objections, content, competitor, product or technical research; optional bounded Agent Reach public adapters without session import.",
       "fileCount": 2,
       "id": "skill:rhize-ad-research/rhize-research-brief",
       "kind": "skill",
       "name": "rhize-research-brief",
       "path": "rhize-ad-research/skills/rhize-research-brief/SKILL.md",
-      "totalBytes": 4244,
-      "treeHash": "3d5685c594e8975eabaf23a0ed1277e3f0452cb4045084b86d8e7bec7fe06d60"
+      "totalBytes": 5564,
+      "treeHash": "68b6d7eedb1e3a3b22cef2cfcaf10d51c4d218ebd2191c0a97e86ace3d546280"
     },
     {
       "contentHash": "681d3602631ab11e6113c9a309c89e6709b4aa20d907941d0dcfad1c54f3b645",

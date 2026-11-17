@@ -1,0 +1,90 @@
+{
+  "upstream": "https://github.com/Panniantong/Agent-Reach",
+  "commit": "c70ae6da5d39bc90e09ad2ae0575ccc89f31e284",
+  "version": "1.6.1",
+  "license": "MIT",
+  "decision": "ABSORB",
+  "files": [
+    {
+      "path": "agent_reach/runtime/result.py",
+      "sha256": "42668a1529c8f94af93253f47df4a75f5e3bc292411929bf0b91d44c5459667f",
+      "functions": [
+        "make_item",
+        "unix_to_iso"
+      ],
+      "retained_ranges": [
+        {
+          "name": "make_item",
+          "start": 85,
+          "end": 102
+        },
+        {
+          "name": "unix_to_iso",
+          "start": 105,
+          "end": 113
+        }
+      ]
+    },
+    {
+      "path": "agent_reach/channels/web.py",
+      "sha256": "8c881350a067f2677ef4be5aea4f861c93e6845d9756cd43289294f68cbc1521",
+      "functions": [
+        "_is_antibot_page",
+        "_parse_exa_text",
+        "_parse_jina"
+      ],
+      "retained_ranges": [
+        {
+          "name": "_is_antibot_page",
+          "start": 51,
+          "end": 67
+        },
+        {
+          "name": "_parse_exa_text",
+          "start": 107,
+          "end": 138
+        },
+        {
+          "name": "_parse_jina",
+          "start": 141,
+          "end": 150
+        }
+      ]
+    },
+    {
+      "path": "agent_reach/channels/github.py",
+      "sha256": "3c59923f052a5b0f925019b635fb6bad7e213c603900726502668f537deeadd8",
+      "functions": [
+        "_repo_item"
+      ],
+      "retained_ranges": [
+        {
+          "name": "_repo_item",
+          "start": 93,
+          "end": 106
+        }
+      ]
+    },
+    {
+      "path": "agent_reach/channels/v2ex.py",
+      "sha256": "290786a0c9a43e3e05bbcf7f726d72995aa8d66359554e69c3c24780ab148645",
+      "functions": [
+        "_topic_item"
+      ],
+      "retained_ranges": [
+        {
+          "name": "_topic_item",
+          "start": 158,
+          "end": 167
+        }
+      ]
+    }
+  ],
+  "changes": "Selected pure parsing functions copied verbatim. Imports reduced to standard library. HTTP, dispatch, errors and process boundary are Rhize-owned; upstream CLI, config, session, browser, installers and dependencies excluded.",
+  "runtime_files": {
+    "Dockerfile": "739332bd758b590e20e2005d81f396ca1d014f672b00d1f3b8cd8b9043af209b",
+    "worker.py": "5a82c7d8f3e67f1ad431b62be6fad7f14f55868959a07df2a98772f52c02f9fa",
+    "adapters.py": "17405e4ef0d96d01e9543f21e33af61fb451bd2dc3f1d0b1e32abb5479ea5aca",
+    "LICENSE": "e94c131ac1c2f78cfd8f7e69da354c0ff58e4e54071697703d56856c036de402"
+  }
+}

@@ -22,3 +22,7 @@ Your acceptance checklist: authenticate each host, retrieve one bounded sample i
 ## Public research beyond ads
 
 Run `/rhize-ad-research:brief` or `$rhize-research-brief` and state your question. Ask for a cited brief plus limitations and JSON/CSV. This uses your host's existing public tools and does not require Meta access unless you also collect ads. The [research guide](docs/research-brief.md) gives the shared schema and your acceptance checklist. Agent Reach/browser-session reuse stays held; no cookies or login tokens should be supplied.
+
+## Agent Reach public adapter candidate
+
+The bounded public adapter implementation and setup/acceptance guide are in [Agent Reach public research](docs/agent-reach-public.md). It is not yet released: live qualification, the exact scanner exception and final review remain pending. Existing public tools and Meta research continue to work.
