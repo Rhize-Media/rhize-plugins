@@ -8,6 +8,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-17_ version bump — 2.34.0 → 2.34.1 (patch); marketplace 2.126.0 → 2.126.1.
+- Pin the independent verifier to `high` effort in its agent definition. Without the pin the final commit gate inherited the session's effort level, so `xhigh` sessions ran every verification at `xhigh`. The model, tool allowlist and verdicts are unchanged; a host-level `CLAUDE_CODE_EFFORT_LEVEL` still takes precedence.
 - _2026-11-10_ version bump — 2.33.3 → 2.34.0 (minor); marketplace 2.120.1 → 2.121.0.
 - Route a single AI-looking screen to independently installed Unslop (heydamir/unslop, CC-BY-4.0): nine ordered passes then stop, no paid image service without approval, story video only on request. State the Impeccable/Taste/Unslop division of labour; an explicit Impeccable command keeps Impeccable. Add the `unslop` native frontend case.
 - _2026-11-09_ version bump — 2.33.2 → 2.33.3 (patch); marketplace 2.119.2 → 2.119.3.

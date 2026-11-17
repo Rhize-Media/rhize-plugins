@@ -438,7 +438,7 @@ deprecation adapter, see the [Migration table](#migration-table)).
 
 From the "self-improving agent system" pattern — no run is complete until it leaves the next run better prepared.
 
-- **`agents/verifier.md`** — independent verifier, pinned to the capable-tier model as the final commit gate (read-only: Read/Bash/Glob/Grep). `/rhize-devflow:review` routes to it for non-trivial work; `rhize-context-manager`'s `/done` delegates to `/rhize-devflow:review` before any commit. Verdicts PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN. The maker never grades its own work.
+- **`agents/verifier.md`** — independent verifier, pinned to the capable-tier model at `high` effort as the final commit gate (read-only: Read/Bash/Glob/Grep). The effort pin keeps the gate from inheriting the session's effort level. `/rhize-devflow:review` routes to it for non-trivial work; `rhize-context-manager`'s `/done` delegates to `/rhize-devflow:review` before any commit. Verdicts PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN. The maker never grades its own work.
 - **STATE.md contract** — `/start` (rhize-context-manager) reads `STATE.md` (Verified facts · General rules · Open failures · Lessons learned · Last session) first; `/done` requires persisting at least one fact/failure/lesson back to it.
 - **`hooks/protect-files.sh`** — OPT-IN PreToolUse gate; see the Hooks section above and `setup/manifest.json` for matcher, tier, and wiring details.
 - **`templates/hookify/`** — warn-level hookify rules for Next.js/Sanity repos (stop-checks, sanity-schema hint, seo hint, pr-review-on-create). Copy the relevant ones into a repo's `.claude/` as `hookify.<name>.local.md`.

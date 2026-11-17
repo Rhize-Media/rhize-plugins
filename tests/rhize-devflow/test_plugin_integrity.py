@@ -448,3 +448,12 @@ def test_context_manager_done_does_not_claim_a_bundled_verifier() -> None:
             f"plugin's agents/, but {cm_bundled_verifier.relative_to(REPO_ROOT)} does not "
             "exist — the verifier lives only at rhize-devflow/agents/verifier.md"
         )
+
+
+def test_verifier_pins_its_effort_instead_of_inheriting_the_session_level() -> None:
+    frontmatter = read(DEVFLOW / "agents/verifier.md").split("---", 2)[1]
+
+    assert re.search(r"^effort: high$", frontmatter, re.M), (
+        "rhize-devflow/agents/verifier.md must pin `effort: high` in its frontmatter; "
+        "without it the final commit gate runs at whatever effort the session uses"
+    )

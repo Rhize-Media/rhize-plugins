@@ -33,6 +33,10 @@ point-in-time record.
 
 ## [Unreleased]
 
+### Added
+
+- _2026-11-17_ version bump — **rhize-devflow** 2.34.0 → 2.34.1 (patch); marketplace 2.126.0 → 2.126.1.
+
 ### Fixed
 
 - Bound scheduled label preparation by its run deadline, retain interrupted selection evidence, and report subscription probe failures accurately.

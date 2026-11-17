@@ -4,6 +4,8 @@ description: Independently verifies completed work against tests, rubrics, and t
 model: opus
 # Final commit gate — capable-tier model per global model-routing convention
 # (most-capable model for final gates; Sonnet 5 executes, Haiku handles mechanical work).
+# Pinned so the gate does not inherit the session's effort level.
+effort: high
 tools: Read, Bash, Glob, Grep
 ---
 
