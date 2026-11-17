@@ -4,6 +4,12 @@
 
 ### Added
 
+- _2026-11-16_ version bump — 1.0.13 → 1.0.14 (patch); marketplace 2.125.0 → 2.125.1.
+
+- Include the public research brief in the mirrored evaluation catalog; retain exact skill coverage and setup authority.
+
+### Added
+
 - Update Ad Research setup guidance and generated artifact inventory for official native Meta MCP; local doctor is distinct from live host acceptance.
 - _2026-11-16_ version bump — 1.0.12 → 1.0.13 (patch); marketplace 2.124.0 → 2.124.1.
 - _2026-11-16_ version bump — 1.0.11 → 1.0.12 (patch); marketplace 2.123.0 → 2.123.1.

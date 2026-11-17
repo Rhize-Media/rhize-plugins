@@ -11,6 +11,12 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-16_ version bump — 0.35.4 → 0.35.5 (patch); marketplace 2.125.1 → 2.125.2.
+
+- Include the public research brief in the mirrored evaluation catalog; retain exact skill coverage and setup authority.
+
+### Added
+
 - _2026-11-16_ version bump — 0.35.3 → 0.35.4 (patch); marketplace 2.123.1 → 2.123.2.
 
 - Keep fallback setup evaluation inventory aligned with the new Ad Research plugin.

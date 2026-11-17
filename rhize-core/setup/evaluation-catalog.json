@@ -175,7 +175,8 @@
       "domain": "content-intelligence",
       "skills": [
         "rhize-ad-research-setup",
-        "rhize-ad-research-collect"
+        "rhize-ad-research-collect",
+        "rhize-research-brief"
       ],
       "suites": [
         {
