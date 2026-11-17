@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Bounded official Meta MCP research journal; native hosts own authentication and retrieval."""
 import argparse
+import importlib.util
+import importlib.machinery
+from contextlib import contextmanager
 import csv
 import datetime as dt
 import fcntl
@@ -355,6 +358,7 @@ def collect(args):
             verify_evidence(workspace, run)
             if args.response and digest(read(args.response)) != run.get('response_hash'):
                 raise Blocked('immutable_response_conflict')
+            args._usage_reused = True
             return {'run': run, 'operator_status': operator_status(run)[0]}
         if args.response:
             try: incoming = read(args.response)
@@ -419,17 +423,57 @@ def collect(args):
         return {'run': run, 'operator_status': operator_status(run)[0]}
 
 
+
+@contextmanager
+def usage_context(host, operation, provider):
+    # Optional sibling loaded by exact path: -I excludes the script directory from imports.
+    noop = (lambda *args, **kwargs: None, lambda exc: 'unclassified')
+    try:
+        path = Path(__file__).resolve().with_name('usage_telemetry.py')
+        if path.is_symlink():
+            raise ValueError('telemetry_module_symlink')
+        class SourceOnlyLoader(importlib.machinery.SourceFileLoader):
+            def get_code(self, fullname):
+                return self.source_to_code(self.get_data(self.path), self.path)
+        loader = SourceOnlyLoader('rhize_ad_usage', str(path))
+        spec = importlib.util.spec_from_file_location('rhize_ad_usage', path, loader=loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        context = module.measure(host, operation, provider)
+        classify = module.classify
+        update = context.__enter__()
+    except Exception:
+        yield noop
+        return
+    def safe_update(*args, **kwargs):
+        try:
+            update(*args, **kwargs)
+        except Exception:
+            pass
+    def safe_classify(exc):
+        try:
+            return classify(exc)
+        except Exception:
+            return 'unclassified'
+    try:
+        yield safe_update, safe_classify
+    finally:
+        try:
+            context.__exit__(*sys.exc_info())
+        except Exception:
+            pass
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    def scope(p):
+    def scope(p, host_required=False):
+        p.add_argument('--host', choices=['claude', 'codex'], required=host_required, default='unknown')
         p.add_argument('--client', required=True); p.add_argument('--account', required=True)
     p = sub.add_parser('setup'); scope(p); p.add_argument('--workspace', required=True)
     p = sub.add_parser('doctor'); scope(p)
     p = sub.add_parser('list'); scope(p)
-    sub.add_parser('provider-check')
-    p = sub.add_parser('plan'); scope(p)
-    p.add_argument('--host', required=True, choices=['claude', 'codex'])
+    sub.add_parser('provider-check').add_argument('--host', choices=['claude', 'codex'], default='unknown')
+    p = sub.add_parser('plan'); scope(p, host_required=True)
     p.add_argument('--service', required=True, choices=['detailing', 'ceramic-coating'])
     p.add_argument('--search-terms'); p.add_argument('--page-ids', nargs='+')
     p.add_argument('--countries', nargs='+', default=['US']); p.add_argument('--limit', type=int, default=25)
@@ -441,38 +485,58 @@ def main(argv=None):
     a = parser.parse_args(argv)
     if sys.version_info < (3, 11):
         print(json.dumps({'error':'python_3_11_required'}), file=sys.stderr); return 2
-    try:
-        if a.command == 'setup': result = setup(a)
-        elif a.command == 'provider-check':
-            result = {'provider': PROVIDER, 'endpoint': ENDPOINT, 'tool': TOOL, 'limit_max': 50,
-                      'pagination_supported': False, 'authentication': 'native host OAuth',
-                      'live_access': 'not_checked; call the native tool with a bounded query'}
-        elif a.command == 'doctor':
-            result = {'python': sys.version.split()[0], 'workspace': str(mapping(a.client,a.account)),
-                      'registry': str(registry()), 'provider': PROVIDER,
-                      'live_access': 'not_checked_by_local_doctor', 'legacy_billing': 'preserved; not modified'}
-        elif a.command == 'plan': result = plan(a)
-        elif a.command in ('collect', 'resume'): result = collect(a)
-        elif a.command == 'export': result = export(a)
-        elif a.command == 'list':
-            workspace = mapping(a.client, a.account)
-            rows = []
-            for path in sorted((workspace/'runs').glob('*/manifest.json')):
-                try:
-                    run = load_run(workspace, path.parent.name, a.client, a.account)
-                    verify_evidence(workspace, run)
-                    rows.append({'id': run['id'], 'provider': run.get('provider','apify-legacy'), 'service': run.get('service'), 'operator_status': operator_status(run)[0]})
-                except (Blocked, OSError, ValueError, KeyError, TypeError) as exc:
-                    rows.append({'id': path.parent.name, 'operator_status': 'Held: ' + (str(exc) if isinstance(exc, Blocked) else 'unreadable_run')})
-            result = {'runs': rows}
-        else:
-            run = load_run(mapping(a.client,a.account), a.run, a.client, a.account)
-            verify_evidence(mapping(a.client,a.account), run)
-            result = {'run': run, 'operator_status': operator_status(run)[0], 'next_action': operator_status(run)[1]}
-        print(json.dumps(result, ensure_ascii=False)); return 0
-    except (Blocked, OSError, KeyError, TypeError, ValueError, AttributeError, RecursionError) as exc:
-        print(json.dumps({'error': str(exc) if isinstance(exc, Blocked) else type(exc).__name__}), file=sys.stderr)
-        return 2
+    with usage_context(a.host, 'meta-' + a.command, 'meta-response-journal') as (metric, error_class):
+        try:
+            if a.command == 'setup': result = setup(a)
+            elif a.command == 'provider-check':
+                result = {'provider': PROVIDER, 'endpoint': ENDPOINT, 'tool': TOOL, 'limit_max': 50,
+                          'pagination_supported': False, 'authentication': 'native host OAuth',
+                          'live_access': 'not_checked; call the native tool with a bounded query'}
+            elif a.command == 'doctor':
+                result = {'python': sys.version.split()[0], 'workspace': str(mapping(a.client,a.account)),
+                          'registry': str(registry()), 'provider': PROVIDER,
+                          'live_access': 'not_checked_by_local_doctor', 'legacy_billing': 'preserved; not modified'}
+            elif a.command == 'plan': result = plan(a)
+            elif a.command in ('collect', 'resume'): result = collect(a)
+            elif a.command == 'export': result = export(a)
+            elif a.command == 'list':
+                workspace = mapping(a.client, a.account)
+                rows = []
+                for path in sorted((workspace/'runs').glob('*/manifest.json')):
+                    try:
+                        run = load_run(workspace, path.parent.name, a.client, a.account)
+                        verify_evidence(workspace, run)
+                        rows.append({'id': run['id'], 'provider': run.get('provider','apify-legacy'), 'service': run.get('service'), 'operator_status': operator_status(run)[0]})
+                    except (Blocked, OSError, ValueError, KeyError, TypeError) as exc:
+                        rows.append({'id': path.parent.name, 'operator_status': 'Held: ' + (str(exc) if isinstance(exc, Blocked) else 'unreadable_run')})
+                result = {'runs': rows}
+            else:
+                run = load_run(mapping(a.client,a.account), a.run, a.client, a.account)
+                verify_evidence(mapping(a.client,a.account), run)
+                result = {'run': run, 'operator_status': operator_status(run)[0], 'next_action': operator_status(run)[1]}
+            print(json.dumps(result, ensure_ascii=False))
+            try:
+                status, returned, dropped = 'checked', None, None
+                if a.command == 'setup': status = 'completed'
+                elif a.command == 'plan': status = 'planned'
+                elif a.command == 'export': status, returned = 'exported', result['records']
+                elif a.command in ('collect', 'resume', 'status'):
+                    run = result['run']
+                    if run.get('block_reason') or run.get('lifecycle') in ('failed', 'cancelled'):
+                        status = 'held'
+                    elif getattr(a, '_usage_reused', False): status = 'already_terminal'
+                    elif run.get('lifecycle') in ('planned', 'awaiting_response', 'capturing'): status = 'awaiting_response'
+                    elif a.command != 'status':
+                        status = 'empty' if not run['normalized'] else 'imported'
+                        returned, dropped = run['normalized'], run['quarantined'] + run['duplicates']
+                metric(status, returned=returned, dropped=dropped)
+            except Exception:
+                metric('completed', 'unclassified')
+            return 0
+        except (Blocked, OSError, KeyError, TypeError, ValueError, AttributeError, RecursionError) as exc:
+            metric('held', 'validation' if isinstance(exc, Blocked) else error_class(exc))
+            print(json.dumps({'error': str(exc) if isinstance(exc, Blocked) else type(exc).__name__}), file=sys.stderr)
+            return 2
 
 if __name__ == '__main__':
     raise SystemExit(main())

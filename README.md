@@ -33,7 +33,7 @@ For Codex CLI, use `codex plugin marketplace add https://github.com/Rhize-Media/
 | [procedural-memory](./procedural-memory) | 0.10.0 | 4 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 | [rhize-outreach](./rhize-outreach) | 0.4.2 | 7 | Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates. | [README](./rhize-outreach/README.md) · [GUIDE](./rhize-outreach/GUIDE.md) |
 | [perplexity-research](./perplexity-research) | 0.2.1 | 1 | Perplexity subscription Search and Research with durable local jobs, explicit citations, report recovery, and encrypted Keychain session setup on macOS. | [README](./perplexity-research/README.md) · [GUIDE](./perplexity-research/GUIDE.md) |
-| [rhize-ad-research](./rhize-ad-research) | 0.4.0 | 3 | Research bounded public ads through Meta’s official MCP and build cited public research briefs in Claude Code and Codex, with shared evidence validation and exports. | [README](./rhize-ad-research/README.md) · [GUIDE](./rhize-ad-research/GUIDE.md) |
+| [rhize-ad-research](./rhize-ad-research) | 0.5.0 | 3 | Research bounded public ads through Meta’s official MCP and build cited public research briefs in Claude Code and Codex, with shared evidence validation and exports. | [README](./rhize-ad-research/README.md) · [GUIDE](./rhize-ad-research/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
 **Why rhize-core is the hub:** it hosts `/rhize-core:setup`, the one wizard that reads every other

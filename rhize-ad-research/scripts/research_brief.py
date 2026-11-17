@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Validate and render host-captured research. No retrieval or session access."""
 import argparse
+import importlib.util
+import importlib.machinery
+from contextlib import contextmanager
 import csv
 import datetime as dt
 import io
@@ -172,25 +175,76 @@ def render(value, output_format):
     return '\n'.join(lines) + '\n'
 
 
+
+@contextmanager
+def usage_context(host, operation, provider):
+    # Optional sibling loaded by exact path: -I excludes the script directory from imports.
+    noop = (lambda *args, **kwargs: None, lambda exc: 'unclassified')
+    try:
+        path = Path(__file__).resolve().with_name('usage_telemetry.py')
+        if path.is_symlink():
+            raise ValueError('telemetry_module_symlink')
+        class SourceOnlyLoader(importlib.machinery.SourceFileLoader):
+            def get_code(self, fullname):
+                return self.source_to_code(self.get_data(self.path), self.path)
+        loader = SourceOnlyLoader('rhize_ad_usage', str(path))
+        spec = importlib.util.spec_from_file_location('rhize_ad_usage', path, loader=loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        context = module.measure(host, operation, provider)
+        classify = module.classify
+        update = context.__enter__()
+    except Exception:
+        yield noop
+        return
+    def safe_update(*args, **kwargs):
+        try:
+            update(*args, **kwargs)
+        except Exception:
+            pass
+    def safe_classify(exc):
+        try:
+            return classify(exc)
+        except Exception:
+            return 'unclassified'
+    try:
+        yield safe_update, safe_classify
+    finally:
+        try:
+            context.__exit__(*sys.exc_info())
+        except Exception:
+            pass
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('input', type=Path)
+    parser.add_argument('--host', choices=['claude', 'codex'], default='unknown', help='Invoking host, independent of evidence collector.')
     parser.add_argument('--format', choices=['json', 'csv', 'markdown'], default='markdown')
     args = parser.parse_args(argv)
-    try:
-        # This command reads one explicitly supplied local evidence file, not host/session configuration.
-        fd = os.open(args.input, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-        with os.fdopen(fd, 'rb') as stream:
-            require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode), 'input_not_regular')
-            raw = stream.read(MAX_BYTES + 1)
-        require(len(raw) <= MAX_BYTES, 'input_too_large')
-        value = json.loads(raw, object_pairs_hook=unique_object)
-        print(render(value, args.format), end='')
-        return 0
-    except (OSError, ValueError, TypeError, KeyError, RecursionError) as exc:
-        reason = str(exc) if isinstance(exc, Invalid) else 'invalid_or_unreadable_evidence'
-        print(json.dumps({'status': 'held', 'reason': reason}), file=sys.stderr)
-        return 2
+    with usage_context(args.host, 'brief-' + args.format, 'offline-renderer') as (metric, error_class):
+        try:
+            # This command reads one explicitly supplied local evidence file, not host/session configuration.
+            fd = os.open(args.input, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(fd, 'rb') as stream:
+                require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode), 'input_not_regular')
+                raw = stream.read(MAX_BYTES + 1)
+            require(len(raw) <= MAX_BYTES, 'input_too_large')
+            value = json.loads(raw, object_pairs_hook=unique_object)
+            print(render(value, args.format), end='')
+            sys.stdout.flush()
+            try:
+                metric('rendered', returned=sum(s['status'] == 'retrieved' for s in value['sources']))
+            except Exception:
+                metric('rendered', 'unclassified')
+            return 0
+        except BrokenPipeError:
+            metric('output_failed', 'broken_pipe')
+            return 2
+        except (OSError, ValueError, TypeError, KeyError, RecursionError) as exc:
+            metric('held', 'validation' if isinstance(exc, Invalid) else error_class(exc))
+            reason = str(exc) if isinstance(exc, Invalid) else 'invalid_or_unreadable_evidence'
+            print(json.dumps({'status': 'held', 'reason': reason}), file=sys.stderr)
+            return 2
 
 
 if __name__ == '__main__':
