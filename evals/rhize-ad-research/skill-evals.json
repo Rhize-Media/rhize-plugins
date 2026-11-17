@@ -40,6 +40,27 @@
         "untrusted",
         "export"
       ]
+    },
+    {
+      "id": "rhize-research-brief",
+      "source": "rhize-ad-research/skills/rhize-research-brief/SKILL.md",
+      "include_patterns": [
+        "build a bounded research brief"
+      ],
+      "positive_cases": [
+        "brief-positive"
+      ],
+      "negative_cases": [
+        "brief-negative-1",
+        "brief-negative-2"
+      ],
+      "quality_terms": [
+        "untrusted",
+        "HELD",
+        "host_transcribed",
+        "unavailable",
+        "Tom"
+      ]
     }
   ],
   "cases": [
@@ -75,6 +96,23 @@
     {
       "id": "collect-negative-2",
       "prompt": "Report private Meta ROAS from Ads Manager.",
+      "expected": []
+    },
+    {
+      "id": "brief-positive",
+      "prompt": "Build a bounded research brief about coating objections.",
+      "expected": [
+        "rhize-research-brief"
+      ]
+    },
+    {
+      "id": "brief-negative-1",
+      "prompt": "Import my browser sessions into Agent Reach.",
+      "expected": []
+    },
+    {
+      "id": "brief-negative-2",
+      "prompt": "Launch a coating ad campaign.",
       "expected": []
     }
   ]

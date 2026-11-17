@@ -1,0 +1,15 @@
+# Agent Reach isolation disposition
+
+Candidate 1.6.1 / c70ae6da5d39bc90e09ad2ae0575ccc89f31e284 remains HELD, including skill-only installation. No upstream code is bundled, imported or executed in this plugin. The new brief CLI is deliberately offline and has no credential/browser/network/subprocess API; Agent Reach is not an allowed provider. This removes the session-reuse surface from the shipped capability, not from Agent Reach itself.
+
+Fable reviews 568c41b2-cf73-4f72-9c16-2921e36828a5 and cc39ae26-49b1-463f-81b3-e55243844cd5 identified four future blockers: implicit cookie import; reuse of existing authenticated contexts/bridge daemons even without import; research-writable permission grants; and insufficient canary observation/coverage. Default deny must cover source probing, cookie reads, browser startup/attachment, existing daemon connections, cached/manual sessions and forced import before any side effect. Separate HOME/profile/OS user is insufficient.
+
+The current release uses existing approved retrieval tools, whose host permissions remain authoritative. It does not claim to constrain arbitrary shell commands or unrelated tools. No mutable flag can enable Agent Reach. No cached/manual/browser context is consulted by the offline processor. Two concurrent hosts process only the supplied files; there is no cross-task session cache.
+
+Before any future Agent Reach execution: close the 99 static findings and the two incomplete components (CHANGELOG.md and runtime/cli.py), inspect all transitive executable dependencies, pin/review exact hashes, and demonstrate a concrete baseline gap. Any proposed patch is a new candidate requiring rescanning/review. Do not accept a skill-only CAUTION as package clearance.
+
+Any future grant must be positive, per-action/domain and expiring, stored beyond research-write authority and created only through separate human setup with atomic locking. Missing/corrupt/expired/forged state denies. Only a dedicated research account/profile is eligible; never ads/billing/admin authority or a whole-profile copy. Jim releases holds against exact evidence; model review is advisory, not permission.
+
+The first executable qualification requires separately authorized disposable macOS isolation: no host shared directories, clipboard or bridge forwarding; deny-all egress; reviewed pre-staged dependencies; fake cookies only. External OS file/process/socket auditing must show the positive control actually exercises each source path, then no source probe/read/import or attachment under deny. Include listener on 19825, cached/manual records, force, corrupted/missing grants, forged grants, restarts and concurrent clients. Synthetic tests alone cannot prove runtime isolation. None of that canary has been provisioned or run.
+
+Additional gates: consuming-agent injection tests in each native host, minimum permissions, direct-fetch DNS/redirect controls or honest proxy limits, complete failure accounting and explicit backend selection. No live or installed Agent Reach support is claimed. Keep the official Meta path independent and functional.

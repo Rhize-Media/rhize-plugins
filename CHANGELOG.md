@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-11-16_ version bump — **rhize-ad-research** 0.2.0 → 0.3.0 (minor); marketplace 2.124.1 → 2.125.0.
 - _2026-11-16_ version bump — **rhize-core** 1.0.12 → 1.0.13 (patch); marketplace 2.124.0 → 2.124.1.
 - _2026-11-16_ version bump — **rhize-ad-research** 0.1.0 → 0.2.0 (minor); marketplace 2.123.2 → 2.124.0.
 - _2026-11-16_ version bump — **rhize-ops** 0.35.3 → 0.35.4 (patch); marketplace 2.123.1 → 2.123.2.

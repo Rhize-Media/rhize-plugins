@@ -18,3 +18,7 @@ Then invoke `/rhize-ad-research:research` or `$rhize-ad-research-collect` and as
 Ask for JSON/CSV exports. Review detailing and coating separately; source links, missing fields and shortfalls must stay visible. Treat candidate hooks/offers as hypotheses for original tests. Public-library ads do not disclose conversion performance, so none is a verified winner from this evidence alone.
 
 Your acceptance checklist: authenticate each host, retrieve one bounded sample in each, compare captured IDs/titles with the tool result, restart/resume without re-querying, export, then inspect the same run from the other host. Verify non-search Meta tools are blocked without making an external mutation. Jim's successful host probes do not prove your permissions or Mac setup. No automatic schedules, media copying, creative production or campaign launch are included.
+
+## Public research beyond ads
+
+Run `/rhize-ad-research:brief` or `$rhize-research-brief` and state your question. Ask for a cited brief plus limitations and JSON/CSV. This uses your host's existing public tools and does not require Meta access unless you also collect ads. The [research guide](docs/research-brief.md) gives the shared schema and your acceptance checklist. Agent Reach/browser-session reuse stays held; no cookies or login tokens should be supplied.
