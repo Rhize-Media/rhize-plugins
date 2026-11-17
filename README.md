@@ -265,11 +265,18 @@ Proprietary — Rhize Media. All rights reserved.
 Main pushes and PRs targeting main run the Linux `validate` job with a 15-minute timeout.
 Feature-branch pushes do not duplicate PR runs. Superseded validation runs cancel; the
 marketplace-only tag publisher serializes without cancellation and has a five-minute timeout.
-Narrative Markdown, root `docs/`, `.claude/`, `.wolf/` and `STATE.md` skip CI. Shipped
+On main pushes, narrative Markdown, root `docs/`, `.claude/`, `.wolf/` and `STATE.md` skip CI. Shipped
 `skills/`, `commands/`, `agents/`, `references/`, `templates/`, plugin `docs/` operational
 references and Codex migrated instruction directories remain tested, including Markdown.
-Docs-only changes receive no required-check result and must accompany tested code for any
-future required-check promotion rule.
+Every PR targeting main runs validation, including narrative-only changes, so path filters
+cannot leave its check pending. This adds full validation cost for narrative-only PRs.
+
+After Python dependency installation and Node setup, a small preflight runs existing routing-corpus,
+generated-documentation and evaluation-catalog tests with `--exitfirst`. Invalid release
+inputs fail before static-validator installation and the full suite. Passing inputs still run the
+complete pytest suite and every manifest, configuration, freshness and version gate;
+there is no historical-result reuse. The preflight repeats a small subset on passing runs.
+See the [CI cost review](docs/ci-cost-preflight-2026-11-17.md) for evidence and measurement limits.
 
 Pinned Python test dependencies and the static Claude CLI validator install with download
 caches. Claude is used only for `plugin validate`; CI has no model calls or Copilot dependency.
@@ -278,7 +285,7 @@ manifests; major updates stay separate, and nothing auto-merges. Changes run the
 validation and version contracts. The former separate `version-check / check` job is now the
 `Validate version bumps` step of `validate`; required-check settings need separate review.
 
-CI acceptance (2026-09-27): [reviewed PR run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36345891442) and [main control run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36346107124). This separate narrative-only README change is the push/PR docs-filter acceptance case; settled run results are recorded in the cross-repository hardening report.
+Historical CI acceptance (2026-09-27): [reviewed PR run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36345891442) and [main control run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36346107124). That narrative-only README case verified the former push/PR filters; PR filtering has since been removed in this candidate. Hosted preflight acceptance remains pending publication.
 
 Shared tooling note: the harvest noise filter compares structured `skill-fit-report`
 queue findings within their skill/subtype key. Common report wording across different

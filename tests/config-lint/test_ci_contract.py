@@ -27,21 +27,47 @@ def selected(path, patterns):
     return included
 
 
-def test_narrative_docs_skip_but_runtime_instructions_and_code_run():
+def test_main_push_narrative_docs_skip_but_runtime_instructions_and_code_run():
     data = workflow('validate.yml')
-    for event in ('push', 'pull_request'):
-        assert data['on'][event]['branches'] == ['main']
-        paths = data['on'][event]['paths']
-        for path in ('README.md', 'STATE.md', 'docs/guide.md', '.claude/plans/ci.md',
-                     '.wolf/anatomy.md', 'rhize-core/README.md', 'rhize-core/GUIDE.md'):
-            assert not selected(path, paths), path
-        for path in ('rhize-core/skills/setup/SKILL.md', 'rhize-devflow/commands/review.md',
-                     'rhize-devflow/agents/verifier.md', 'rhize-devflow/docs/impact-map-reference.md',
-                     'rhize-core/skills/setup/references/contract.md',
-                     'rhize-devflow/.codex-plugin/migrated-command-skills/review/SKILL.md',
-                     'scripts/bump_version.py', '.github/package-lock.json',
-                     '.github/requirements-ci.txt', '.github/workflows/validate.yml'):
-            assert selected(path, paths), path
+    assert data['on']['push']['branches'] == ['main']
+    paths = data['on']['push']['paths']
+    for path in ('README.md', 'STATE.md', 'docs/guide.md', '.claude/plans/ci.md',
+                 '.wolf/anatomy.md', 'rhize-core/README.md', 'rhize-core/GUIDE.md'):
+        assert not selected(path, paths), path
+    for path in ('rhize-core/skills/setup/SKILL.md', 'rhize-devflow/commands/review.md',
+                 'rhize-devflow/agents/verifier.md', 'rhize-devflow/docs/impact-map-reference.md',
+                 'rhize-core/skills/setup/references/contract.md',
+                 'rhize-devflow/.codex-plugin/migrated-command-skills/review/SKILL.md',
+                 'scripts/bump_version.py', '.github/package-lock.json',
+                 '.github/requirements-ci.txt', '.github/workflows/validate.yml'):
+        assert selected(path, paths), path
+
+
+def test_all_main_prs_report_validation_without_path_filters():
+    data = workflow('validate.yml')
+    assert data['on']['pull_request'] == {'branches': ['main']}
+    assert 'if' not in data['jobs']['validate']
+
+
+def test_preflight_fails_closed_before_expensive_validation():
+    steps = workflow('validate.yml')['jobs']['validate']['steps']
+    preflight = next(s for s in steps if s.get('name') == 'Preflight generated release inputs')
+    assert preflight['run'].split() == [
+        'python3', '-m', 'pytest', '-q', '--exitfirst',
+        'tests/skill-map/test_routing_harness.py',
+        'tests/skill-map/test_render_docs.py',
+        'tests/rhize-core/test_evaluation_setup.py::test_catalog_covers_every_skill_and_groups_obsidian_with_context',
+    ]
+    install = next(s for s in steps if s.get('run') == 'python3 -m pip install -r .github/requirements-ci.txt')
+    node = next(s for s in steps if s.get('uses', '').startswith('actions/setup-node@'))
+    full_suite = next(s for s in steps if s.get('name') == 'Run pytest suite')
+    validator = next(s for s in steps if s.get('name') == 'Install pinned static validator')
+    assert steps.index(install) < steps.index(node) < steps.index(preflight) < steps.index(validator) < steps.index(full_suite)
+    assert full_suite['run'] == 'python3 -m pytest -q'
+    for step in steps:
+        assert 'continue-on-error' not in step
+        if step.get('name') != 'Validate version bumps':
+            assert 'if' not in step
 
 
 def test_ci_is_bounded_and_publishing_is_not_cancelled():
