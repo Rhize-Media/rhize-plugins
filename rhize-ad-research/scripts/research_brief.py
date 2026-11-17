@@ -16,7 +16,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 MAX_BYTES = 262144
-PROVIDERS = {'native-web', 'public-http', 'official-mcp'}
+PROVIDERS = {'native-web', 'public-http', 'official-mcp', 'agent-reach-public'}
 PURPOSES = {'customer', 'content', 'competitive', 'product', 'technical', 'topics'}
 
 

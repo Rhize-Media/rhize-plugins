@@ -21,4 +21,8 @@ Your acceptance checklist: authenticate each host, retrieve one bounded sample i
 
 ## Public research beyond ads
 
-Run `/rhize-ad-research:brief` or `$rhize-research-brief` and state your question. Ask for a cited brief plus limitations and JSON/CSV. This uses your host's existing public tools and does not require Meta access unless you also collect ads. The [research guide](docs/research-brief.md) gives the shared schema and your acceptance checklist. Agent Reach/browser-session reuse stays held; no cookies or login tokens should be supplied.
+Run `/rhize-ad-research:brief` or `$rhize-research-brief` and state your question. Ask for a cited brief plus limitations and JSON/CSV. This uses your host's existing public tools and does not require Meta access unless you also collect ads. The [research guide](docs/research-brief.md) gives the shared schema and your acceptance checklist. Full upstream Agent Reach/browser-session reuse stays excluded; no cookies or login tokens should be supplied.
+
+## Agent Reach public research
+
+Use the [public adapter setup guide](docs/agent-reach-public.md) for bounded Reddit/web search, Jina page reads, GitHub repositories/issues and V2EX topics. Docker Desktop and Python3.11+ are required; no cookies, session transfer or Meta token is used. Both native hosts passed source checks. Exa page reads returned a rate limit during qualification, so that operation has no successful live acceptance yet. See [verification](docs/verification.md) for release and Tom acceptance status. Existing tools and official Meta research remain independent.

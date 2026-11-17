@@ -1,6 +1,10 @@
 # Agent Reach assessment — 2026-11-16
 
-Decision: **WATCH; optional external dependency after qualification. Do not bundle or fork it into Rhize Ad Research.** No upstream code, platform login or cookie transfer was executed. The requested research is complete; adoption is a separate decision.
+Historical decision for the full upstream package: **WATCH; optional external dependency after qualification. Do not bundle or fork it into Rhize Ad Research.** No upstream code, platform login or cookie transfer was executed. The requested research is complete; adoption is a separate decision.
+
+## Public successor — 2026-11-17
+
+The later authorized implementation absorbs seven pure MIT result parsers only, with a Rhize broker and disposable container. It does not adopt upstream browser/session/platform drivers. See [public adapter](agent-reach-public.md) for capabilities and live qualification, and [verification](verification.md) for host/release status. Existing tools still retrieve many of the same sources; the measurable addition is bounded structured collection and explicit failure accounting. No superiority in relevance, sentiment accuracy or platform coverage is claimed.
 
 ## Inspected source
 

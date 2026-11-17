@@ -1,4 +1,4 @@
-"""Offline evidence and isolation contracts; never an Agent Reach runtime test."""
+"""Offline evidence contracts; runtime boundary tests are in test_agent_reach_public.py."""
 import copy
 import importlib.util
 import json
@@ -33,6 +33,11 @@ class BriefTests(unittest.TestCase):
         for host in ('claude', 'codex'):
             for fmt in ('json', 'csv', 'markdown'):
                 self.assertIn('post1', brief.render(bundle(host), fmt))
+
+    def test_public_adapter_provider_both_hosts(self):
+        for host in ('claude', 'codex'):
+            data = bundle(host); data['sources'][0]['provider'] = 'agent-reach-public'
+            self.assertIn('agent-reach-public', brief.render(data, 'json'))
 
     def test_all_held_providers_rejected(self):
         for provider in ('agent-reach', 'opencli', 'browser', 'unknown'):
