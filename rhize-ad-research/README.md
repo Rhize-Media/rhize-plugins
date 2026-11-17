@@ -60,8 +60,8 @@ From the source checkout run `python3 -m unittest discover -s tests/rhize-ad-res
 
 ## Broader research briefs
 
-Use `/rhize-ad-research:brief` in Claude Code or `$rhize-research-brief` in Codex for bounded customer, content, competitive, product or technical research with existing approved tools. The shared offline validator renders cited Markdown and JSON/CSV without accessing networks, browsers, credentials or sessions. See [the evidence contract](docs/research-brief.md), [comparison results](docs/existing-tool-comparison.md) and [Agent Reach isolation holds](docs/agent-reach-isolation.md). Agent Reach remains optional and unavailable; no new provider account is required.
+Use `/rhize-ad-research:brief` in Claude Code or `$rhize-research-brief` in Codex for bounded customer, content, competitive, product or technical research with existing approved tools. The shared offline validator renders cited Markdown and JSON/CSV without accessing networks, browsers, credentials or sessions. See [the evidence contract](docs/research-brief.md), [comparison results](docs/existing-tool-comparison.md) and [Agent Reach isolation boundaries](docs/agent-reach-isolation.md). The public adapter is optional and needs no provider account; full upstream browser/session execution is excluded.
 
-## Agent Reach public adapter candidate
+## Agent Reach public research
 
-The bounded public adapter implementation and setup/acceptance guide are in [Agent Reach public research](docs/agent-reach-public.md). It is not yet released: live qualification, the exact scanner exception and final review remain pending. Existing public tools and Meta research continue to work.
+Use the [public adapter setup guide](docs/agent-reach-public.md) for bounded Reddit/web search, Jina page reads, GitHub repositories/issues and V2EX topics. Docker Desktop and Python3.11+ are required; no cookies, session transfer or Meta token is used. Both native hosts passed source checks. Exa page reads returned a rate limit during qualification, so that operation has no successful live acceptance yet. See [verification](docs/verification.md) for release and Tom acceptance status. Existing tools and official Meta research remain independent.

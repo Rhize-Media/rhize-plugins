@@ -1,7 +1,7 @@
 # Agent Reach public research adapter
 
-## Candidate status
-Implementation and offline/container-boundary tests are prepared. Live adapter execution and publication are pending the required scanner repair and final review. Do not interpret source availability as release approval. The full upstream Agent Reach package remains excluded.
+## Qualification status
+The public adapter passed the repaired scanner and live public-provider checks. Normal SkillForge reports CAUTION with medium notices retained and no high/critical findings; the malicious control remains BLOCK. Fable approved the bounded scanner repair. Publication/native-host acceptance status is recorded in docs/verification.md. The full upstream Agent Reach package remains excluded.
 
 ## What is included
 This is an ABSORB integration, not a full Agent Reach installation. Seven pure public-result parsing/normalization functions from Agent Reach 1.6.1 (`c70ae6da5d39bc90e09ad2ae0575ccc89f31e284`) are redistributed under MIT. `reach/provenance.json` records original file hashes and line ranges, selected functions, modifications and runtime file hashes. All HTTP, process supervision and host instructions are Rhize code. No pip/npm dependency, upstream CLI, browser adapter, cookie importer, saved session, account setup or bridge is bundled.
@@ -11,7 +11,7 @@ The shared CLI is `scripts/agent_reach_public.py`. It runs the parsers in an eph
 ## Tom's setup in both hosts
 Install the published `rhize-ad-research` plugin in Claude Code and Codex, restart each host after installed changes, and use the same Mac user. Keep Docker Desktop running and Python 3.11+ available. Docker Desktop must expose its normal local user socket at `~/.docker/run/docker.sock`. Remote Docker contexts and inherited proxy/provider variables are not used. No Meta access is needed for this adapter; Meta ad collection retains its separate app/business/account requirements and scopes.
 
-Resolve `<plugin>` to the installed plugin root in the current host. After qualification/release, setup builds the digest-pinned Python image and records its immutable local image ID outside plugin caches. Run setup once per source version; a changed runtime hash requires a new setup. Each invocation verifies the source manifest and uses the recorded image ID, never a mutable remote tag.
+Resolve `<plugin>` to the installed plugin root in the current host. Setup builds the digest-pinned Python image and records its immutable local image ID outside plugin caches. Run setup once per source version; a changed runtime hash requires a new setup. Each invocation verifies the source manifest and uses the recorded image ID, never a mutable remote tag.
 
 ```sh
 python3 -I "<plugin>/scripts/agent_reach_public.py" setup
@@ -45,3 +45,5 @@ The runtime image receipt is install metadata at `~/.local/share/rhize/ad-resear
 For each host, record plugin/Python/Docker versions, run the same bounded search and a cited public read, retain unavailable attempts and compare returned URLs/text to actual sources. Exercise GitHub issue comments and V2EX topic replies only where relevant to the research question. Confirm the same saved evidence exports from the other host without recollection. Check invalid target/unsupported operation refusal, no provider fallback after denial, and that no `rhize-reach-*` container remains. Test direct Meta ad collection separately with your own authorized Meta identity. Report run IDs, operation/status, coverage, exports and errors; never tokens or browser sessions.
 
 Source qualification, native host smoke checks, installed activation and Tom's own Mac acceptance are separate evidence tiers. Live provider and native-host results will be recorded in the release verification note after qualification.
+
+Live qualification on 2026-11-17: Reddit detailing/coating search, general web search, Jina public read, GitHub search/repository README and V2EX hot/topics/replies succeeded. Exa read returned HTTP429 and remains unavailable in this qualification; it was not retried through another backend. Existing web tools already cover many of these sources. The added value is bounded, consistent structured collection and failure evidence, not privileged access or proven better search relevance.
