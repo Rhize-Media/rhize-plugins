@@ -71,15 +71,15 @@
   "rhize-ad-research": {
    "eval_negatives": {
     "false_trigger": 0,
-    "n": 4,
+    "n": 6,
     "other_cross_plugin": 0,
     "other_same_plugin": 0,
-    "silent": 4
+    "silent": 6
    },
    "eval_positives": {
     "hit": 0,
-    "n": 2,
-    "silent": 2,
+    "n": 3,
+    "silent": 3,
     "wrong": 0
    }
   },
@@ -2038,6 +2038,33 @@
   },
   {
    "group": "eval",
+   "id": "rhize-ad-research/brief-positive",
+   "outcome": "silent",
+   "prompt": "Build a bounded research brief about coating objections.",
+   "should_trigger": true,
+   "target": "skill:rhize-ad-research/rhize-research-brief",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-ad-research/brief-negative-1@rhize-research-brief",
+   "outcome": "silent",
+   "prompt": "Import my browser sessions into Agent Reach.",
+   "should_trigger": false,
+   "target": "skill:rhize-ad-research/rhize-research-brief",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-ad-research/brief-negative-2@rhize-research-brief",
+   "outcome": "silent",
+   "prompt": "Launch a coating ad campaign.",
+   "should_trigger": false,
+   "target": "skill:rhize-ad-research/rhize-research-brief",
+   "top": null
+  },
+  {
+   "group": "eval",
    "id": "rhize-tasks/preferences-positive",
    "outcome": "silent",
    "prompt": "Change my working hours and planning buffer preferences, preserving everything else.",
@@ -3072,20 +3099,20 @@
    "top": null
   }
  ],
- "rows_sha": "a76f8df37872071c",
+ "rows_sha": "1a3c117d15ec1e2c",
  "schema": 1,
  "summary": {
   "eval_negatives": {
    "false_trigger": 5,
-   "n": 130,
+   "n": 132,
    "other_cross_plugin": 0,
    "other_same_plugin": 2,
-   "silent": 123
+   "silent": 125
   },
   "eval_positives": {
    "hit": 24,
-   "n": 92,
-   "silent": 60,
+   "n": 93,
+   "silent": 61,
    "wrong": 8
   },
   "long_negatives": {

@@ -846,6 +846,25 @@
           "weight": 2
         }
       ],
+      "skill:rhize-ad-research/rhize-research-brief": [
+        {
+          "kind": "name",
+          "label": "rhize-research-brief",
+          "weight": 1
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "evidence",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
       "skill:rhize-context-manager/context-compression": [
         {
           "kind": "name",

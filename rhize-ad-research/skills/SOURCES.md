@@ -9,3 +9,5 @@ Original Rhize workflow. Meta's official MCP supplies public search; native host
 - Decision: optional external dependency only after qualification; no copied code, absorbed skill or fork.
 - SkillForge: BLOCK because skillspector-unavailable; incomplete scan, not evidence of malware. Lexical overlap control passed; manual review found possible bounded social-comment gap.
 - Rationale and pilot criteria: [assessment](../docs/agent-reach-assessment.md). No native inclusion or installation. Reassess at an explicitly approved pilot or relevant upstream change; no scheduled watcher created.
+
+**Broader research workflow (2026-11-16):** original Rhize evidence validation, failure accounting and host-portable instructions. It complements existing search and research tools; no upstream Agent Reach code or skill is copied. Its skill-only scan is now CAUTION after rebuilding stale SkillForge dist; the full source scan remains DO_NOT_INSTALL with incomplete coverage. See [isolation disposition](../docs/agent-reach-isolation.md). No runtime adoption.

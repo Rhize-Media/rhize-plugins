@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "run_id": "7a7c6d5b-487c-4f63-9462-6818947b9eaa",
+  "host": "codex",
+  "purpose": "customer",
+  "question": "Which detailing and ceramic-coating objections could TAG address?",
+  "queries": [
+    "site:reddit.com/r/AutoDetailing professional detailing worth money disappointing 2026",
+    "site:reddit.com/r/AutoDetailing ceramic coating worth money maintenance disappointed 2026"
+  ],
+  "window": {
+    "start": "2025-11-16",
+    "end": "2026-11-16"
+  },
+  "captured_at": "2026-11-17T01:56:11.844314+00:00",
+  "capture_method": "host_transcribed",
+  "sources": [
+    {
+      "id": "detailing",
+      "provider": "native-web",
+      "url": "https://www.reddit.com/r/AutoDetailing/comments/1rvsvil/am_i_in_the_wrong_thinking_he_did_a_terrible_job/",
+      "title": "Detailing service inclusions and surprise fee discussion",
+      "published_at": null,
+      "status": "retrieved",
+      "summary": "The poster reports unclear inclusions, an unexpected travel fee and dissatisfaction with cleanliness.",
+      "coverage": "One self-report and partial comments. Search/date labels conflict; window membership unverified."
+    },
+    {
+      "id": "coating",
+      "provider": "native-web",
+      "url": "https://www.reddit.com/r/AutoDetailing/comments/1s254c4/should_i_ceramic_coat_my_car_if_so_whats_a_good/",
+      "title": "Coating price and installer quality discussion",
+      "published_at": null,
+      "status": "retrieved",
+      "summary": "The poster hesitates over price and installer quality. Comments discuss wash habits and cheaper alternatives.",
+      "coverage": "One thread; partial comments and uncertain date, not a complete comment tree."
+    }
+  ],
+  "findings": [
+    {
+      "claim": "Test clearer detailing inclusions and travel pricing; this is a hypothesis from one report.",
+      "source_ids": [
+        "detailing"
+      ]
+    },
+    {
+      "claim": "Explain coating preparation, installer evidence and wash-care commitment; consider cheaper-alternative objections.",
+      "source_ids": [
+        "coating"
+      ]
+    }
+  ],
+  "limitations": [
+    "Selected qualitative examples, not representative or local demand.",
+    "Published dates and full comment coverage are unverified.",
+    "Direct unauthenticated Reddit JSON requests returned 403. No Agent Reach call was made."
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Brief"
+  short_description: "Validate bounded, cited public research"
+  default_prompt: "Use $rhize-research-brief to build a bounded evidence brief."

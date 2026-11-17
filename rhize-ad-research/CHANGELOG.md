@@ -4,6 +4,7 @@
 
 ### Added
 
+- _2026-11-16_ version bump — 0.2.0 → 0.3.0 (minor); marketplace 2.124.1 → 2.125.0.
 - Replace paid Apify execution with official native Meta MCP capture; preserve historical evidence read-only. Bound queries, seal responses/records, verify exports, distinguish empty and rejected rows, and document Claude/Codex search-only setup and Tom acceptance. Agent Reach assessed as optional future dependency; nothing installed or copied.
 - _2026-11-16_ version bump — 0.1.0 → 0.2.0 (minor); marketplace 2.123.2 → 2.124.0.
 

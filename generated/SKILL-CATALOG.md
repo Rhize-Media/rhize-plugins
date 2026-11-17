@@ -140,4 +140,5 @@ _No skills._
 | --- | --- | --- |
 | `rhize-ad-research-collect` | Collect, resume, inspect, or export bounded Meta Ads Library research through Rhize Ad Research. | automation, evidence, workflow-patterns |
 | `rhize-ad-research-setup` | Set up or diagnose Rhize Ad Research on a Mac for Claude Code and Codex. | automation, evidence, workflow-patterns |
+| `rhize-research-brief` | Build a bounded, cited research brief from existing public web or official tools, compare retrieval coverage, and validate the evidence in… | evidence, workflow-patterns |
 <!-- SKILL-MAP:END -->
