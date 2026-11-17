@@ -5169,37 +5169,37 @@
       "treeHash": "70c0fddef524352297616fd2362cd159bdf1a47463165235b9744059a2662d08"
     },
     {
-      "contentHash": "21a804f962fa43d08650c30cfbc99c918e97447d53e3be2136c5232ba67c52a3",
+      "contentHash": "f3286f55a0086501245755bac868441f69c03631b359ecb613cbcf5de86290e4",
       "description": "Collect, resume, inspect, or export bounded Meta Ads Library research through Rhize Ad Research. Use for detailing and ceramic coating competitor ad evidence, not campaign launch or private performance reporting.",
       "fileCount": 2,
       "id": "skill:rhize-ad-research/rhize-ad-research-collect",
       "kind": "skill",
       "name": "rhize-ad-research-collect",
       "path": "rhize-ad-research/skills/rhize-ad-research-collect/SKILL.md",
-      "totalBytes": 3182,
-      "treeHash": "4567fe228b73ba90252c292ee7b8cae7e6b686f1f6f59532c99cbd2deb1466c7"
+      "totalBytes": 3923,
+      "treeHash": "a6f9b104e8b15f695f6616a0f7a79d34cad43fcdffcc7eb83455f732f7b50179"
     },
     {
-      "contentHash": "d8090967e5248a0d659bc075c11eb3a0eee6c85b1261bd63090936d246a231a1",
+      "contentHash": "7d950735ab99138859eab0c6a6e5e3c67019b6644dabda6a23bf45f30e83c784",
       "description": "Set up or diagnose Rhize Ad Research on a Mac for Claude Code and Codex. Use when connecting the official Meta MCP, choosing research storage, or checking collection readiness.",
       "fileCount": 2,
       "id": "skill:rhize-ad-research/rhize-ad-research-setup",
       "kind": "skill",
       "name": "rhize-ad-research-setup",
       "path": "rhize-ad-research/skills/rhize-ad-research-setup/SKILL.md",
-      "totalBytes": 2084,
-      "treeHash": "fb2f148a2e2373655141b31f6cfb02e242b9d571c6e2a2114ae5bfbff02064b2"
+      "totalBytes": 2825,
+      "treeHash": "c9ae2a6e3677b71d55507ace911a75619fa8aa3e38acfba250d4beb5615e9b27"
     },
     {
-      "contentHash": "7cf37353e64f695b7b6e49b4705136f61e2357b30681eb8aecdb2f6e96db8c1c",
+      "contentHash": "90433de2c3640711657c7c6075cb9b2e100afe9256c69ac9707d4911725ea452",
       "description": "Build a bounded, cited research brief from existing public web or official tools, compare retrieval coverage, and validate the evidence in both Claude Code and Codex. Use for customer objections, content, competitor, product or technical research; optional bounded Agent Reach public adapters without session import.",
       "fileCount": 2,
       "id": "skill:rhize-ad-research/rhize-research-brief",
       "kind": "skill",
       "name": "rhize-research-brief",
       "path": "rhize-ad-research/skills/rhize-research-brief/SKILL.md",
-      "totalBytes": 5564,
-      "treeHash": "68b6d7eedb1e3a3b22cef2cfcaf10d51c4d218ebd2191c0a97e86ace3d546280"
+      "totalBytes": 6417,
+      "treeHash": "e216106cb419d392662e255eea04563f22e9fe689b36ed7224a7b77bbf9de911"
     },
     {
       "contentHash": "681d3602631ab11e6113c9a309c89e6709b4aa20d907941d0dcfad1c54f3b645",

@@ -57,3 +57,7 @@ Update/install the marketplace plugin in each host and restart after installed c
 Offline CLI parity, a bounded native-host instruction check and Tom's own Mac acceptance are different evidence tiers. No telemetry or recurring collection is enabled.
 
 Use canonical lowercase hosts without trailing dots, explicit ports or bare query/fragment delimiters. Numeric shorthand private addresses and Unicode control/format characters are rejected. Offline URL checks cannot detect DNS names that resolve privately. Do not strip a meaningful query from a source URL to force validation; obtain an equivalent canonical public permalink or record the limitation. Common credential-pattern detection can reject harmless technical prose: summarize without including credential-like examples, never weaken the validator to pass a secret. To save CLI output from a shell without clobbering an existing file, use a subshell with `set -o noclobber` and a literal, explicitly selected output path.
+
+## Optional usage counters
+
+Add `--host claude|codex` to identify the invoking renderer independently of the evidence collector. See [local usage telemetry](telemetry.md); capture is default-off, and a `rendered` outcome only verifies validation and stdout flush, not a saved file or accepted answer.

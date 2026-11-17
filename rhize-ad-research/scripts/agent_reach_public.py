@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Public Agent Reach adapters in an ephemeral, network-disabled container."""
 import argparse
+import importlib.util
+import importlib.machinery
+from contextlib import contextmanager
 import datetime as dt
 import hashlib
 import http.client
@@ -303,10 +306,51 @@ def run(task):
             proc.stdout.close()
 
 
+
+@contextmanager
+def usage_context(host, operation, provider):
+    # Optional sibling loaded by exact path: -I excludes the script directory from imports.
+    noop = (lambda *args, **kwargs: None, lambda exc: 'unclassified')
+    try:
+        path = Path(__file__).resolve().with_name('usage_telemetry.py')
+        if path.is_symlink():
+            raise ValueError('telemetry_module_symlink')
+        class SourceOnlyLoader(importlib.machinery.SourceFileLoader):
+            def get_code(self, fullname):
+                return self.source_to_code(self.get_data(self.path), self.path)
+        loader = SourceOnlyLoader('rhize_ad_usage', str(path))
+        spec = importlib.util.spec_from_file_location('rhize_ad_usage', path, loader=loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        context = module.measure(host, operation, provider)
+        classify = module.classify
+        update = context.__enter__()
+    except Exception:
+        yield noop
+        return
+    def safe_update(*args, **kwargs):
+        try:
+            update(*args, **kwargs)
+        except Exception:
+            pass
+    def safe_classify(exc):
+        try:
+            return classify(exc)
+        except Exception:
+            return 'unclassified'
+    try:
+        yield safe_update, safe_classify
+    finally:
+        try:
+            context.__exit__(*sys.exc_info())
+        except Exception:
+            pass
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    sub.add_parser('setup', help='Build the pinned public-adapter image (Docker Desktop required).')
+    setup_parser = sub.add_parser('setup', help='Build the pinned public-adapter image (Docker Desktop required).')
+    setup_parser.add_argument('--host', choices=('claude', 'codex'), default='unknown')
     collect = sub.add_parser('collect')
     collect.add_argument('--host', required=True, choices=('claude', 'codex'))
     collect.add_argument('--operation', required=True, choices=OPERATIONS)
@@ -316,37 +360,47 @@ def main():
     args = vars(parser.parse_args())
     command = args.pop('command')
     run_id = str(uuid.uuid4())
-    try:
-        if command == 'setup':
-            tag = 'rhize-agent-reach:' + identity()
-            subprocess.run([docker_binary(), 'build', '--network', 'none', '-t', tag, str(CONTEXT)], env=docker_env(), check=True, timeout=180)
-            value = {'ok': True, 'image': image_id(docker_binary(), tag), 'source_sha256': identity()}
-            path = receipt(identity())
-            path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-            fd, temporary = tempfile.mkstemp(prefix='.image-', dir=path.parent)
+    host = args['host']
+    if command == 'setup':
+        args.pop('host')
+    with usage_context(host, 'public-setup' if command == 'setup' else args['operation'], 'public-adapter') as (metric, error_class):
+        try:
+            if command == 'setup':
+                tag = 'rhize-agent-reach:' + identity()
+                subprocess.run([docker_binary(), 'build', '--network', 'none', '-t', tag, str(CONTEXT)], env=docker_env(), check=True, timeout=180)
+                value = {'ok': True, 'image': image_id(docker_binary(), tag), 'source_sha256': identity()}
+                path = receipt(identity())
+                path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                fd, temporary = tempfile.mkstemp(prefix='.image-', dir=path.parent)
+                try:
+                    with os.fdopen(fd, 'w') as output:
+                        json.dump(value, output)
+                        output.flush()
+                        os.fsync(output.fileno())
+                    os.replace(temporary, path)
+                finally:
+                    Path(temporary).unlink(missing_ok=True)
+                print(json.dumps(value))
+                metric('completed')
+                return 0
+            collected = run(args)
+            result = {'schema': 1, 'run_id': run_id, **args, 'provider': 'agent-reach-public', 'status': 'retrieved',
+                      'captured_at': dt.datetime.now(dt.timezone.utc).isoformat(), **collected,
+                      'source_sha256': identity(), 'untrusted_data': True, 'truncated': None,
+                      'coverage': 'Public sample only. GitHub comments limited to first50; V2EX replies firstpage; search/reader may truncate. No complete thread, population, popularity or trend claim; reader-service redirects are outside local observation.'}
+            print(json.dumps(result, ensure_ascii=True))
             try:
-                with os.fdopen(fd, 'w') as output:
-                    json.dump(value, output)
-                    output.flush()
-                    os.fsync(output.fileno())
-                os.replace(temporary, path)
-            finally:
-                Path(temporary).unlink(missing_ok=True)
-            print(json.dumps(value))
+                metric('retrieved' if collected['items'] else 'empty', returned=len(collected['items']), dropped=collected['dropped_items'])
+            except Exception:
+                metric('completed', 'unclassified')
             return 0
-        collected = run(args)
-        result = {'schema': 1, 'run_id': run_id, **args, 'provider': 'agent-reach-public', 'status': 'retrieved',
-                  'captured_at': dt.datetime.now(dt.timezone.utc).isoformat(), **collected,
-                  'source_sha256': identity(), 'untrusted_data': True, 'truncated': None,
-                  'coverage': 'Public sample only. GitHub comments limited to first50; V2EX replies firstpage; search/reader may truncate. No complete thread, population, popularity or trend claim; reader-service redirects are outside local observation.'}
-        print(json.dumps(result, ensure_ascii=True))
-        return 0
-    except Exception as exc:
-        error = str(exc)[:120] if isinstance(exc, ValueError) else type(exc).__name__
-        print(json.dumps({'schema': 1, 'run_id': run_id, **args, 'provider': 'agent-reach-public',
-                          'captured_at': dt.datetime.now(dt.timezone.utc).isoformat(), 'untrusted_data': True,
-                          'status': 'unavailable', 'items': [], 'error': error}))
-        return 2
+        except Exception as exc:
+            metric('unavailable', error_class(exc))
+            error = str(exc)[:120] if isinstance(exc, ValueError) else type(exc).__name__
+            print(json.dumps({'schema': 1, 'run_id': run_id, **args, 'provider': 'agent-reach-public',
+                              'captured_at': dt.datetime.now(dt.timezone.utc).isoformat(), 'untrusted_data': True,
+                              'status': 'unavailable', 'items': [], 'error': error}))
+            return 2
 
 
 if __name__ == '__main__':

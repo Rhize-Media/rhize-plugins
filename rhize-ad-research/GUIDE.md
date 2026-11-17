@@ -26,3 +26,7 @@ Run `/rhize-ad-research:brief` or `$rhize-research-brief` and state your questio
 ## Agent Reach public research
 
 Use the [public adapter setup guide](docs/agent-reach-public.md) for bounded Reddit/web search, Jina page reads, GitHub repositories/issues and V2EX topics. Docker Desktop and Python3.11+ are required; no cookies, session transfer or Meta token is used. Both native hosts passed source checks. Exa page reads returned a rate limit during qualification, so that operation has no successful live acceptance yet. See [verification](docs/verification.md) for release and Tom acceptance status. Existing tools and official Meta research remain independent.
+
+## Optional local usage pilot
+
+Both hosts support the same default-off [usage controls and privacy contract](docs/telemetry.md). The operator enables capture interactively on their own Mac. Pass the invoking `--host claude|codex` on setup, journal operations and brief rendering; collector provenance stays unchanged. Reports contain aggregate invocation outcomes only, with no research content, URLs, identities or raw errors. Confirm capture permissions in each host before comparing counts. No uploads or inferred human acceptance.
