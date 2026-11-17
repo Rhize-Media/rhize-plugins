@@ -123,11 +123,24 @@ paid runs merely to measure this patch.
 - Passed: three historical preflight replays produced the expected failures.
 - Independent code/report review: no blocking issue after placing the preflight
   after Node setup. The render fixture is hermetic; savings remain unproven.
-- Incomplete: the one full repository pytest run was interrupted near 75% after
-  at least three failure markers. Its process and terminal summary were lost at
-  interruption; failure identities and final counts are unavailable. Do not infer
-  a full-suite pass or attribute these failures to the environment without evidence.
-  No whole-suite rerun was started; exact hosted validation remains a publication gate.
+- Historical incomplete run: the initial full suite was interrupted near 75% after
+  at least three failure markers. Its terminal summary and failure identities were
+  lost; the earlier cause remains unknown. This history is not a passing result.
+- Passed on the user's follow-up request: the complete suite at
+  `d21dd61248731a91d3564835081d3fe53553e388` finished with **4,930 passed,
+  9 skipped and 130 subtests passed in 1,006.14 seconds**, exit zero. JUnit reports
+  5,069 total tests including skips/subtests, zero failures and zero errors. The earlier
+  markers did not reproduce; no change-caused failure or code fix was identified.
+  Durable stdout, JUnit, process/result records and input hashes are saved in the
+  local analysis directory. Only this verification report and STATE change afterward.
+- The nine skips are unchanged conditional coverage: two absent Codex manifests,
+  three optional jsonschema checks (canonical stdlib validators still run), one
+  opt-in Docker isolation canary, one pinned Muse-binary canary, and two real-provider
+  compiler cases. No test or assertion was disabled for this change.
+- This is native macOS evidence, with Python 3.14, Node 24.22.3, pytest 9.1.1,
+  PyYAML 6.0.3 and installed cryptography 46.0.6. CI uses Linux, Python 3.12,
+  Node 22 and cryptography 50.0.2. Dependencies were not changed; exact hosted
+  validation remains separate and will run after a later authorized push.
 - Passed: `python3 scripts/bump_version.py --check --since
   5b3118ad8c13580023ff7ea47633721f5f359fb7` with native process access: **938 Dev
   Flow tests in 382.68 seconds**, seven impact-map contracts, map/setup freshness
@@ -135,12 +148,16 @@ paid runs merely to measure this patch.
   This separate successful gate does not convert the interrupted whole-repository
   run into a pass. No hosted workflow was triggered.
 
-No push, PR, merge, tag, hosted run, repository-setting change, deployment, installed
-plugin update, budget change, external message or schedule activation is authorized
-by this candidate. The original checkout and unrelated work remain intact.
+The user authorized local main integration after full-suite validation and explicitly
+reserved pushing for the next deployment. Work is committed on the feature branch,
+then local main is fast-forwarded after ancestry and unrelated-file checks. This
+includes the already-published base commits that the primary checkout was behind.
+No push, PR, remote merge, tag, hosted run, repository-setting change, deployment,
+installed plugin update, budget change, external message or schedule activation
+is part of this work. Unrelated untracked files are preserved.
 
-Publication needs explicit authorization for this task, reconciliation with then-
-current main, review of the exact candidate and ordinary hosted validation. A PR,
-if authorized, must be draft. Private context freshness must be checked at that
-exact ref. Rollback is a revert of this local candidate's commit: it restores the
-prior workflow/test/docs behavior without changing plugin versions or runtime data.
+Before a future push, reconcile with then-current remote main and check exact-ref
+private context freshness; hosted validation remains required. Roll back the CI
+behavior by reverting `d21dd61248731a91d3564835081d3fe53553e388`; the follow-up
+verification commit changes documentation only. No plugin version or runtime data
+migration is involved.
