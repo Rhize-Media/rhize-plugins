@@ -29,6 +29,7 @@ import errno
 import fcntl
 import hashlib
 import json
+import multiprocessing
 import os
 import re
 import selectors
@@ -644,6 +645,49 @@ def prepare_cases(root, receipts, index_factory, ledger, taxonomy_sha, config):
     return cases, dict(skipped)
 
 
+def _selection_worker(config, ledger, taxonomy_sha, output):
+    # This worker reads private evidence only; a stuck read must not hold the run lock forever.
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    try:
+        cases, skipped = prepare_cases(config['root'], config['receipts'],
+            lambda wanted, bounds: TranscriptIndex(config['transcriptRoots'], wanted, bounds),
+            ledger, taxonomy_sha, config)
+        result = {'cases': cases, 'skipped': skipped}
+    except Exception as exc:
+        result = {'error': type(exc).__name__}
+    write_json(output, result)
+
+
+def prepare_bounded(config, ledger, taxonomy_sha, deadline, directory):
+    left = deadline.remaining()
+    if left <= 0:
+        raise LabelerError('selection_deadline_exceeded')
+    with tempfile.TemporaryDirectory(prefix='.selection-', dir=directory) as temporary:
+        output = Path(temporary) / 'result.json'
+        worker = multiprocessing.get_context('fork').Process(
+            target=_selection_worker, args=(config, ledger, taxonomy_sha, output))
+        worker.start()
+        try:
+            worker.join(max(0, deadline.remaining()))
+            if worker.is_alive():
+                raise LabelerError('selection_deadline_exceeded')
+            if worker.exitcode != 0 or not output.is_file() or output.stat().st_size > 64 * 1024 * 1024:
+                raise LabelerError('selection_worker_failed')
+            result = json.loads(output.read_text())
+            if 'error' in result:
+                raise LabelerError('selection_worker_failed:' + result['error'])
+            if deadline.remaining() <= 0:
+                raise LabelerError('selection_deadline_exceeded')
+            return result['cases'], result['skipped']
+        finally:
+            if worker.is_alive():
+                worker.kill()
+            worker.join(timeout=5)
+            if worker.is_alive():
+                raise LabelerError('selection_cleanup_failed')
+            worker.close()
+
+
 # ---------------------------------------------------------------------------------------------
 # Model backends
 
@@ -1001,14 +1045,19 @@ def parse_native(host, output, model):
 class CliBackend:
     """Subscription CLIs only. Interface: preflight(host) -> provenance, call(...) -> result."""
 
-    def __init__(self, claude_bin, codex_bin, effort, workdir, environ=None):
+    def __init__(self, claude_bin, codex_bin, effort, workdir, environ=None, deadline=None):
         self.bins = {'claude': claude_bin or shutil.which('claude'), 'codex': codex_bin or shutil.which('codex')}
         self.effort, self.workdir, self.environ = effort, Path(workdir), environ
         self.count = 0
         self.auth_writebacks = self.auth_writeback_skips = 0
         self.warnings = []
+        self.deadline = deadline
 
     def _run(self, command, stdin, directory, timeout, codex_home=None, guard=None):
+        if self.deadline is not None:
+            timeout = min(timeout, self.deadline.remaining())
+            if timeout <= 0:
+                raise LabelerError('deadline_exceeded')
         return run_process(command, stdin, directory, timeout, child_env(self.environ, codex_home), guard)
 
     def preflight(self, host):
@@ -1023,14 +1072,36 @@ class CliBackend:
             if host == 'claude':
                 code, out, err = self._run([binary, 'auth', 'status', '--json'], b'', self.workdir, 15)
                 status = json.loads(out)
+                if (not isinstance(status, dict) or not isinstance(status.get('loggedIn'), bool)
+                        or (status['loggedIn'] and any(not isinstance(status.get(k), str)
+                                                     for k in ('authMethod', 'apiProvider')))):
+                    raise ValueError('invalid auth status')
+                if code != 0 and status['loggedIn']:
+                    raise LabelerError('exit_' + str(code))
                 authenticated = (code == 0 and status.get('loggedIn') is True and status.get('authMethod') == 'claude.ai'
                                  and status.get('apiProvider') == 'firstParty')
             else:
                 code, out, err = self._run([binary, 'login', 'status'], b'', self.workdir, 15,
                                            codex_home=real_codex_home(self.environ))
-                authenticated = code == 0 and 'Logged in using ChatGPT' in out + err
-        except (LabelerError, ValueError, OSError):
-            authenticated = False
+                message = (out + err).strip()
+                if message == 'Not logged in':
+                    authenticated = False
+                elif code != 0:
+                    raise LabelerError('exit_' + str(code))
+                elif message == 'Logged in using ChatGPT':
+                    authenticated = True
+                elif message.startswith('Logged in using an API key'):
+                    authenticated = False
+                else:
+                    raise ValueError('invalid auth status')
+        except LabelerError as exc:
+            if str(exc) == 'deadline_exceeded':
+                raise
+            raise LabelerError('subscription_auth_probe_failed:' + host + ':' + str(exc)) from exc
+        except (ValueError, AttributeError) as exc:
+            raise LabelerError('subscription_auth_probe_failed:' + host + ':invalid_response') from exc
+        except OSError as exc:
+            raise LabelerError('subscription_auth_probe_failed:' + host + ':' + type(exc).__name__) from exc
         if not authenticated:
             raise LabelerError('subscription_login_missing:' + host)
         if host == 'codex':
@@ -1038,7 +1109,11 @@ class CliBackend:
             read_auth(real_codex_home(self.environ))
         try:
             _, version, _ = self._run([binary, '--version'], b'', self.workdir, 15)
-        except (LabelerError, OSError):
+        except LabelerError as exc:
+            if str(exc) == 'deadline_exceeded':
+                raise
+            version = ''
+        except OSError:
             version = ''
         resolved = os.path.realpath(binary)
         sha = hashlib.sha256()
@@ -1530,6 +1605,12 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
     inspection = no_import or prepare_only
     annotations = run.run_dir / 'annotations.json'
     context = {'taxonomy_sha': None}
+    manifest = {'schema': RUN_SCHEMA, 'runId': run_id, 'createdAt': summary['startedAt'],
+                'taxonomySha256': None, 'taxonomyDocument': 'docs/workflow-taxonomy.md',
+                'config': {k: str(v) if isinstance(v, Path) else v for k, v in config.items() if k != 'transcriptRoots'},
+                'labelerSha256': digest(Path(__file__).read_bytes()),
+                'selectionStatus': 'pending', 'cases': None}
+    write_json(run.run_dir / 'manifest.json', manifest)
 
     def finish(status, code, reason=None):
         summary.update(status=status, exitCode=code, calls=run.calls, wallSeconds=round(clock() - started, 3))
@@ -1567,9 +1648,9 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
         context['taxonomy_sha'] = summary['taxonomySha256'] = taxonomy_sha
         try:
             ledger = load_ledger(state)
-            run.cases, skipped = prepare_cases(config['root'], config['receipts'],
-                                               lambda wanted, bounds: TranscriptIndex(config['transcriptRoots'], wanted, bounds),
-                                               ledger, taxonomy_sha, config)
+            run.cases, skipped = prepare_bounded(config, ledger, taxonomy_sha, run.deadline, run.run_dir)
+        except LabelerError as exc:
+            return finish('unavailable', 1, str(exc))
         except (LabelerError, OSError, ValueError, KeyError, TypeError) as exc:
             return finish('unavailable', 1, 'selection_failed:%s:%s' % (type(exc).__name__, exc))
         cases = run.cases
@@ -1582,13 +1663,11 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
             summary['warnings'] = sorted(faults.intersection(summary['contextDiagnostics']))
         if skipped.get('deterministic_skip_exhausted'):
             summary['deterministicSkipExhausted'] = skipped['deterministic_skip_exhausted']
-        write_json(run.run_dir / 'manifest.json', {
-            'schema': RUN_SCHEMA, 'runId': run_id, 'createdAt': summary['startedAt'], 'taxonomySha256': taxonomy_sha,
-            'taxonomyDocument': 'docs/workflow-taxonomy.md',
-            'config': {k: str(v) if isinstance(v, Path) else v for k, v in config.items() if k != 'transcriptRoots'},
+        write_json(run.run_dir / 'manifest.json', {**manifest,
+            'taxonomySha256': taxonomy_sha, 'selectionStatus': 'completed',
             'cases': [{k: c[k] for k in ('caseId', 'opportunityId', 'sourceSha256', 'contextStatus', 'packetSha256',
                                        'contextProvenance')}
-                      for c in cases]})
+                      for c in cases]}, exclusive=False)
         write_json(run.run_dir / 'packets.json', [{'caseId': c['caseId'], **c['packet']} for c in cases if c['packet']])
         if not cases:
             return finish('nothing_to_do', 0)
@@ -1598,7 +1677,8 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
         run.results.update({c['caseId']: {'outcome': c['contextStatus']} for c in cases if c['contextStatus'] != 'ok'})
         ready = [c for c in cases if c['contextStatus'] == 'ok']
         if ready:
-            run.backend = backend or CliBackend(config['claudeBin'], config['codexBin'], config['effort'], run.run_dir)
+            run.backend = backend or CliBackend(config['claudeBin'], config['codexBin'], config['effort'], run.run_dir,
+                                               deadline=run.deadline)
             try:
                 summary['tools'] = {host: run.backend.preflight(host) for host in ('claude', 'codex')}
             except LabelerError as exc:

@@ -2440,3 +2440,70 @@ def test_each_exact_known_lockdown_notice_is_information_only(notice):
     answer, meta = auto.parse_native('codex', output, 'gpt-5.6-sol')
     assert answer == {'answers': []} and meta['codexWarnings'] == []
     assert meta['codexLockdownNotices'] == [notice]
+
+
+def test_selection_deadline_stops_reader_before_auth_or_labels(tmp_path, monkeypatch):
+    root, _, _ = make(tmp_path, 'invented slow selection')
+    marker = tmp_path / 'selection-pid'
+    def stuck(*args):
+        marker.write_text(str(os.getpid()))
+        time.sleep(60)
+    monkeypatch.setattr(auto, 'prepare_cases', stuck)
+    monkeypatch.setattr(auto.Deadline, 'remaining', lambda self: 0.2)
+    backend = FakeBackend()
+    started = time.monotonic()
+    summary, code = go(tmp_path, backend)
+    assert time.monotonic() - started < 5
+    assert code == 1 and summary['reason'] == 'selection_deadline_exceeded'
+    assert backend.preflights == [] and backend.calls == [] and labels.load_labels(root) == []
+    assert not (tmp_path / 'state' / auto.LEDGER).exists()
+    with pytest.raises(ProcessLookupError):
+        os.kill(int(marker.read_text()), 0)
+    assert json.loads((Path(summary['runDir']) / 'summary.json').read_text()) == summary
+    manifest = json.loads((Path(summary['runDir']) / 'manifest.json').read_text())
+    assert manifest['runId'] == summary['runId'] and manifest['cases'] is None
+    assert manifest['selectionStatus'] == 'pending' and manifest['config']['deadlineSeconds'] == 2400
+    assert manifest['labelerSha256'] == workflow.digest(Path(auto.__file__).read_bytes())
+
+
+@pytest.mark.parametrize('failure,reason', [
+    (auto.LabelerError('timed_out'), 'subscription_auth_probe_failed:claude:timed_out'),
+    (OSError('private detail'), 'subscription_auth_probe_failed:claude:OSError'),
+    (ValueError('private detail'), 'subscription_auth_probe_failed:claude:invalid_response'),
+])
+def test_auth_probe_failure_is_not_reported_as_logged_out(cli, monkeypatch, failure, reason):
+    backend = cli[0]
+    def fail(*args, **kwargs):
+        raise failure
+    monkeypatch.setattr(backend, '_run', fail)
+    with pytest.raises(auto.LabelerError, match=reason):
+        backend.preflight('claude')
+
+
+def test_auth_probe_budget_cannot_extend_run_deadline(cli, monkeypatch):
+    backend = cli[0]
+    clock = Clock()
+    backend.deadline = auto.Deadline(2, clock)
+    observed = []
+    def process(command, stdin, directory, timeout, env, guard=None):
+        observed.append(timeout)
+        clock.advance(2)
+        return 0, '{"loggedIn":true,"authMethod":"claude.ai","apiProvider":"firstParty"}', ''
+    monkeypatch.setattr(auto, 'run_process', process)
+    with pytest.raises(auto.LabelerError, match='deadline_exceeded'):
+        backend.preflight('claude')
+    assert observed == [2]
+
+
+@pytest.mark.parametrize('host,response,reason', [
+    ('claude', (0, '{}', ''), 'invalid_response'),
+    ('claude', (0, '{"loggedIn":"false"}', ''), 'invalid_response'),
+    ('claude', (1, '{"error":"service unavailable"}', ''), 'invalid_response'),
+    ('codex', (0, 'unexpected output', ''), 'invalid_response'),
+    ('codex', (1, '', 'transport unavailable'), 'exit_1'),
+])
+def test_auth_probe_rejects_malformed_decoded_status(cli, monkeypatch, host, response, reason):
+    backend = cli[0]
+    monkeypatch.setattr(backend, '_run', lambda *args, **kwargs: response)
+    with pytest.raises(auto.LabelerError, match='subscription_auth_probe_failed:' + host + ':' + reason):
+        backend.preflight(host)

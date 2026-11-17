@@ -33,9 +33,14 @@ point-in-time record.
 
 ## [Unreleased]
 
+### Fixed
+
+- Bound scheduled label preparation by its run deadline, retain interrupted selection evidence, and report subscription probe failures accurately.
+
 ### Added
 
 - _2026-11-17_ version bump — **rhize-ad-research** 0.3.0 → 0.4.0 (minor); marketplace 2.125.2 → 2.126.0.
+- _2026-11-17_ version bump — **rhize-context-manager** 0.51.0 → 0.51.1 (patch); marketplace 2.125.2 → 2.125.3.
 - _2026-11-16_ version bump — **rhize-ops** 0.35.4 → 0.35.5 (patch); marketplace 2.125.1 → 2.125.2.
 - _2026-11-16_ version bump — **rhize-core** 1.0.13 → 1.0.14 (patch); marketplace 2.125.0 → 2.125.1.
 - _2026-11-16_ version bump — **rhize-ad-research** 0.2.0 → 0.3.0 (minor); marketplace 2.124.1 → 2.125.0.
