@@ -1,7 +1,7 @@
 {
  "counts": {
-  "eval:neg": 130,
-  "eval:pos": 92,
+  "eval:neg": 132,
+  "eval:pos": 93,
   "probe:pos": 17
  },
  "rows": [
@@ -1840,6 +1840,33 @@
    "should_trigger": false,
    "source": "evals/rhize-ad-research/skill-evals.json",
    "target": "skill:rhize-ad-research/rhize-ad-research-collect"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/brief-positive",
+   "prompt": "Build a bounded research brief about coating objections.",
+   "should_trigger": true,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-research-brief"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/brief-negative-1@rhize-research-brief",
+   "prompt": "Import my browser sessions into Agent Reach.",
+   "should_trigger": false,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-research-brief"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-ad-research/brief-negative-2@rhize-research-brief",
+   "prompt": "Launch a coating ad campaign.",
+   "should_trigger": false,
+   "source": "evals/rhize-ad-research/skill-evals.json",
+   "target": "skill:rhize-ad-research/rhize-research-brief"
   },
   {
    "authored": "eval",

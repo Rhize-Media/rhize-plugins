@@ -84,6 +84,10 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
   are unchanged. The two new positive prompts are silent in this hook router; use
   explicit skill/command invocation. Native model selection is a separate mechanism.
   These are authored development checks, not real-world outcome evidence.
+  On 2026-11-17, three public research brief assertions expanded the corpus to 322.
+  Remeasuring original control `846ba7ade6bf732834d4fd972e43d699643fe3a8` preserves
+  all 319 prior outcomes. Inferred signals and thresholds are unchanged. All three
+  new rows are silent in both control and candidate: invoke the brief skill explicitly.
 - `corpus.json`: the corpus as built from the repo, for review; `run.py` rebuilds it.
 - `third_party_snapshot.json`: **a point-in-time snapshot of the third-party (marketplace)
   skill, command and plugin nodes from the maintainer's machine** (Oct 2026), reduced to
