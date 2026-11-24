@@ -105,6 +105,15 @@ Every approved task's Jira description and Slack thread reply also share a stabl
 **Example prompt:**
 > "Delegate the sitemap cleanup to Alex — there's a client call transcript from Tuesday that has the details."
 
+### ghl-csv-import
+
+**When to use it:** Any time you have a CSV, spreadsheet or list of contacts to load into GoHighLevel (HighLevel, LeadConnector, "GHL"), or want a list turned into a Smart List, columns mapped to GHL fields, tags or custom fields, or a messy CSV cleaned for import.
+
+**What happens:** Claude first asks where the list came from and whether those people consented, because the import wizard will not start until you tick a statement that they did, were contacted in the last year and are not from a third party. Claude never ticks it for you; if you cannot truthfully make that statement it stops and lists alternatives instead of routing around the screen. Then it agrees the column mapping with you, runs the converter to produce an import-ready CSV plus a report (rows in and out, merged duplicates, dropped rows, warnings, tags, custom fields that must already exist), then walks a safe import: optional read-only checks of what already exists, a 2-row canary (one new contact, one existing), the full import with "Create & Update" and "Don't update Empty Values", and a Smart List filtered on the batch tag. It never emits DND or consent columns unless you map them, and never prints a token. Anything GoHighLevel's own pages disagree on (file-size limit, company field label) is flagged for you to confirm in the wizard.
+
+**Example prompt:**
+> "Import this CSV of event leads into GoHighLevel and make a Smart List from it."
+
 ### skill-dashboard
 
 **When to use it:** When you want a pulse check on which skills you're actually using — weekly, mid-week, or whenever the prune-candidates question comes up ("is this skill worth keeping installed?"). It reads accumulated audit snapshots, so it's instant — no transcript rescanning.

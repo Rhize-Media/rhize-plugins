@@ -75,14 +75,14 @@ def test_all_ops_skills_have_deterministic_trigger_and_quality_coverage() -> Non
     completed = run("python3", str(EVAL / "scripts/evaluate_ops_skills.py"))
     assert completed.returncode == 0, completed.stdout + completed.stderr
     result = json.loads(completed.stdout)
-    assert result["skills"] == 5
+    assert result["skills"] == 6
     assert result["routing"]["precision"] == result["routing"]["recall"] == 1.0
-    assert result["routing_coverage"]["passed"] == result["routing_coverage"]["total"] == 5
+    assert result["routing_coverage"]["passed"] == result["routing_coverage"]["total"] == 6
     for item in result["routing_coverage"]["results"]:
         expected = 3 if item["skill"] == "decision-premortem" else 1
         assert item["positive"] == {"passed": expected, "total": expected}
     assert all(item["negative"] == {"passed": 2, "total": 2} for item in result["routing_coverage"]["results"])
-    assert result["quality_contracts"]["passed"] == result["quality_contracts"]["total"] == 15
+    assert result["quality_contracts"]["passed"] == result["quality_contracts"]["total"] == 19
 
 
 def test_ops_runner_rejects_a_skill_with_fewer_than_two_negatives() -> None:
@@ -95,7 +95,7 @@ def test_ops_runner_rejects_a_skill_with_fewer_than_two_negatives() -> None:
     assert completed.returncode == 1
     result = json.loads(completed.stdout)
     assert "parallel-agent-optimization:coverage-contract" in result["failures"]
-    assert result["routing_coverage"]["passed"] == 4
+    assert result["routing_coverage"]["passed"] == 5
 
 
 def test_guide_comparison_is_separate_counterbalanced_and_validatable() -> None:

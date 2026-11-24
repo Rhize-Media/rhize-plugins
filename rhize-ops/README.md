@@ -23,7 +23,7 @@ evaluation baselines) moved to the `rhize-core` plugin's `/rhize-core:setup` —
 
 Claude Code loads the thin commands plus canonical skills from `.claude-plugin/plugin.json`.
 Codex loads the same skill bodies from `.codex-plugin/plugin.json`; skills with Codex-specific
-interface metadata also ship a `skills/<skill>/agents/openai.yaml` (`decision-premortem`, `parallel-agent-optimization` and `cross-model-handoff`).
+interface metadata also ship a `skills/<skill>/agents/openai.yaml` (`decision-premortem`, `parallel-agent-optimization`, `cross-model-handoff` and `ghl-csv-import`).
 After installing or updating either host, start a fresh session before checking discovery so a
 previously cached plugin snapshot is not mistaken for the release.
 
@@ -35,6 +35,7 @@ previously cached plugin snapshot is not mistaken for the release.
 | `cross-model-handoff` | Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Cla… | automation, review, testing, workflow-patterns |
 | `decision-premortem` | Stress-test a concrete decision or plan before committing. | evidence, project-planning, review |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the… | automation, obsidian, workflow-patterns |
+| `ghl-csv-import` | Convert a CSV, spreadsheet or contact list into GoHighLevel (GHL, HighLevel, LeadConnector) contact-import format and guide a safe import. | automation, python, workflow-patterns |
 | `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, evidence, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
 <!-- SKILL-MAP:END -->
@@ -82,6 +83,28 @@ Each approved task also emits the strict [`rhize-delegation:v1` protocol](./skil
 **Invoked as:** `rhize-ops:delegate-to-teammate`
 
 **Triggers:** "delegate this to [name]", "hand this off to [name]", "assign this to [name]", "[name] should handle this", or a bare "delegate"/"hand off"/"assign" where the configured recipient is the default.
+
+### `ghl-csv-import`
+
+Converts any contact CSV into GoHighLevel (HighLevel, LeadConnector) import format and guides a
+safe import: a consent gate first (the wizard makes the user attest the list consented; the skill
+never ticks it and stops if the user cannot), then the route (import wizard by default, API upsert
+only on explicit request), convert with
+`scripts/ghl_csv_convert.py`, read-only pre-flight, a 2-row canary, the full import, then a Smart
+List as a tag filter. Facts, sources and what is only observed in one account live in
+`skills/ghl-csv-import/references/ghl-import-facts.md`.
+
+**Invoked as:** `rhize-ops:ghl-csv-import`
+
+**Triggers:** a request to import, upload or bulk-add a CSV, spreadsheet or contact list into GoHighLevel, HighLevel, LeadConnector or GHL; turn a list into a Smart List; map columns to GHL fields, tags or custom fields; or clean a CSV for GHL import.
+
+**Converter:** `python3 scripts/ghl_csv_convert.py --input in.csv --output out.csv --mapping map.json`
+(standard library only; `--self-check` runs built-in assertions). It lower-cases and validates
+emails, de-duplicates on email then phone (unioning tags, max or min for numeric columns), splits
+full names with a warning list for anomalies, builds one `Tags` cell, normalises US phones to E.164
+without inventing any, and writes a JSON report. It exits 1 when a row has no first name, email or
+phone. It never emits DND or consent columns unless you map one, and never calls the GHL API. Tests:
+`tests/rhize-ops/test_ghl_csv_convert.py`.
 
 ### `skill-dashboard`
 
@@ -303,7 +326,7 @@ deadline. The local service must support that header; no request is retried. Nat
 and operational deadline benchmarks retain their existing budgets and default admission.
 Waiting and unavailable responses do not establish model speed, acceptance or earned authority.
 
-The shared evaluation inventory includes `rhize-devflow:frontend-development` (73 marketplace
+The shared evaluation inventory includes `rhize-devflow:frontend-development` (74 marketplace
 skills total). Its conditional seven-family native cases are manual; coverage does not establish
 rendered quality, host activation or measured benefit.
 
