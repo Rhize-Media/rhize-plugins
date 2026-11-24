@@ -87,6 +87,7 @@ _No skills._
 | `cross-model-handoff` | Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Cla… | automation, review, testing, workflow-patterns |
 | `decision-premortem` | Stress-test a concrete decision or plan before committing. | evidence, project-planning, review |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the… | automation, obsidian, workflow-patterns |
+| `ghl-csv-import` | Convert a CSV, spreadsheet or contact list into GoHighLevel (GHL, HighLevel, LeadConnector) contact-import format and guide a safe import. | automation, python, workflow-patterns |
 | `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, evidence, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
 

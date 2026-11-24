@@ -71,7 +71,7 @@ preflight subset. Additional narrative PR runs can outweigh those savings. Net
 savings are **unmeasured**, and realized savings are **zero** until publication and
 observation. The handoff's November org figures (rhize-plugins 360 Linux minutes;
 procedural-memory 95; infra 68; routines 41) were not re-audited as billing here.
-Rhize-Media usage is a separate pool and cannot replenish jdeola's allowance.
+Organization usage is billed from a separate pool and cannot replenish a personal account's allowance.
 
 For future comparison, label before/after runs Arm A/Arm B; retain candidate and
 tree SHA, base, workflow/dependency hashes, toolchain, event, every attempt, job and
