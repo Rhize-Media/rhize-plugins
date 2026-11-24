@@ -108,7 +108,7 @@ def fmt_number(value: float) -> str:
 
 FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
 E164_RE = re.compile(r"^\+\d+$")
-NEGATIVE_NUMBER_RE = re.compile(r"^-(?:\d+(?:\.\d*)?|\.\d+)$")
+NEGATIVE_NUMBER_RE = re.compile(r"^-(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$")
 
 
 def neutralise(label: str, value: str, numeric_labels: set):
@@ -144,6 +144,8 @@ def normalise_mapping(mapping: dict, header: list) -> dict:
                 raise MappingError(f"column {source!r} in {group} not in the CSV header")
             if label in RESERVED:
                 raise MappingError(f"label {label!r} is built in; use the dedicated mapping key")
+            if label.startswith(FORMULA_START):  # header cells are not neutralised
+                raise MappingError(f"label {label!r} starts with a spreadsheet formula character")
     if set(m["fields"].values()) & set(m["custom_fields"].values()):
         raise MappingError("a label appears in both fields and custom_fields")
     m["tag_columns"] = list(mapping.get("tag_columns") or [])
@@ -234,6 +236,10 @@ def convert(rows: list, header: list, mapping: dict):
         for key in CORE:
             if not target[key]:
                 target[key] = record[key]
+                if key == "Email" and record[key]:
+                    by_email.setdefault(record[key], target)
+                if key == "Phone" and record[key]:
+                    by_phone.setdefault(record[key], target)
             elif record[key] and record[key] != target[key]:
                 warn(line, f"{key} {record[key]!r} differs from kept {target[key]!r} (row {target['rows'][0]})")
         for label, value in values.items():

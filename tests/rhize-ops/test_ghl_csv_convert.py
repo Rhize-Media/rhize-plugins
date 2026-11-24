@@ -194,3 +194,22 @@ def test_non_finite_or_formula_value_in_numeric_column_is_not_a_number(raw):
     assert any("non-numeric value" in w for w in report["warnings"])
     _, rows, _ = convert(f"Name,Email,Score\nAnn,a@x.com,{raw}\n", mapping)
     assert rows[0]["Score"] == ("'-1+cmd" if raw == "-1+cmd" else ("'-inf" if raw == "-inf" else raw))
+
+
+def test_formula_leading_label_is_a_mapping_error():
+    with pytest.raises(mod.MappingError):
+        convert("Name,Email,Note\nAnn,a@x.com,hi\n", {"fields": {"Note": "=HYPERLINK(1)"}})
+
+
+def test_identifier_learned_in_merge_is_indexed():
+    text = "Name,Email,Phone\nAnn,a@x.com,\nAnn,a@x.com,(919) 555-0101\nAnn,,919-555-0101\n"
+    _, rows, report = convert(text)
+    assert len(rows) == 1 and rows[0]["Phone"] == "+19195550101"
+    assert len(report["merged_duplicates"]) == 2
+
+
+def test_small_negative_number_in_exponent_form_is_not_prefixed():
+    mapping = {"custom_fields": {"Score": "Score"}, "min_columns": ["Score"]}
+    _, rows, report = convert("Name,Email,Score\nAnn,a@x.com,-0.00001\n", mapping)
+    assert rows[0]["Score"] == "-1e-05"
+    assert not any("formula" in w for w in report["warnings"])
