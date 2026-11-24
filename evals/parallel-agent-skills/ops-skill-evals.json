@@ -132,6 +132,51 @@
           ]
         }
       ]
+    },
+    {
+      "id": "ghl-csv-import",
+      "source": "rhize-ops/skills/ghl-csv-import/SKILL.md",
+      "include_patterns": [
+        "(?:import|upload|bulk[- ]add)\\b.{0,80}\\b(?:go ?high ?level|highlevel|leadconnector|ghl)\\b",
+        "(?:map|clean|convert)\\b.{0,80}\\b(?:go ?high ?level|highlevel|leadconnector|ghl)\\b.{0,40}\\b(?:fields?|tags?|import|csv)\\b"
+      ],
+      "positive_cases": [
+        "ghl-import-positive"
+      ],
+      "negative_cases": [
+        "ghl-workflow-near-miss",
+        "ghl-webhook-near-miss"
+      ],
+      "quality_contracts": [
+        {
+          "id": "canary-before-full-import",
+          "patterns": [
+            "2-row file",
+            "existing tags survived"
+          ]
+        },
+        {
+          "id": "no-credential-exposure",
+          "patterns": [
+            "Never print, store or ask the user to paste a token",
+            "read-only"
+          ]
+        },
+        {
+          "id": "no-consent-columns-by-default",
+          "patterns": [
+            "Never add DND or consent columns",
+            "applies to all channels"
+          ]
+        },
+        {
+          "id": "consent-gate-hard-stop",
+          "patterns": [
+            "Never tick the box for the user",
+            "cannot truthfully make the statement, stop"
+          ]
+        }
+      ]
     }
   ],
   "cases": [
@@ -187,6 +232,10 @@
     {"id": "premortem-personal-positive", "prompt": "Run a decision pre-mortem on my six-week study plan before I commit my evenings.", "expected": ["decision-premortem"]},
     {"id": "premortem-team-positive", "prompt": "Stress-test this team process before we replace weekly meetings with async updates.", "expected": ["decision-premortem"]},
     {"id": "premortem-incident-near-miss", "prompt": "Write the incident postmortem for yesterday’s failed database migration.", "expected": []},
-    {"id": "premortem-code-near-miss", "prompt": "Review this price calculation function for a rounding bug.", "expected": []}
+    {"id": "premortem-code-near-miss", "prompt": "Review this price calculation function for a rounding bug.", "expected": []},
+    {"id": "ghl-import-positive", "prompt": "Import this CSV of leads into GoHighLevel and make a Smart List from it.", "expected": ["ghl-csv-import"]},
+    {"id": "ghl-import-mapping-positive", "prompt": "Clean this spreadsheet and map the columns to GHL fields and tags before upload.", "expected": ["ghl-csv-import"]},
+    {"id": "ghl-workflow-near-miss", "prompt": "Build a GoHighLevel workflow that texts every new lead within five minutes.", "expected": []},
+    {"id": "ghl-webhook-near-miss", "prompt": "Fix the webhook that updates a GoHighLevel contact whenever our app saves a user.", "expected": []}
   ]
 }

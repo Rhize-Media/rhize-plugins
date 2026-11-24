@@ -4,6 +4,9 @@
 
 ### Added
 
+- _2026-11-23_ version bump — 1.0.14 → 1.0.15 (patch); marketplace 2.128.0 → 2.128.1.
+- Include rhize-ops `ghl-csv-import` in the shared evaluation catalog (74 marketplace skills); setup authority unchanged.
+
 - _2026-11-16_ version bump — 1.0.13 → 1.0.14 (patch); marketplace 2.125.0 → 2.125.1.
 
 - Include the public research brief in the mirrored evaluation catalog; retain exact skill coverage and setup authority.

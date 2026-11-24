@@ -1,0 +1,4 @@
+interface:
+  display_name: "GHL CSV Import"
+  short_description: "Convert a CSV for GoHighLevel and import it safely."
+  default_prompt: "Use $ghl-csv-import to convert this contact CSV to GoHighLevel import format, run a canary import and make a Smart List."

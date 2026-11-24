@@ -111,6 +111,10 @@
       {
         "deeper": [],
         "skillId": "skill:obsidian-second-brain/knowledge-compiler"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-ops/ghl-csv-import"
       }
     ],
     "sanity": [
@@ -1652,6 +1656,31 @@
           "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-ops/ghl-csv-import": [
+        {
+          "kind": "name",
+          "label": "ghl-csv-import",
+          "weight": 1
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "facet": "stack",
+          "kind": "tag",
+          "label": "python",
           "weight": 2
         },
         {

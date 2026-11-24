@@ -22,21 +22,7 @@ on:
       - '*/.codex-plugin/migrated-command-skills/**'
   pull_request:
     branches: [main]
-    paths:
-      - '**'
-      - '!**/*.md'
-      - '!docs/**'
-      - '!.claude/**'
-      - '!.wolf/**'
-      - '!STATE.md'
-      # Shipped instructions and operational references are executable plugin inputs.
-      - '*/skills/**'
-      - '*/commands/**'
-      - '*/agents/**'
-      - '*/references/**'
-      - '*/templates/**'
-      - '*/docs/**'
-      - '*/.codex-plugin/migrated-command-skills/**'
+    # Every PR reports validate, including narrative-only changes.
 
 permissions:
   contents: read
@@ -53,7 +39,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
           cache: pip
@@ -64,6 +50,12 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: .github/package-lock.json
+      - name: Preflight generated release inputs
+        run: >-
+          python3 -m pytest -q --exitfirst
+          tests/skill-map/test_routing_harness.py
+          tests/skill-map/test_render_docs.py
+          tests/rhize-core/test_evaluation_setup.py::test_catalog_covers_every_skill_and_groups_obsidian_with_context
       - name: Install pinned static validator
         run: |
           npm ci --prefix .github --ignore-scripts --no-audit --no-fund

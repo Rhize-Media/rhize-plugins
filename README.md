@@ -21,13 +21,13 @@ For Codex CLI, use `codex plugin marketplace add https://github.com/Rhize-Media/
 <!-- SKILL-MAP:BEGIN -->
 | Plugin | Version | Skill Count | Description | Docs |
 | --- | --- | --- | --- | --- |
-| [rhize-core](./rhize-core) ⭐ **hub — recommended base install** | 1.0.14 | 0 | The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command. | [README](./rhize-core/README.md) · [GUIDE](./rhize-core/GUIDE.md) |
+| [rhize-core](./rhize-core) ⭐ **hub — recommended base install** | 1.0.15 | 0 | The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command. | [README](./rhize-core/README.md) · [GUIDE](./rhize-core/GUIDE.md) |
 | [seo-aeo-geo](./seo-aeo-geo) | 1.7.1 | 7 | Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers. | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
 | [obsidian-second-brain](./obsidian-second-brain) | 1.10.0 | 10 | Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian. | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
 | [project-launcher](./project-launcher) | 1.15.3 | 2 | Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project. | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
 | [rhize-devflow](./rhize-devflow) | 2.34.1 | 11 | Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
 | [rhize-context-manager](./rhize-context-manager) | 0.51.1 | 16 | Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
-| [rhize-ops](./rhize-ops) | 0.35.5 | 5 | Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-ops](./rhize-ops) | 0.36.0 | 6 | Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
 | [rhize-tasks](./rhize-tasks) | 0.5.1 | 6 | Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule. | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
 | [rhize-cowork](./rhize-cowork) | 0.2.3 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
 | [procedural-memory](./procedural-memory) | 0.10.0 | 4 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
@@ -265,11 +265,18 @@ Proprietary — Rhize Media. All rights reserved.
 Main pushes and PRs targeting main run the Linux `validate` job with a 15-minute timeout.
 Feature-branch pushes do not duplicate PR runs. Superseded validation runs cancel; the
 marketplace-only tag publisher serializes without cancellation and has a five-minute timeout.
-Narrative Markdown, root `docs/`, `.claude/`, `.wolf/` and `STATE.md` skip CI. Shipped
+On main pushes, narrative Markdown, root `docs/`, `.claude/`, `.wolf/` and `STATE.md` skip CI. Shipped
 `skills/`, `commands/`, `agents/`, `references/`, `templates/`, plugin `docs/` operational
 references and Codex migrated instruction directories remain tested, including Markdown.
-Docs-only changes receive no required-check result and must accompany tested code for any
-future required-check promotion rule.
+Every PR targeting main runs validation, including narrative-only changes, so path filters
+cannot leave its check pending. This adds full validation cost for narrative-only PRs.
+
+After Python dependency installation and Node setup, a small preflight runs existing routing-corpus,
+generated-documentation and evaluation-catalog tests with `--exitfirst`. Invalid release
+inputs fail before static-validator installation and the full suite. Passing inputs still run the
+complete pytest suite and every manifest, configuration, freshness and version gate;
+there is no historical-result reuse. The preflight repeats a small subset on passing runs.
+See the [CI cost review](docs/ci-cost-preflight-2026-11-17.md) for evidence and measurement limits.
 
 Pinned Python test dependencies and the static Claude CLI validator install with download
 caches. Claude is used only for `plugin validate`; CI has no model calls or Copilot dependency.
@@ -278,7 +285,7 @@ manifests; major updates stay separate, and nothing auto-merges. Changes run the
 validation and version contracts. The former separate `version-check / check` job is now the
 `Validate version bumps` step of `validate`; required-check settings need separate review.
 
-CI acceptance (2026-09-27): [reviewed PR run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36345891442) and [main control run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36346107124). This separate narrative-only README change is the push/PR docs-filter acceptance case; settled run results are recorded in the cross-repository hardening report.
+Historical CI acceptance (2026-09-27): [reviewed PR run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36345891442) and [main control run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36346107124). That narrative-only README case verified the former push/PR filters; PR filtering has since been removed in this candidate. Hosted preflight acceptance remains pending publication.
 
 Shared tooling note: the harvest noise filter compares structured `skill-fit-report`
 queue findings within their skill/subtype key. Common report wording across different

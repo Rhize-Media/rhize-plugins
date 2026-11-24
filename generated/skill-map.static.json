@@ -1365,6 +1365,12 @@
     {
       "from": "plugin:rhize-ops",
       "source": "marketplace",
+      "to": "skill:rhize-ops/ghl-csv-import",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
       "to": "skill:rhize-ops/parallel-agent-optimization",
       "type": "contains"
     },
@@ -2956,6 +2962,24 @@
     },
     {
       "from": "skill:rhize-ops/delegate-to-teammate",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/ghl-csv-import",
+      "source": "frontmatter",
+      "to": "tag:stack/python",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-ops/ghl-csv-import",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/ghl-csv-import",
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
@@ -5570,6 +5594,17 @@
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md",
       "totalBytes": 52460,
       "treeHash": "8b3b60ea7521455cc34cf9c62a85ab6cd28ca018be7f5bfd4c5030d3245f5faa"
+    },
+    {
+      "contentHash": "2bb93ae608b1fbfc6e051b78ee1020a7aeddebbac05e5dddbd201d8908cd73a2",
+      "description": "Convert a CSV, spreadsheet or contact list into GoHighLevel (GHL, HighLevel, LeadConnector) contact-import format and guide a safe import. Use when asked to import, upload or bulk-add a CSV or list into GoHighLevel, HighLevel, LeadConnector or GHL; turn a list into a GHL Smart List; map columns to GHL fields, tags or custom fields; or clean a CSV for GHL import. Not for single-contact edits or building GHL workflows.",
+      "fileCount": 3,
+      "id": "skill:rhize-ops/ghl-csv-import",
+      "kind": "skill",
+      "name": "ghl-csv-import",
+      "path": "rhize-ops/skills/ghl-csv-import/SKILL.md",
+      "totalBytes": 15128,
+      "treeHash": "109015a318ade4e01a623088e2c9076fd5e097f6432aa87102a270b8669942f2"
     },
     {
       "contentHash": "dbca6e8cb5dd04c0604808463fcffdb2a07cbc7c798228ad196c139c6b037b17",
