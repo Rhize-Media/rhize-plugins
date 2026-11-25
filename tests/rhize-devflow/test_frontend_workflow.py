@@ -41,14 +41,14 @@ def test_frontend_compiled_routing_and_nonvisual_controls():
     index = module.build_router_index(module.build())
     script = r"""const fs=require('fs'); const core=require(process.argv[1]);
 const index=JSON.parse(fs.readFileSync(0,'utf8'));
-const prompts=['Plan frontend development for this page.', 'Improve the visual design of our dashboard.', 'Apply UI polish to the settings panel.', 'Plan frontend motion for this dialog.', 'Fix a backend SQL query.', 'Explain design patterns for database services.', 'Design a database schema for dashboard analytics.', 'Do not use frontend-development. Rename this variable only.', 'Use rhize-devflow:scroll-craft.', 'Use scroll craft to plan this launch.'];
+const prompts=['Plan frontend development for this page.', 'Improve the visual design of our dashboard.', 'Apply UI polish to the settings panel.', 'Plan frontend motion for this dialog.', 'Fix a backend SQL query.', 'Explain design patterns for database services.', 'Design a database schema for dashboard analytics.', 'Do not use frontend-development. Rename this variable only.', 'Use rhize-devflow:scroll-craft.', 'Use scroll craft to plan this launch.', 'Use Scrollcraft for an original scroll-driven narrative on our launch page.'];
 console.log(JSON.stringify(prompts.map(p=>core.routeFromIndex(index,core.tokenize(p),p)?.skillId??null)));"""
     result = subprocess.run(["node", "-e", script, str(ROOT / "rhize-context-manager/hooks/lib/route-core.js")], input=json.dumps(index), text=True, capture_output=True, check=True)
     actual = json.loads(result.stdout)
     target = "skill:rhize-devflow/frontend-development"
     assert actual[:4] == [target] * 4
     assert all(value not in {target, 'skill:rhize-devflow/scroll-craft'} for value in actual[4:8])
-    assert actual[8:] == ['skill:rhize-devflow/scroll-craft'] * 2
+    assert actual[8:] == ['skill:rhize-devflow/scroll-craft'] * 3
 
 
 def test_native_case_contract_covers_families_and_controls():

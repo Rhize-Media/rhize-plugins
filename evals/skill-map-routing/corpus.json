@@ -1,7 +1,7 @@
 {
  "counts": {
-  "eval:neg": 132,
-  "eval:pos": 93,
+  "eval:neg": 135,
+  "eval:pos": 94,
   "probe:pos": 17
  },
  "rows": [
@@ -1318,6 +1318,42 @@
    "should_trigger": false,
    "source": "evals/rhize-context-manager/routing_cases.json",
    "target": "skill:rhize-context-manager/tool-design"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-scroll-craft-pos",
+   "prompt": "Use Scrollcraft for an original scroll-driven narrative on our launch page.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/scroll-craft"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-scroll-craft-neg-transition",
+   "prompt": "Polish the existing menu's 150ms close transition.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/scroll-craft"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-scroll-craft-neg-reference",
+   "prompt": "Reproduce the entrance motion from this supplied video clip.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/scroll-craft"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-scroll-craft-neg-dashboard",
+   "prompt": "Improve focus contrast in a dashboard table.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/scroll-craft"
   },
   {
    "authored": "eval",

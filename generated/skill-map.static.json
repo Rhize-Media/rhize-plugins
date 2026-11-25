@@ -5570,7 +5570,7 @@
       "treeHash": "a3ba840098d11abeff2c42d71f31b19a163876fedefb8f881c5b5b203e01c6d9"
     },
     {
-      "contentHash": "32dc028d4b8c7409a8acc76d9aed1f45224423aab85efa6be116bc30283a127f",
+      "contentHash": "2daceb9d958906813d51d0b977ce7f5e17d967b275af6a8c7c148c1b0d33c05a",
       "contentHashNormalized": "7f8b31604fff25b8dfc6cedf8d2b7dae9e9bafefe48e98df9ceeb9970d6c1443",
       "description": "Use only for an explicit Scrollcraft request or a brief where an original scroll-driven narrative is a primary marketing or editorial requirement. Plan the page grammar, one memorable moment and optional signature interaction, then test the built page. Not for ordinary transitions, functional dashboards, or reproducing supplied motion.",
       "fileCount": 2,
@@ -5579,12 +5579,13 @@
       "name": "scroll-craft",
       "path": "rhize-devflow/skills/scroll-craft/SKILL.md",
       "routerPhrases": [
+        "scrollcraft narrative",
         "use scroll craft",
         "use scrollcraft"
       ],
       "summary": "Plans and verifies original scroll-driven marketing and editorial experiences.",
-      "totalBytes": 6048,
-      "treeHash": "16d964dddd99075978094e45a07bafc890e0f1d343feed1d77c8920ab7dc9e07"
+      "totalBytes": 6073,
+      "treeHash": "c91205ddae78b517bc15e76b7ecee0cc95d15941b8ddce63d3cb8a897af821fc"
     },
     {
       "contentHash": "a53f38c3d48e964556f1e67f116c8e65d4696918d04dbbdbe1700f0b3093e90b",

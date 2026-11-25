@@ -1517,6 +1517,11 @@
         },
         {
           "kind": "phrase",
+          "label": "scrollcraft narrative",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
           "label": "use scroll craft",
           "weight": 2
         },

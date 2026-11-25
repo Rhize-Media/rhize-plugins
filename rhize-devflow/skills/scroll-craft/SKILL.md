@@ -11,7 +11,7 @@ metadata:
     topics: [frontend, ui, visual-design]
     stacks: []
     router:
-      phrases: ["use scrollcraft", "use scroll craft"]
+      phrases: ["use scrollcraft", "use scroll craft", "scrollcraft narrative"]
 ---
 
 # Scrollcraft in Rhize Dev Flow
