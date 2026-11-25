@@ -114,6 +114,7 @@ def test_router_index_is_deterministic_regardless_of_phrase_order():
 
 EXPECTED = {
     "skill:rhize-devflow/frontend-development": ["dashboard design", "frontend motion", "ui polish"],
+    "skill:rhize-devflow/scroll-craft": ["scrollcraft narrative", "use scroll craft", "use scrollcraft"],
     "skill:procedural-memory/graph-workflow-builder": ["build graph workflow", "completion gates"],
     "skill:rhize-devflow/credential-access": ["keychain access", "keychain credentials", "stored credentials"],
     "skill:obsidian-second-brain/defuddle": ["web clipping"],

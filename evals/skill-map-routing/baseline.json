@@ -122,15 +122,15 @@
   "rhize-devflow": {
    "eval_negatives": {
     "false_trigger": 0,
-    "n": 24,
+    "n": 27,
     "other_cross_plugin": 0,
     "other_same_plugin": 0,
-    "silent": 24
+    "silent": 27
    },
    "eval_positives": {
     "hit": 4,
-    "n": 16,
-    "silent": 12,
+    "n": 17,
+    "silent": 13,
     "wrong": 0
    },
    "long_negative_fires": 1,
@@ -1512,6 +1512,42 @@
    "prompt": "Should we split this job between several subagents or keep one agent?",
    "should_trigger": false,
    "target": "skill:rhize-context-manager/tool-design",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-scroll-craft-pos",
+   "outcome": "silent",
+   "prompt": "Use Scrollcraft for an original scroll-driven narrative on our launch page.",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/scroll-craft",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-scroll-craft-neg-transition",
+   "outcome": "silent",
+   "prompt": "Polish the existing menu's 150ms close transition.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/scroll-craft",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-scroll-craft-neg-reference",
+   "outcome": "silent",
+   "prompt": "Reproduce the entrance motion from this supplied video clip.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/scroll-craft",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-scroll-craft-neg-dashboard",
+   "outcome": "silent",
+   "prompt": "Improve focus contrast in a dashboard table.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/scroll-craft",
    "top": null
   },
   {
@@ -3099,20 +3135,20 @@
    "top": null
   }
  ],
- "rows_sha": "1a3c117d15ec1e2c",
+ "rows_sha": "2c0b47555850efca",
  "schema": 1,
  "summary": {
   "eval_negatives": {
    "false_trigger": 5,
-   "n": 132,
+   "n": 135,
    "other_cross_plugin": 0,
    "other_same_plugin": 2,
-   "silent": 125
+   "silent": 128
   },
   "eval_positives": {
    "hit": 24,
-   "n": 93,
-   "silent": 61,
+   "n": 94,
+   "silent": 62,
    "wrong": 8
   },
   "long_negatives": {

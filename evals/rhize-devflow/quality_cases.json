@@ -1,5 +1,41 @@
 [
   {
+    "id": "quality-scroll-craft-project-authority-and-evidence",
+    "target_file": "rhize-devflow/skills/scroll-craft/SKILL.md",
+    "assertions": [
+      {
+        "type": "contains",
+        "value": "single direction owner",
+        "name": "One direction owner"
+      },
+      {
+        "type": "contains",
+        "value": "existing CSS or motion libraries",
+        "name": "Existing stack"
+      },
+      {
+        "type": "contains",
+        "value": "does not run upstream scripts",
+        "name": "No third-party runtime"
+      },
+      {
+        "type": "contains",
+        "value": "failed media or JavaScript off",
+        "name": "Progressive fallback"
+      },
+      {
+        "type": "contains",
+        "value": "worst frame",
+        "name": "Intermediate evidence"
+      },
+      {
+        "type": "contains",
+        "value": "emulation alone is not proof",
+        "name": "Honest device coverage"
+      }
+    ]
+  },
+  {
     "id": "quality-frontend-conditional-selection-and-evidence",
     "target_file": "rhize-devflow/skills/frontend-development/SKILL.md",
     "assertions": [

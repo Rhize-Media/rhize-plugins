@@ -1299,6 +1299,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "skill:rhize-devflow/scroll-craft",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "skill:rhize-devflow/sentry-instrumentation",
       "type": "contains"
     },
@@ -2788,6 +2794,35 @@
       "type": "topic-tag"
     },
     {
+      "driftCheck": {
+        "method": "content-hash",
+        "upstreamPath": "nateherkai/scroll-craft/tree/75d81f74e83692add18cd7a8a8e078b8a887a579/plugins/nateherk-design/skills/scroll-craft",
+        "upstreamRepo": "github.com"
+      },
+      "from": "skill:rhize-devflow/scroll-craft",
+      "source": "sources-md",
+      "to": "external:github.com/nateherkai/scroll-craft/tree/75d81f74e83692add18cd7a8a8e078b8a887a579/plugins/nateherk-design/skills/scroll-craft",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-devflow/scroll-craft",
+      "source": "frontmatter",
+      "to": "tag:topic/frontend",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/scroll-craft",
+      "source": "frontmatter",
+      "to": "tag:topic/ui",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/scroll-craft",
+      "source": "frontmatter",
+      "to": "tag:topic/visual-design",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-devflow/sentry-instrumentation",
       "source": "relations-catalog",
       "to": "external:sentry-plugin",
@@ -4214,6 +4249,12 @@
       "url": "https://github.com/duriantaco/skylos"
     },
     {
+      "id": "external:github.com/nateherkai/scroll-craft/tree/75d81f74e83692add18cd7a8a8e078b8a887a579/plugins/nateherk-design/skills/scroll-craft",
+      "kind": "external",
+      "name": "scroll-craft",
+      "url": "https://github.com/nateherkai/scroll-craft/tree/75d81f74e83692add18cd7a8a8e078b8a887a579/plugins/nateherk-design/skills/scroll-craft"
+    },
+    {
       "description": "Third-party plugin whose SKILL.md sits at the plugin root (not under skills/*/SKILL.md), so it isn't inventoried as a skill node by build_local_skill_map.py's third-party scan; rewrites AI-sounding text to read more naturally.",
       "id": "external:humanizer-humanizer",
       "kind": "external",
@@ -5498,7 +5539,7 @@
       "treeHash": "8055049e0ff13aee070f360e9972d851e9c6e0c8473cce943f921a526cddd78a"
     },
     {
-      "contentHash": "f4873f26e5ec43de7ef9a9ba8280b9efb7a03d68f868dc4e889764d9e776527a",
+      "contentHash": "2a72a94c608d856c642b5527233c231b6469564d0daa73a1b30848f28172c38d",
       "description": "Coordinate frontend design, UI implementation, motion and visual review using the relevant installed design skills and observed browser evidence. Use for pages, dashboards, components, visual design, UI polish or frontend motion; exclude backend-only and mechanical nonvisual work.",
       "fileCount": 1,
       "id": "skill:rhize-devflow/frontend-development",
@@ -5511,8 +5552,8 @@
         "ui polish"
       ],
       "summary": "Selects frontend design and motion skills, preserves project authority, and connects implementation to browser acceptance.",
-      "totalBytes": 9921,
-      "treeHash": "8bbf09f29786e055ad864b4b1244ddcf21a586fa4639a6e6ed7080fd28512de0"
+      "totalBytes": 10500,
+      "treeHash": "ee7731b1c17098cd9bb23d6ee8cda13e9697af84242dc4eb9133fe38f1b53e93"
     },
     {
       "contentHash": "8cfa1d5fd7ac0cfe77b81fecbee1b6389ccf62d8966ff8e9ea66876998a7fefe",
@@ -5527,6 +5568,24 @@
       ],
       "totalBytes": 108482,
       "treeHash": "a3ba840098d11abeff2c42d71f31b19a163876fedefb8f881c5b5b203e01c6d9"
+    },
+    {
+      "contentHash": "2daceb9d958906813d51d0b977ce7f5e17d967b275af6a8c7c148c1b0d33c05a",
+      "contentHashNormalized": "7f8b31604fff25b8dfc6cedf8d2b7dae9e9bafefe48e98df9ceeb9970d6c1443",
+      "description": "Use only for an explicit Scrollcraft request or a brief where an original scroll-driven narrative is a primary marketing or editorial requirement. Plan the page grammar, one memorable moment and optional signature interaction, then test the built page. Not for ordinary transitions, functional dashboards, or reproducing supplied motion.",
+      "fileCount": 2,
+      "id": "skill:rhize-devflow/scroll-craft",
+      "kind": "skill",
+      "name": "scroll-craft",
+      "path": "rhize-devflow/skills/scroll-craft/SKILL.md",
+      "routerPhrases": [
+        "scrollcraft narrative",
+        "use scroll craft",
+        "use scrollcraft"
+      ],
+      "summary": "Plans and verifies original scroll-driven marketing and editorial experiences.",
+      "totalBytes": 6073,
+      "treeHash": "c91205ddae78b517bc15e76b7ecee0cc95d15941b8ddce63d3cb8a897af821fc"
     },
     {
       "contentHash": "a53f38c3d48e964556f1e67f116c8e65d4696918d04dbbdbe1700f0b3093e90b",

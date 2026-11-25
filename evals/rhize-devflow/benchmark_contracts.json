@@ -30,6 +30,20 @@
   },
   "skills": [
     {
+      "skill": "scroll-craft",
+      "applicability": "offline_fixture",
+      "taskClass": "scroll-led-editorial-page-plan",
+      "armA": {
+        "variant": "existing-frontend-development",
+        "implementation": "Plan the sample project with the frontend development coordinator and its normal available tools, without loading rhize-devflow:scroll-craft."
+      },
+      "armB": {
+        "variant": "rhize-devflow-scroll-craft",
+        "implementation": "Load rhize-devflow:scroll-craft on the same brief, stack and authorized asset fixture."
+      },
+      "judge": "Narrative beats map to meaningful scroll events and primary action, design avoids template reuse, existing stack and static fallbacks are preserved, and evidence requests cover intermediate frames and assistive use without claiming unexecuted checks."
+    },
+    {
       "skill": "frontend-development",
       "applicability": "offline_fixture",
       "taskClass": "conditional-frontend-workflow",

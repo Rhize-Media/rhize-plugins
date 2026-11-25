@@ -1,5 +1,23 @@
 [
   {
+    "id": "scroll-craft",
+    "family": "scroll-craft",
+    "request": "Use Scrollcraft for an original editorial landing where the story progresses on scroll. Keep our existing React components and licensed images. Outline direction, implementation and what would count as browser acceptance. Do not run or install tools during this review.",
+    "required_skills": [
+      "scroll-craft"
+    ],
+    "forbidden_skills": [
+      "reanimate"
+    ],
+    "criteria": [
+      "one primary direction owner with a reason for scroll narrative",
+      "existing framework and rights respected; no installs, paid assets or credentials",
+      "mobile framing, keyboard and reduced-motion and failed media work without losing content",
+      "actual per-frame checks not claimed in a plan",
+      "ordinary frontend work does not require Scrollcraft"
+    ]
+  },
+  {
     "id": "taste",
     "family": "taste",
     "request": "Develop a distinctive frontend visual direction for a community-garden volunteer landing page. Existing brand: cream and forest green, plain factual content, one primary action: choose a volunteer shift. No new framework or animation dependency. Give concrete hierarchy, typography, layout and responsive decisions.",

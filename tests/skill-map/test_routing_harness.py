@@ -78,6 +78,14 @@ def test_corpus_is_fresh_and_deterministic(harness_run):
     assert len(probes) == 17 and all(r["authored"] == "author-written" for r in probes)
 
 
+
+def test_scroll_craft_named_request_and_near_miss_controls(harness_run):
+    rows = {row["id"]: row for row in json.loads((harness_run / "results.json").read_text())["rows"]}
+    prefix = "rhize-devflow/trigger-scroll-craft-"
+    assert rows[prefix + "pos"]["top"] == "skill:rhize-devflow/scroll-craft"
+    for case in ("neg-dashboard", "neg-reference", "neg-transition"):
+        assert rows[prefix + case]["outcome"] == "silent", case
+
 def test_long_negatives_file():
     rows = json.loads((HARNESS / "long_negatives.json").read_text())["rows"]
     assert len(rows) >= 60 and len({r["id"] for r in rows}) == len(rows)

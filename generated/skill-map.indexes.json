@@ -1509,6 +1509,46 @@
           "weight": 2
         }
       ],
+      "skill:rhize-devflow/scroll-craft": [
+        {
+          "kind": "name",
+          "label": "scroll-craft",
+          "weight": 1
+        },
+        {
+          "kind": "phrase",
+          "label": "scrollcraft narrative",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "use scroll craft",
+          "weight": 2
+        },
+        {
+          "kind": "phrase",
+          "label": "use scrollcraft",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "frontend",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "ui",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "visual-design",
+          "weight": 2
+        }
+      ],
       "skill:rhize-devflow/sentry-instrumentation": [
         {
           "kind": "name",

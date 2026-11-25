@@ -9,7 +9,7 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### rhize-core
 
-Version 1.0.15. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
+Version 1.1.0. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
 
 [README](../rhize-core/README.md) · [GUIDE](../rhize-core/GUIDE.md) · [0 skills](../generated/SKILL-CATALOG.md#rhize-core)
 
@@ -33,9 +33,9 @@ Version 1.15.3. Walks a new project from a rough idea through research, requirem
 
 ### rhize-devflow
 
-Version 2.34.1. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
+Version 2.35.0. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
 
-[README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [11 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
+[README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [12 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
 
 ### rhize-context-manager
 
@@ -45,7 +45,7 @@ Version 0.51.1. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.36.0. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
+Version 0.37.0. Rhize Media's internal operations toolkit — stress-tests decisions, hands off work with full context, tracks skill health, and helps run multiple agents safely.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [6 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
