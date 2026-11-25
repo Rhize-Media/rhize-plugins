@@ -4,6 +4,17 @@ One entry per external-skill ingestion decision owned by Rhize Dev Flow.
 
 The optional Ponytail plugin has a separate [companion provenance record](../docs/ponytail-provenance.md); it introduces no forked skill.
 
+## scroll-craft — 2026-11-25
+- **Source:** https://github.com/nateherkai/scroll-craft/tree/75d81f74e83692add18cd7a8a8e078b8a887a579/plugins/nateherk-design/skills/scroll-craft
+- **Upstream ref:** `75d81f74e83692add18cd7a8a8e078b8a887a579` (0.3.1)
+- **License:** MIT, © 2026 Nate Herk; the upstream notice is included in the skill directory
+- **Verb:** ABSORB
+- **Target:** rhize-devflow:scroll-craft and the conditional frontend-development selection row
+- **Took:** project-scoped guidance for page grammar, journey and peak, original signature interaction, layered/mobile composition and visual acceptance
+- **Verification:** deterministic frontend workflow, packaging and routing contracts; native skill discovery and any particular website's browser acceptance remain separate
+- **Drift check:** compare new pinned source before importing any guidance or proposing runtime changes
+- **Notes:** no upstream engine, scripts, approved-collection assets, provider integrations, tool grants, bootstrap or global workspace registry is bundled. This is not a fork or replacement of upstream's runtime.
+
 ## frontend-development — 2026-11-04
 - **Source:** https://github.com/NiazMorshed2007/reanimate
 - **Upstream ref:** `3f7a55a2986a84ca2173e86ee9127eefe31d046d`

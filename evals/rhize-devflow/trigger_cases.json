@@ -1,5 +1,29 @@
 [
   {
+    "id": "trigger-scroll-craft-pos",
+    "target": "skill:scroll-craft",
+    "prompt": "Use Scrollcraft for an original scroll-driven narrative on our launch page.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-scroll-craft-neg-transition",
+    "target": "skill:scroll-craft",
+    "prompt": "Polish the existing menu's 150ms close transition.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-scroll-craft-neg-reference",
+    "target": "skill:scroll-craft",
+    "prompt": "Reproduce the entrance motion from this supplied video clip.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-scroll-craft-neg-dashboard",
+    "target": "skill:scroll-craft",
+    "prompt": "Improve focus contrast in a dashboard table.",
+    "should_trigger": false
+  },
+  {
     "id": "trigger-frontend-development-neg-mechanical",
     "target": "skill:frontend-development",
     "prompt": "Rename an internal CSS custom property without changing rendered values or behavior.",

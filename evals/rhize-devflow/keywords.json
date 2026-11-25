@@ -116,6 +116,10 @@
     "keychain access",
     "authenticating a cli"
   ],
+  "skill:scroll-craft": [
+    "original scroll-driven",
+    "scrollcraft"
+  ],
   "skill:frontend-development": [
     "frontend design",
     "ui implementation",

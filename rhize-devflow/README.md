@@ -188,6 +188,7 @@ mutation-analyze · mutation-fix
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
 | `frontend-development` | Selects frontend design and motion skills, preserves project authority, and connects implementation to browser acceptance. | frontend, ui, visual-design |
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | content-authoring, nextjs, sanity, sentry |
+| `scroll-craft` | Plans and verifies original scroll-driven marketing and editorial experiences. | frontend, ui, visual-design |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
 | `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
 | `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, testing |
@@ -486,6 +487,11 @@ copy in the project's existing stack. It is an optional global skill, not bundle
 Default to motion-only; exact visual matching also requires client rights to the reference assets.
 Login-walled pages, YouTube and Loom require a supplied recording. Global setup must separately
 verify Bun, ffmpeg/Chromium, and actual fresh-session invocation; report failures and fallbacks.
+
+For an original scroll-led marketing or editorial experience, choose [Scrollcraft](skills/scroll-craft/SKILL.md)
+through `frontend-development` or request the bundled skill by name. It plans the story and
+verifies mobile, keyboard, reduced-motion and failed-media behavior using the existing app
+and browser tools. It does not install the upstream engine, scripts or paid asset services.
 
 Keep the existing design system and framework authoritative. Backend-only and mechanical
 nonvisual changes skip this workflow. Substantive UI changes enter `review`'s UI risk category;

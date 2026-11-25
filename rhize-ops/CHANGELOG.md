@@ -11,6 +11,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-24_ version bump — 0.36.0 → 0.37.0 (minor); marketplace 2.128.1 → 2.129.0.
 - _2026-11-23_ version bump — 0.35.5 → 0.36.0 (minor); marketplace 2.127.0 → 2.128.0.
 - Add the `ghl-csv-import` skill: convert a CSV into GoHighLevel contact-import format with `scripts/ghl_csv_convert.py` (stdlib only, `--self-check`) and guide a safe import (consent gate that stops when the wizard's attestation cannot be made truthfully, route choice, read-only pre-flight, 2-row canary, tag-filter Smart List). Includes a sourced facts reference separating documented, observed and unconfirmed behaviour, Codex `agents/openai.yaml`, routing and quality evals, and converter tests.
 - Harden `ghl_csv_convert.py` after independent review: reject mapping labels that start with a formula character, index identifiers learned during a duplicate merge, keep exponent-form negatives numeric, and treat nan/inf in max/min columns as non-numeric.

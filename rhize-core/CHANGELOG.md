@@ -4,6 +4,7 @@
 
 ### Added
 
+- _2026-11-24_ version bump — 1.0.15 → 1.1.0 (minor); marketplace 2.128.1 → 2.129.0.
 - _2026-11-23_ version bump — 1.0.14 → 1.0.15 (patch); marketplace 2.128.0 → 2.128.1.
 - Include rhize-ops `ghl-csv-import` in the shared evaluation catalog (74 marketplace skills); setup authority unchanged.
 

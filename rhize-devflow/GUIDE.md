@@ -654,6 +654,14 @@ reference's fonts, images, code and assets. Supply a recording for login-walled 
 Loom. Install it globally in a separate setup task, with Bun, ffmpeg/Chromium and a fresh-session
 invocation test; a downloaded SKILL.md alone does not establish runtime compatibility.
 
+For an original scroll-led marketing or editorial experience, choose [Scrollcraft](skills/scroll-craft/SKILL.md)
+through `frontend-development` or request the bundled skill by name. It plans the story and
+verifies mobile, keyboard, reduced-motion and failed-media behavior using the existing app
+and browser tools. It does not install the upstream engine, scripts or paid asset services.
+
+Example: “Use Scrollcraft for a scroll-driven launch page. Keep our existing React stack, use
+our licensed imagery, and verify the primary action works with reduced motion.”
+
 Keep the existing design system and framework authoritative. Backend-only and mechanical
 nonvisual changes skip this workflow. Substantive UI changes enter `review`'s UI risk category;
 `browser-qa` observes affected states, screenshots, keyboard/focus and reduced-motion behavior.

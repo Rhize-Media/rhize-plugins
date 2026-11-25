@@ -35,6 +35,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-11-24_ version bump — **rhize-core** 1.0.15 → 1.1.0 (minor); **rhize-devflow** 2.34.1 → 2.35.0 (minor); **rhize-ops** 0.36.0 → 0.37.0 (minor); marketplace 2.128.1 → 2.129.0.
 - _2026-11-23_ version bump — **rhize-core** 1.0.14 → 1.0.15 (patch); marketplace 2.128.0 → 2.128.1.
 - _2026-11-23_ version bump — **rhize-ops** 0.35.5 → 0.36.0 (minor); marketplace 2.127.0 → 2.128.0.
 - CI: run a generated-input preflight (routing harness, docs render, catalog coverage) before the full suite, report validate on every PR to main, and bump actions/setup-python 7.1.0 and pytest 9.2.0.

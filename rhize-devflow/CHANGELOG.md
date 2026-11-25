@@ -8,6 +8,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-24_ version bump — 2.34.1 → 2.35.0 (minor); marketplace 2.128.1 → 2.129.0.
+- Add the opt-in Scrollcraft design workflow for original scroll-led stories. Route it from frontend development, preserve the existing app stack, and verify intermediate frames and fallbacks through Browser QA. No upstream engine, scripts or paid services are bundled.
+
 - _2026-11-17_ version bump — 2.34.0 → 2.34.1 (patch); marketplace 2.126.0 → 2.126.1.
 - Pin the independent verifier to `high` effort in its agent definition. Without the pin the final commit gate inherited the session's effort level, so `xhigh` sessions ran every verification at `xhigh`. The model, tool allowlist and verdicts are unchanged; a host-level `CLAUDE_CODE_EFFORT_LEVEL` still takes precedence.
 - _2026-11-10_ version bump — 2.33.3 → 2.34.0 (minor); marketplace 2.120.1 → 2.121.0.
