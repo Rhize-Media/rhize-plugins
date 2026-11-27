@@ -400,3 +400,48 @@ Surfaces record each advise-capable decision with `typed_advice.advise` (`<root>
 1. **Labels** (`rhize-context-manager/scripts/typed_decisions/choice_labels.py run [--decision D] [--max-cases N] [--dry-run]`). For every advise decision except `skill-fit` and `workflow-fit` (which keep their own labelers), choice records with a snapshot and no label get a blinded packet: the snapshot request re-sanitized by `pilot_redaction` (its source hash is stored as `redactor`), the question, and candidate ids with criteria under neutral shuffled keys. Laya's recommendation, probabilities, mode, arm, outcome and earlier labels never enter a packet. Two no-tools annotators (Claude and Codex through `skillfit_labels`' backend) answer independently; identical answers are accepted, a split goes to a reviewer model that is neither annotator, an unresolved review is stored as ambiguous. Labels are write-once `<root>/<decision>/label/<id>.json` (`rhize-typed-choice-label-v1`, `basis: ai_model_reviewed`, `rubricVersion`, annotators, reviewer, `evidenceSha256`). The run spends at most `maxCases` (default 50) model-labelled cases in total, shared fairly across decisions, and shares `pilot_autolabel`'s `state/run.lock` (a held lock exits quietly with zero calls). Right after the import, a critical-tier decision with an imported label that contradicts a shown advice (record mode `advise`, arm `treatment`, `criticalIfWrong`, Laya status `ok`, label not ambiguous) is demoted to `shadow` (`critical_miss`) through `decision_registry.mutate`; `no_change` and pins are recorded in the run receipt `<root>/choice-labels/receipts/`.
 2. **Cycle** (`decision_cycle.py run`). The skill-fit cosign cycle is unchanged. After it, `run_advise` handles every decision with an `advise` entry except `workflow-fit` (owned by `pilot_cycle.py`). The gate is **prospective**. Records are the ones on one binding: `policySha256` (the registry state's once advise is earned, else the most recent record's), the entry's advise instrument hash and the running Laya revision. Group is `groupSha256` (falling back to the decision id); skill-fit uses the session hash and the label's `bestSkill`, with the contract's `advise-v1` policy hash (the one the Node router writes and reads). With a tuning baseline available and no open cohort, the first pass probes Laya (must return exactly `True`) and appends an `open` event (`openedAt`, rule `earliest-record-per-promotion-group-after-open`, and the **baseline frozen at that moment**: the tuning-split majority) and holds as `cohort_opened`; nothing recorded before that moment is ever a case. Later passes **enroll** without reading a label, outcome or Laya answer: the earliest record of each promotion-split group created after `openedAt` on that binding (skipping groups earlier cohorts used), in record-time order, until there are `ceil(minCohort / 0.8)` of them (the headroom covers up to 20% ambiguous labels) and, for a critical decision, `ceil(minCriticalCases / 0.8)` critical cases (the critical flag is pre-decision state). Until then the pass holds as `cohort_collecting`. The immutable `enrolled` event (case ids and group hashes) is then appended; there is no replacement afterwards. The cohort waits (`cohort_labelling`) until every enrolled case has a final label; ambiguous labels are excluded, and more than 20% of them consume the cohort as a hold (`ambiguous_share`). Immediately before the final evaluation the pass probes Laya again (a failure holds as `laya_unavailable` and consumes nothing), then evaluates the enrolled set with the open-frozen baseline exactly once. The receipt is published exclusively per cohort id and `consumed` is appended after it; a retry after a crash in between adopts the stored receipt unchanged (no re-evaluation, whatever labels arrived since) and appends the missing `consumed`. A binding change `abandon`s the open or enrolled cohort (its attempt and alpha stay spent) and opens a new one. The required classes are the tuning classes with at least 10% share. Laya's answers are the ones recorded at decision time. A pass promotes to `advise` with `{policySha256, instrumentSha256, layaRevision, cohortId}`; with `advise` in force the rolling demotion rule runs on the latest advise-arm treatment cases (`gate_demote`), and a critical decision demotes at once (`critical_miss`) on any critical case Laya did not get right among all labelled cases with a `shown` marker since advise began, not only the window. Pins, `off`, `cosign` and registry refusals are recorded holds. `--no-advise` skips the pass.
 3. **Scoreboard** (`typed_decisions/scoreboard.py render`). One advise row per decision: mode, labelled n, last verdict, accuracy vs baseline, CP lower bound, coverage, critical cases and misses, attempts used and the next alpha.
+
+### Scheduled receipt inventory and prospective skill-filter review
+
+Operational readers can use a private manifest to enumerate a growing receipt directory. Run
+`receipt_snapshot.py --receipts DIR --manifest NEW_FILE seal` and keep the returned SHA-256.
+The `use --sha256 HASH --runtime PIN consumer arguments...` subcommand checks that digest and
+the hashes of listed receipts before handing the sorted snapshot to the existing consumer.
+Use the same leading receipt/manifest arguments for both commands. Create the manifest in a
+private directory outside the input. Later arrivals are deferred until the next seal. Changed,
+missing, corrupt, oversized or symlinked members invalidate the read. Each snapshot is bounded
+to 100,000 members, 128 MiB of receipt bytes, 128 KiB per member and a 30-second scan budget.
+This snapshots receipt enumeration only. Source-bound context and sibling evidence still
+undergo the original runtime's validation. The collector and original inventory stay frozen.
+Keep the caller's separate deadline and previous valid baseline on failure.
+
+Supported consumers are the pilot report and queue, taxonomy export, the existing scheduled
+labeler and the shadow-only research runner. Run each in a separate process. Preserve the
+individual collection, historical and research pins and record the manifest and reader digest
+beside the result. A successful export says nothing about selection, model completion or import.
+
+The read-only November 2026 study runs with `python3 evals/typed-decision/skill_filter_comparison.py`.
+It freezes the incumbent, rules-only floor@3, deployable cosign-v1 and experimental cosign@0.4.
+It scores fresh Claude shadow sessions from November 28 UTC until the second existing weekly
+review on December 6 at 23:30 UTC. Reserved sessions, past sessions, backfill and other hosts
+are excluded. The actual policies retain their incumbent fallback when the model fails.
+Report incident counts and latency separately. Existing labels support shortlist scoring and
+sample-weighted estimates. Task-family, causal overhead, token costs and task benefit need
+separate evidence.
+
+Review needs 60 judged-useful incumbent suggestions and 100 reviewed sessions, a paired
+session-bootstrap 95% lower retention bound of 80%, and 20% fewer irrelevant prompts.
+Paired net benefit must clear zero at exchange rates 5, 10 and 20 against the incumbent and,
+for model filters, against floor@3. Hold when unreviewed cases could differentiate the policies,
+source versions differ, or model availability/latency misses the study limits. Prefer rules-only
+when sufficient. All results request review only; the existing independent authority gates and
+explicit trial decision still apply. A trial would measure completion without material rework,
+interruptions per completed task, latency and observed usage against the incumbent holdback.
+
+The scheduled launcher uses `operational_rollout.py` to qualify two distinct natural
+launches on the same release. Each independently checks receipt membership and bytes,
+counts later arrivals, and exercises report, queue and export on each collection pin.
+The activation markers and per-read manifests stay in the private release audit folder.
+A failed observation earns no marker. Subsequent consumers use the original pinned
+implementation with the sealed receipt inventory. Removing the local launcher binding
+restores the previous deployment from its preserved copy.
