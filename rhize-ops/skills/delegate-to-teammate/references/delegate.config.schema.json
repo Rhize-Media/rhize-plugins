@@ -107,6 +107,7 @@
           "pattern": "^U[A-Z0-9]{8,}$",
           "description": "Resolved via the Slack MCP's user search — required when slack.status is 'ready'."
         },
+        "meetingAgenda": { "$ref": "#/$defs/meetingAgenda" },
         "roleSummary": { "type": "string", "minLength": 1 },
         "slack": {
           "type": "object",
@@ -127,6 +128,27 @@
           }
         }
       }
+    },
+    "meetingAgenda": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["ready", "incomplete", "disabled"] },
+        "label": { "type": "string", "minLength": 1 },
+        "account": { "type": "string", "format": "email", "pattern": "^[^ @]+@[^ @]+$" },
+        "calendarId": { "type": "string", "minLength": 1 },
+        "seriesIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "minItems": 1 },
+        "scheduleProvider": { "const": "google-calendar" },
+        "agendaProvider": { "enum": ["google-docs", "slack-canvas"] },
+        "agendaId": { "type": "string", "minLength": 1 },
+        "slackTeamId": { "type": "string", "minLength": 1 },
+        "jiraProjects": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }, "description": "Absent disables the recap. An empty list includes all issues visible to both editors on the configured Jira site." }
+      },
+      "allOf": [
+        { "if": { "properties": { "status": { "const": "ready" } } }, "then": { "required": ["label", "account", "scheduleProvider", "calendarId", "seriesIds", "agendaProvider", "agendaId"] } },
+        { "if": { "required": ["agendaProvider"], "properties": { "status": { "const": "ready" }, "agendaProvider": { "const": "slack-canvas" } } }, "then": { "required": ["slackTeamId"] } }
+      ]
     },
     "projectList": {
       "type": "array",

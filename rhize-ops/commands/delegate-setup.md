@@ -128,6 +128,10 @@ If the Slack MCP isn't connected, or the channel/user couldn't be resolved, set 
 `"incomplete"`, leave the identifier fields null, and tell the user that chat notification will be
 skipped until they connect the Slack MCP and re-run this wizard.
 
+### Optional shared meeting agenda
+
+Offer to configure the resolved recipient’s recurring meeting and agenda using [the agenda setup and access checks](../skills/delegate-to-teammate/references/meeting-agenda.md#setup). Ask whether to include Jira activity across all shared projects or only selected projects. Preserve each other recipient’s settings. A missing block skips agendas. In the safe summary show the meeting label, providers, status, and Jira scope without identifiers.
+
 ### 7. Ask inference rules
 
 Ask: "When a task's project isn't specified, how should I guess? (e.g. 'marketing tasks default
