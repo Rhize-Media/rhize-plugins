@@ -129,3 +129,17 @@ def test_jira_reader_pages_and_checks_the_actual_issue(monkeypatch):
     searches = [p for e, p in requests if e == "search/jql"]
     assert len(searches) == 2 and 'project in ("TEAM")' in searches[0]["jql"]
     assert [p["startAt"] for e, p in requests if e.endswith("/changelog")] == [0, 1]
+
+
+@pytest.mark.parametrize("native", [False, True])
+def test_docs_tab_reads_and_ambiguous_tabs(native):
+    args = write_args()
+    doc = args["document"]
+    content = {"body": doc.pop("body"), "namedRanges": None}
+    tab = {"documentTab": content} if native else content
+    doc["tabs"] = [tab]
+    assert run("docs", **args)["writeControl"] == {"requiredRevisionId": "r3"}
+    doc["tabs"].append(tab)
+    result = subprocess.run([sys.executable, str(SCRIPT), "docs"], input=json.dumps(args),
+                            text=True, capture_output=True)
+    assert result.returncode == 2 and not result.stdout

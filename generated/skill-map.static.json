@@ -5651,8 +5651,8 @@
       "kind": "skill",
       "name": "delegate-to-teammate",
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md",
-      "totalBytes": 64450,
-      "treeHash": "a301d0b6d22a0698fe2b3aa7a8efe2b9e8c1c3cddac2d672fbbfb1f1fea24656"
+      "totalBytes": 64617,
+      "treeHash": "b1a79162f81aa78d48e9a16ed83be089a926e094fd7f5eda6dac595cb54c7c38"
     },
     {
       "contentHash": "2bb93ae608b1fbfc6e051b78ee1020a7aeddebbac05e5dddbd201d8908cd73a2",

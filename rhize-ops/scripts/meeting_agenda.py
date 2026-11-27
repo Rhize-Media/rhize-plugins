@@ -105,8 +105,14 @@ def docs_update(data):
         raise ValueError("Unknown agenda section")
     meeting = anchor(data["seriesId"], instant(data["originalStart"]).isoformat())
     section = anchor(meeting, group)
-    ranges = doc.get("namedRanges", {})
-    paragraphs = doc["body"]["content"]
+    content = doc
+    if doc.get("tabs") is not None:
+        tabs = doc["tabs"]
+        if len(tabs) != 1 or tabs[0].get("childTabs") or tabs[0].get("parentTabId"):
+            raise ValueError("Select a single-tab agenda")
+        content = tabs[0].get("documentTab", tabs[0])
+    ranges = content.get("namedRanges") or {}
+    paragraphs = content["body"]["content"]
 
     def after_heading(name):
         names = ranges[name]["namedRanges"]
