@@ -1130,3 +1130,13 @@ Verification: 104 focused updater/guard/cache tests pass, independently repeated
 suite: 919 passed and one sandbox-denied process-inspection failure; the affected test passed
 with native host access. Independent source review PASS_WITH_WARNINGS: native idle-event
 coverage and live activation are not claimed. Exact Git staged fixture/native discovery passes.
+
+## Laya scheduled reporting and prospective filter study — 2026-11-27
+
+The frozen inventory works at 10,000 and refuses the next receipt. A separately versioned
+operational reader preserves original collection code and enumerates a verified manifest.
+Read-only qualification restored current/historical reports and exports on the same 10,826
+receipts. Model-review availability is a separate stage. The four-policy skill-filter study
+fixes its sample window and tradeoff before opening fresh data. A strict probability cutoff
+can remove useful suggestions along with noise; retain the incumbent hit denominator.
+See the typed-decision evaluation README for the protocol and operating limits.
