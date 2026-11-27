@@ -11,6 +11,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-11-27_ version bump — 0.38.0 → 0.38.1 (patch); marketplace 2.130.0 → 2.130.1.
 - _2026-11-27_ version bump — 0.37.0 → 0.38.0 (minor); marketplace 2.129.0 → 2.130.0.
 - _2026-11-24_ version bump — 0.36.0 → 0.37.0 (minor); marketplace 2.128.1 → 2.129.0.
 - _2026-11-23_ version bump — 0.35.5 → 0.36.0 (minor); marketplace 2.127.0 → 2.128.0.

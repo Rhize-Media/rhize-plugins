@@ -27,7 +27,7 @@ For the configured Jira Cloud account, run `python3 <plugin-root>/scripts/agenda
 
 ## Apply and verify
 
-For Google Docs, get the complete current document with revision, body and named ranges. Pass the following JSON shape to `meeting_agenda.py docs`, once for each requested section, re-reading the document between writes.
+For Google Docs, get the complete current document with revision, body and named ranges. For a connector that returns tabs, request `documentId,revisionId,tabs(tabProperties,documentTab(body,namedRanges))` and pass its single-tab document result directly. Pass the following JSON shape to `meeting_agenda.py docs`, once for each requested section, re-reading the document between writes.
 
 ```json
 {
