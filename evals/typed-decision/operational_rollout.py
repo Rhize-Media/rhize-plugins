@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import stat
 import sys
 import tempfile
 import time
@@ -95,9 +96,9 @@ class Rollout:
                 raise ValueError("invalid oracle inventory")
             seen.add(p.stem)
             if p.stem in members:
-                size = p.stat().st_size
+                size, value = oracle_digest(p, reader.BYTE_LIMIT - total)
                 total += size
-                if size > reader.ROW_LIMIT or total > reader.BYTE_LIMIT or digest(p) != members[p.stem]:
+                if value != members[p.stem]:
                     raise ValueError("receipt oracle mismatch")
         if members.keys() - seen:
             raise ValueError("incomplete receipt oracle")
@@ -136,6 +137,19 @@ class Rollout:
         }
         publish(destination, evidence)
         return {"status": "qualified", **evidence}
+
+
+def oracle_digest(path, remaining):
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+    with os.fdopen(fd, "rb") as stream:
+        info = os.fstat(fd)
+        limit = min(remaining, reader.ROW_LIMIT)
+        if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
+            raise ValueError("invalid oracle receipt")
+        raw = stream.read(limit + 1)
+        if len(raw) != info.st_size:
+            raise ValueError("oracle receipt changed")
+        return len(raw), hashlib.sha256(raw).hexdigest()
 
 
 def digest(path):

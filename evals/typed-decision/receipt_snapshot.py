@@ -94,9 +94,14 @@ def seal(root, path):
 
 
 def open_manifest(path, digest, root):
-    if path.is_symlink() or path.stat().st_size > 16 << 20:
-        raise ValueError("invalid manifest")
-    raw = path.read_bytes()
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+    with os.fdopen(fd, "rb") as stream:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_size > 16 << 20:
+            raise ValueError("invalid manifest")
+        raw = stream.read(info.st_size + 1)
+        if len(raw) != info.st_size:
+            raise ValueError("manifest size changed")
     if hashlib.sha256(raw).hexdigest() != digest:
         raise ValueError("manifest digest mismatch")
     obj = json.loads(raw)
@@ -121,8 +126,12 @@ def dispatch(runtime, root, members, name, args):
         raise ValueError("unsupported pilot command")
     if name == "pilot_labels" and not (len(args) == 3 and args[:2] == ["export", "--out"]):
         raise ValueError("unsupported label command")
-    if name == "pilot_cycle" and "--shadow-only" not in args:
-        raise ValueError("shadow-only required")
+    if name == "pilot_cycle":
+        allowed = {"--research-root", "--minimum-labels", "--deadline-seconds", "--shadow-only"}
+        if "--shadow-only" not in args or any(
+            a.startswith("-") and a.split("=")[0] not in allowed for a in args
+        ):
+            raise ValueError("explicit shadow-only research options required")
     if name == "pilot_autolabel" and args[:1] != ["run"]:
         raise ValueError("unsupported labeler command")
     sys.path[:0] = [str(runtime / "rhize-context-manager/scripts"), str(runtime / "evals/typed-decision")]

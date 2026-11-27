@@ -136,3 +136,22 @@ def test_rollout_requires_two_distinct_launches_same_release(tmp_path):
     assert rollout.active()
     with pytest.raises(ValueError, match="unreviewed"):
         rollout.command(EVAL / "pilot_cycle.py", ["--shadow-only"])
+
+
+def test_observer_refuses_replaced_file_and_research_scope_abbreviations(tmp_path):
+    import os
+    from operational_rollout import oracle_digest
+
+    path = tmp_path / "receipt"
+    path.write_bytes(b"{}")
+    assert oracle_digest(path, 2) == (2, hashlib.sha256(b"{}").hexdigest())
+    with pytest.raises(ValueError):
+        oracle_digest(path, 1)
+    path.unlink()
+    os.mkfifo(path)
+    with pytest.raises(ValueError, match="invalid manifest"):
+        reader.open_manifest(path, "0" * 64, tmp_path)
+    with pytest.raises(ValueError):
+        oracle_digest(path, 128)
+    with pytest.raises(ValueError, match="explicit shadow-only"):
+        reader.dispatch(tmp_path, tmp_path, {}, "pilot_cycle", ["--shadow-only", "--rece", "/other"])
