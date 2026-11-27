@@ -89,7 +89,7 @@
       "id": "delegate-config",
       "path": "<home>/.claude/rhize-ops/delegate.config.json",
       "kind": "file",
-      "purpose": "Recipient, tracker, and Slack mapping written by /rhize-ops:delegate-setup.",
+      "purpose": "Recipient, tracker, Slack and optional shared meeting agenda settings written by /rhize-ops:delegate-setup.",
       "viewer": "cat ~/.claude/rhize-ops/delegate.config.json (redact identifiers before sharing)",
       "lifetime": "persistent",
       "confidentiality": "personal",

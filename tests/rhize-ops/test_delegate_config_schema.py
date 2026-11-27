@@ -214,3 +214,22 @@ def test_example_with_confluence_block_removed_still_validates() -> None:
     example = copy.deepcopy(schema["examples"][0])
     del example["confluence"]
     assert_valid(example, schema)
+
+
+def test_optional_recipient_meeting_agenda():
+    schema = load_schema()
+    config = copy.deepcopy(schema["examples"][0])
+    person = next(iter(config["recipients"].values()))
+    person["meetingAgenda"] = {"status": "incomplete"}
+    assert_valid(config, schema)
+    agenda = dict(status="ready", label="Team sync", account="lead@example.org",
+                  calendarId="team@example.org", scheduleProvider="google-calendar",
+                  seriesIds=["weekly", "midweek"], agendaProvider="google-docs", agendaId="agenda", jiraProjects=[])
+    person["meetingAgenda"] = agenda
+    assert_valid(config, schema)
+    for key, invalid in [("seriesIds", []), ("jiraProjects", ["BAD PROJECT"]), ("agendaProvider", "other"),
+                         ("scheduleProvider", "slack"), ("agendaProvider", "slack-canvas")]:
+        person["meetingAgenda"] = {**agenda, key: invalid}
+        assert_invalid(config, schema)
+    person["meetingAgenda"] = {**agenda, "agendaProvider": "slack-canvas", "slackTeamId": "team"}
+    assert_valid(config, schema)

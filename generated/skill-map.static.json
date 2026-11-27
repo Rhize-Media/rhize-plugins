@@ -5644,15 +5644,15 @@
       "treeHash": "d09f4c810812f349373f2364b30e5b177619c961f2f9c11a939c2137636e94ee"
     },
     {
-      "contentHash": "901ffcb39f5c5706bf9c808c2cdfc0b2d31575b9e9b9a042d08c7d83e18bfb74",
-      "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the full handoff brief to Confluence and vault notes as attachments on the Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"send this to [name]\", \"[name] should handle this\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json. Run `/rhize-ops:delegate-setup` first if no config exists.",
-      "fileCount": 5,
+      "contentHash": "512086e653d37413def486dcf85b68342fe76cb2fa8ac8286827a13efeabea35",
+      "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the full handoff brief to Confluence and vault notes as attachments on the Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"send this to [name]\", \"[name] should handle this\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json. Also use for a shared meeting agenda or Jira recap request.",
+      "fileCount": 6,
       "id": "skill:rhize-ops/delegate-to-teammate",
       "kind": "skill",
       "name": "delegate-to-teammate",
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md",
-      "totalBytes": 52460,
-      "treeHash": "8b3b60ea7521455cc34cf9c62a85ab6cd28ca018be7f5bfd4c5030d3245f5faa"
+      "totalBytes": 64450,
+      "treeHash": "a301d0b6d22a0698fe2b3aa7a8efe2b9e8c1c3cddac2d672fbbfb1f1fea24656"
     },
     {
       "contentHash": "2bb93ae608b1fbfc6e051b78ee1020a7aeddebbac05e5dddbd201d8908cd73a2",
