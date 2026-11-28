@@ -491,3 +491,5 @@ research may opt into at most 2,000 ms of admission waiting inside its existing 
 deadline. The local service must support that header; no request is retried. Native routing
 and operational deadline benchmarks retain their existing budgets and default admission.
 Waiting and unavailable responses do not establish model speed, acceptance or earned authority.
+
+For the session-randomized live skill trial, activation, rollback, feedback capture and private outcome reporting are documented in the [Claude skill-advice study](../docs/typed-decisions/claude-skill-advice-study.md).

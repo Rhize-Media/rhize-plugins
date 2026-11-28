@@ -2,6 +2,8 @@
 
 ## Verified facts
 
+- A native Claude verification captured a voluntary neither/wrong-question response to a genuine distinct Laya skill suggestion. Verification sessions are separate from trial data. The trial uses a session-level concurrent control and independent outcome reviews.
+
 - The live Docs connector returns tab content with nullable named ranges and rejects legacy body fields in a tab query. The agenda helper accepts the flattened connector and native single-tab formats and refuses ambiguous multi-tab documents.
 
 - Shared delegation agendas use the resolved recipient’s configured recurring series and shared document. Jira recaps use the previous eligible occurrence across those series, exact creation and Done-transition timestamps, and issue-level visibility for both editors. Release publication and live access checks are verified separately.

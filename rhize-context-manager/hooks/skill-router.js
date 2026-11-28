@@ -127,6 +127,8 @@ const DECISION = 'skill-fit';
 // Hosts whose skill-fit decision may run in `cosign`. Every other host (codex, unknown) is capped at
 // `shadow` for the invocation, whatever the registry or machine state says: Codex has no co-sign
 // evidence yet, and it must not be pooled into the promotion/demotion gate (plan section 7, F6).
+let study;
+try { study = require('./lib/skill-study'); } catch (_) { /* optional local experiment */ }
 const COSIGN_HOSTS = ['claude'];
 // `advise` is capped the same way: unknown and machine hosts read `shadow`.
 const ADVISE_HOSTS = ['claude', 'codex'];
@@ -759,8 +761,8 @@ function persist(state, plan, laya, emitted, shown) {
 
 function emit(payload) {
   return new Promise((resolve) => {
-    if (!payload) { resolve(); return; }
-    try { process.stdout.write(payload, () => resolve()); } catch (_) { resolve(); }
+    if (!payload) { resolve(true); return; }
+    try { process.stdout.write(payload, err => resolve(!err)); } catch (_) { resolve(false); }
   });
 }
 
@@ -768,7 +770,11 @@ async function finalize(state, plan, laya) {
   let payload = state.incumbentPayload;
   let shown = state.incumbentShown;
   try {
-    if (plan && laya && plan.config.mode === 'cosign' && plan.arm === 'treatment'
+    if (state.study) {
+      const record = plan && laya ? buildRecord(state, plan, laya, shown) : null;
+      const line = study.prepare(state.study, state, plan, laya, record, payloadFor);
+      if (line) payload = payloadFor(state.incumbentMessage + '\n' + line);
+    } else if (plan && laya && plan.config.mode === 'cosign' && plan.arm === 'treatment'
         && laya.status === 'ok' && laya.choice !== state.match.skillId) {
       payload = state.suppressedPayload;
       shown = null;
@@ -779,8 +785,12 @@ async function finalize(state, plan, laya) {
       if (ref) payload = payloadFor(`${state.incumbentMessage}\nLaya suggests the ${ref} skill (advisory).`);
     }
   } catch (_) { payload = state.incumbentPayload; shown = state.incumbentShown; }
-  await emit(payload); // flush BEFORE any persistence or exit
-  persist(state, plan, laya, Boolean(payload), shown);
+  const flushed = await emit(payload);
+  if (state.study) {
+    if (flushed) { try { study.delivered(state.study, payload); } catch (_) { /* unconfirmed delivery */ } }
+  } else {
+    persist(state, plan, laya, Boolean(payload), shown);
+  }
   try { if (plan && plan.probeCache) L.client.commitProbeCache(plan.probeCache); } catch (_) { /* best effort */ }
 }
 
@@ -802,7 +812,10 @@ async function main() {
     // A packaged run is opt-in and defers to a manual registration: otherwise exit silently, before
     // the workflow bridge, Laya, any decision record or any legacy suggestion-log row.
     if (PACKAGED && !packagedMayRun(data)) { process.exit(0); return; }
+    let turn;
+    try { turn = study && study.startTurn(data); } catch (_) { /* study absent */ }
     state = prepare(raw, data);
+    if (state && turn && state.host === 'claude' && !state.observer) state.study = turn;
   } catch (_err) {
     state = null; // fail-silent contract: never surface an error to the user or Claude
   }
