@@ -498,3 +498,5 @@ research may opt into at most 2,000 ms of admission waiting inside its existing 
 deadline. The local service must support that header; no request is retried. Native routing
 and operational deadline benchmarks retain their existing budgets and default admission.
 Waiting and unavailable responses do not establish model speed, acceptance or earned authority.
+
+Claude users can opt into a controlled trial of live skill suggestions. The working agent can challenge Laya or choose neither. [Study and measures](../docs/typed-decisions/claude-skill-advice-study.md).

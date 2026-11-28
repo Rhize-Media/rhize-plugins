@@ -879,6 +879,12 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "hook:rhize-context-manager/inline-0093f89e",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "hook:rhize-context-manager/inline-4d4e5dfc",
       "type": "contains"
     },
@@ -886,6 +892,12 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "hook:rhize-context-manager/inline-59b33d8b",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/inline-6d0a3a4b",
       "type": "contains"
     },
     {
@@ -910,6 +922,12 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "hook:rhize-context-manager/inline-d0b4a9c5",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/inline-dc7bf545",
       "type": "contains"
     },
     {
@@ -4541,6 +4559,17 @@
       "status": "opt-in"
     },
     {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/skill_study_hook.js\" Stop",
+      "event": "Stop",
+      "id": "hook:rhize-context-manager/inline-0093f89e",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-0093f89e",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/workflow_selection.py\" hook 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize workflow selection bootstrap is unavailable; your task can continue.\"}'",
       "event": "UserPromptSubmit",
       "id": "hook:rhize-context-manager/inline-4d4e5dfc",
@@ -4558,6 +4587,17 @@
       "kind": "hook",
       "matcher": "",
       "name": "inline-59b33d8b",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/skill_study_hook.js\" SessionStart",
+      "event": "SessionStart",
+      "id": "hook:rhize-context-manager/inline-6d0a3a4b",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-6d0a3a4b",
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/hooks/hooks.json",
       "status": "wired"
@@ -4602,6 +4642,17 @@
       "kind": "hook",
       "matcher": "",
       "name": "inline-d0b4a9c5",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/skill_study_hook.js\" PostToolUse",
+      "event": "PostToolUse",
+      "id": "hook:rhize-context-manager/inline-dc7bf545",
+      "kind": "hook",
+      "matcher": "Skill",
+      "name": "inline-dc7bf545",
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/hooks/hooks.json",
       "status": "wired"

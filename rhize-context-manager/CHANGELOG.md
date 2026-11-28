@@ -25,6 +25,10 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ## [Unreleased]
 
+### Added
+
+- _2026-11-27_ version bump — 0.51.1 → 0.52.0 (minor); marketplace 2.130.1 → 2.131.0.
+
 ### Fixed
 
 - Bound read-only label selection by the remaining run deadline and preserve a source-bound manifest even when selection times out. Distinguish malformed/failed subscription probes from missing logins, and share the remaining budget across native probes.
